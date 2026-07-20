@@ -205,18 +205,3 @@ set up Node
 run frontend tests
 build frontend
 ```
-
-## Resume Talking Points
-
-This project demonstrates:
-
-- Java Spring Boot backend development
-- REST API design
-- PostgreSQL relational database design
-- authentication and authorization
-- location-based feed filtering
-- business rule enforcement
-- unit and integration testing
-- CI/CD using GitHub Actions
-- full-stack React and Java development
-```
