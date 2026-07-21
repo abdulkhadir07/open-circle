@@ -9,5 +9,4 @@ public class OpenCircleApiApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(OpenCircleApiApplication.class, args);
 	}
-
 }
