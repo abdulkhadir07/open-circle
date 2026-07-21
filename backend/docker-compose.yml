@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: opencircle-postgres
+    environment:
+      POSTGRES_DB: opencircle_db
+      POSTGRES_USER: opencircle
+      POSTGRES_PASSWORD: opencircle
+    ports:
+      - "5434:5432"
+    volumes:
+      - opencircle_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  opencircle_postgres_data:
