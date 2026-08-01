@@ -1,4 +1,9 @@
 package com.opencircle.auth;
 
-public record AuthResponse() {
+import com.opencircle.user.dto.UserResponse;
+
+record AuthResponse(
+        String token,
+        UserResponse user
+) {
 }
