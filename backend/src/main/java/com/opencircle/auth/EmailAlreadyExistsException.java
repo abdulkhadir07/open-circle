@@ -1,4 +1,11 @@
 package com.opencircle.auth;
 
-public class EmailAlreadyExistsExeption {
+import com.opencircle.common.ApiException;
+import org.springframework.http.HttpStatus;
+
+class EmailAlreadyExistsException extends ApiException {
+
+    EmailAlreadyExistsException() {
+        super(HttpStatus.CONFLICT, "Email is already registered");
+    }
 }
