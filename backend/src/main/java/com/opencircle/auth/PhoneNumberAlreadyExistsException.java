@@ -1,4 +1,11 @@
 package com.opencircle.auth;
 
-public class PhoneNumberAlreadyExistsException {
+import com.opencircle.common.ApiException;
+import org.springframework.http.HttpStatus;
+
+class PhoneNumberAlreadyExistsException extends ApiException {
+
+    PhoneNumberAlreadyExistsException() {
+        super(HttpStatus.CONFLICT, "Phone number is already registered");
+    }
 }
