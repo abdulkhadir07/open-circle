@@ -2,6 +2,7 @@ package com.opencircle.user;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Optional;
 
 import java.util.UUID;
 
@@ -56,6 +57,11 @@ public class UserService {
     public AppUser getByEmail(String email) {
         return users.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<AppUser> findByEmail(String email) {
+        return users.findByEmailIgnoreCase(email);
     }
 
     @Transactional(readOnly = true)
