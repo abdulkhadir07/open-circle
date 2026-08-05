@@ -17,6 +17,7 @@ public record UserResponse(
         String stateRegion,
         String country,
         Role role,
+        boolean emailVerified,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -32,6 +33,7 @@ public record UserResponse(
                 user.getStateRegion(),
                 user.getCountry(),
                 user.getRole(),
+                user.isEmailVerified(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );
