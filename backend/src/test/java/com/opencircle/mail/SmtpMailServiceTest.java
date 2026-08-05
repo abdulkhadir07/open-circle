@@ -9,7 +9,7 @@ import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-class SmtpMailService {
+class SmtpMailServiceTest {
 
     @Test
     void sendEmailVerificationCodeSendsPlainTextEmail() {
