@@ -1,4 +1,6 @@
 package com.opencircle.mail;
 
-public class MailService {
+public interface MailService {
+
+    void sendEmailVerificationCode(String to, String code);
 }
