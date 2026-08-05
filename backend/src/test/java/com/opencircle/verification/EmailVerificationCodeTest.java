@@ -1,4 +1,94 @@
 package com.opencircle.verification;
 
-public class EmailVerificationCodeTest {
+import com.opencircle.user.AppUser;
+import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.time.LocalDate;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class EmailVerificationCodeTest {
+
+    @Test
+    void isActiveReturnsTrueWhenCodeIsUnusedAndNotExpired() {
+        Instant now = Instant.now();
+        EmailVerificationCode code = new EmailVerificationCode(
+                user(),
+                "hash",
+                now.plusSeconds(60)
+        );
+
+        assertThat(code.isActive(now, 5)).isTrue();
+    }
+
+    @Test
+    void isActiveReturnsFalseWhenCodeIsUsed() {
+        Instant now = Instant.now();
+        EmailVerificationCode code = new EmailVerificationCode(
+                user(),
+                "hash",
+                now.plusSeconds(60)
+        );
+
+        code.markUsed(now);
+
+        assertThat(code.isActive(now, 5)).isFalse();
+    }
+
+    @Test
+    void isActiveReturnsFalseWhenCodeIsExpired() {
+        Instant now = Instant.now();
+        EmailVerificationCode code = new EmailVerificationCode(
+                user(),
+                "hash",
+                now.minusSeconds(1)
+        );
+
+        assertThat(code.isActive(now, 5)).isFalse();
+    }
+
+    @Test
+    void recordFailedAttemptIncrementsAttemptCount() {
+        EmailVerificationCode code = new EmailVerificationCode(
+                user(),
+                "hash",
+                Instant.now().plusSeconds(60)
+        );
+
+        code.recordFailedAttempt();
+
+        assertThat(code.getAttemptCount()).isEqualTo(1);
+    }
+
+    private AppUser user() {
+        return new AppUser(
+                "bright_river_1234",
+                "Jane",
+                "Doe",
+                "jane@example.com",
+                "hashed-password",
+                "+14155550123",
+                LocalDate.of(2000, 1, 1),
+                "San Francisco",
+                "California",
+                "USA"
+        );
+    }
+
+    @Test
+    void isActiveReturnsFalseWhenCodeReachedMaxAttempts() {
+        Instant now = Instant.now();
+        EmailVerificationCode code = new EmailVerificationCode(
+                user(),
+                "hash",
+                now.plusSeconds(60)
+        );
+
+        code.recordFailedAttempt();
+        code.recordFailedAttempt();
+        code.recordFailedAttempt();
+
+        assertThat(code.isActive(now, 3)).isFalse();
+    }
 }
