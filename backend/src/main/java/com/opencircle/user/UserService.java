@@ -73,4 +73,9 @@ public class UserService {
     public boolean phoneNumberExists(String phoneNumber) {
         return users.existsByPhoneNumber(phoneNumber);
     }
+
+    @Transactional(readOnly = true)
+    public Optional<AppUser> findById(UUID id) {
+        return users.findById(id);
+    }
 }
