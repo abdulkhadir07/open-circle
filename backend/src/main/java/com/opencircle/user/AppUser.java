@@ -55,6 +55,12 @@ public class AppUser {
     @Column(nullable = false, length = 30)
     private Role role = Role.USER;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -146,6 +152,19 @@ public class AppUser {
 
     public Role getRole() {
         return role;
+    }
+
+    public boolean isEmailVerified() {return emailVerified;}
+
+    public Instant getEmailVerifiedAt() {return emailVerifiedAt;}
+
+    public void markEmailVerified(Instant verifiedAt) {
+        if (verifiedAt == null) {
+            throw new IllegalArgumentException("Email verification time is required");
+        }
+
+        emailVerified = true;
+        emailVerifiedAt = verifiedAt;
     }
 
     public Instant getCreatedAt() {

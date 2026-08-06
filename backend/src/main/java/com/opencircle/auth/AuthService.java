@@ -4,6 +4,7 @@ import com.opencircle.security.JwtService;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
 import com.opencircle.user.dto.UserResponse;
+import com.opencircle.verification.EmailVerificationService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,15 +15,18 @@ class AuthService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmailVerificationService emailVerificationService;
 
     AuthService(
             UserService userService,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService
+            JwtService jwtService,
+            EmailVerificationService emailVerificationService
     ) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.emailVerificationService = emailVerificationService;
     }
 
     @Transactional
@@ -47,6 +51,8 @@ class AuthService {
                 request.country()
         );
 
+        emailVerificationService.issueCode(user);
+
         return createAuthResponse(user);
     }
 
@@ -59,7 +65,33 @@ class AuthService {
             throw new InvalidCredentialsException();
         }
 
+        if (!user.isEmailVerified()) {
+            throw new EmailNotVerifiedException();
+        }
+
         return createAuthResponse(user);
+    }
+
+    @Transactional
+    AuthResponse verifyEmail(VerifyEmailRequest request) {
+        AppUser user = userService.findByEmail(request.email())
+                .orElseThrow(InvalidCredentialsException::new);
+
+        emailVerificationService.verify(user, request.code());
+
+        return createAuthResponse(user);
+    }
+
+    @Transactional
+    void resendVerification(ResendVerificationRequest request) {
+        AppUser user = userService.findByEmail(request.email())
+                .orElseThrow(InvalidCredentialsException::new);
+
+        if (user.isEmailVerified()) {
+            return;
+        }
+
+        emailVerificationService.issueCode(user);
     }
 
     private AuthResponse createAuthResponse(AppUser user) {

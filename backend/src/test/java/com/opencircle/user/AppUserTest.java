@@ -2,6 +2,7 @@ package com.opencircle.user;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,5 +53,28 @@ class AppUserTest {
 
         assertThat(user.getCreatedAt()).isEqualTo(originalCreatedAt);
         assertThat(user.getUpdatedAt()).isAfter(originalCreatedAt);
+    }
+
+    @Test
+    void markEmailVerifiedUpdatesVerificationState() {
+        AppUser user = new AppUser(
+                "bright_river_1234",
+                "Jane",
+                "Doe",
+                "jane@example.com",
+                "hashed-password",
+                "+14155550123",
+                LocalDate.of(2000, 1, 1),
+                "San Francisco",
+                "California",
+                "USA"
+        );
+
+        Instant verifiedAt = Instant.now();
+
+        user.markEmailVerified(verifiedAt);
+
+        assertThat(user.isEmailVerified()).isTrue();
+        assertThat(user.getEmailVerifiedAt()).isEqualTo(verifiedAt);
     }
 }
