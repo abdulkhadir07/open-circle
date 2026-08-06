@@ -4,6 +4,7 @@ import com.opencircle.user.AppUser;
 import com.opencircle.user.Role;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record UserResponse(
@@ -13,6 +14,7 @@ public record UserResponse(
         String lastName,
         String email,
         String phoneNumber,
+        LocalDate dateOfBirth,
         String city,
         String stateRegion,
         String country,
@@ -29,6 +31,7 @@ public record UserResponse(
                 user.getLastName(),
                 user.getEmail(),
                 user.getPhoneNumber(),
+                user.getDateOfBirth(),
                 user.getCity(),
                 user.getStateRegion(),
                 user.getCountry(),
