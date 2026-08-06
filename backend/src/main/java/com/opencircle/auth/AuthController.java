@@ -26,4 +26,16 @@ class AuthController {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/verify-email")
+    ResponseEntity<AuthResponse> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        AuthResponse response = authService.verifyEmail(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/resend-verification")
+    ResponseEntity<Void> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+        authService.resendVerification(request);
+        return ResponseEntity.noContent().build();
+    }
 }
