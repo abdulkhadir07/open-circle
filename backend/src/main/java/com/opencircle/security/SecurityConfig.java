@@ -34,20 +34,33 @@ class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
+                // The API uses JWT authentication, so CSRF protection for browser sessions is not needed.
                 .csrf(csrf -> csrf.disable())
+
+                // Applies the configured frontend origins, methods, and headers to all API requests.
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // Keeps the backend stateless by preventing Spring Security from creating HTTP sessions.
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // Allows public auth flows while requiring a valid JWT for every other endpoint.
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/signup").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/verify-email").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/resend-verification").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/forgot-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
                         .anyRequest().authenticated()
                 )
+
+                // Validates bearer tokens and converts the JWT role claim into Spring Security authorities.
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 )
+
+                // Returns consistent JSON error responses for missing, invalid, or unauthorized tokens.
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler)
@@ -57,6 +70,8 @@ class SecurityConfig {
 
     private UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+
+        // Restricts cross-origin requests to the frontend origins configured in application properties.
         config.setAllowedOrigins(corsProperties.getAllowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
@@ -69,6 +84,7 @@ class SecurityConfig {
     private JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
 
+        // Reads the custom role claim from the JWT and exposes it as a ROLE_* authority.
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             String role = jwt.getClaimAsString("role");
 

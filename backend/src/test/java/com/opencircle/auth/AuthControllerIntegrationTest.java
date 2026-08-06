@@ -263,5 +263,200 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
         return codeCaptor.getValue();
     }
 
+    @Test
+    void forgotPasswordReturnsNoContentForUnknownEmail() throws Exception {
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "unknown.controller@example.com"
+                            }
+                            """))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void forgotPasswordSendsResetCodeForExistingUser() throws Exception {
+        createVerifiedUser(
+                "reset.controller@example.com",
+                "+14155550220"
+        );
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "reset.controller@example.com"
+                            }
+                            """))
+                .andExpect(status().isNoContent());
+
+        verify(mailService).sendPasswordResetCode(
+                org.mockito.Mockito.eq("reset.controller@example.com"),
+                org.mockito.Mockito.anyString()
+        );
+    }
+
+    @Test
+    void forgotPasswordDoesNotRevealUnknownEmail() throws Exception {
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "nobody.controller@example.com"
+                            }
+                            """))
+                .andExpect(status().isNoContent());
+
+        org.mockito.Mockito.verify(mailService, org.mockito.Mockito.never())
+                .sendPasswordResetCode(
+                        org.mockito.Mockito.anyString(),
+                        org.mockito.Mockito.anyString()
+                );
+    }
+
+    @Test
+    void resetPasswordChangesPasswordAndAllowsLogin() throws Exception {
+        createVerifiedUser(
+                "changepassword.controller@example.com",
+                "+14155550221"
+        );
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "changepassword.controller@example.com"
+                            }
+                            """))
+                .andExpect(status().isNoContent());
+
+        String resetCode = latestPasswordResetCode();
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "changepassword.controller@example.com",
+                              "code": "%s",
+                              "newPassword": "NewPassword123!"
+                            }
+                            """.formatted(resetCode)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "changepassword.controller@example.com",
+                              "password": "NewPassword123!"
+                            }
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token", notNullValue()));
+    }
+
+    @Test
+    void resetPasswordRejectsInvalidCode() throws Exception {
+        createVerifiedUser(
+                "badreset.controller@example.com",
+                "+14155550222"
+        );
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "badreset.controller@example.com"
+                            }
+                            """))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "badreset.controller@example.com",
+                              "code": "000000",
+                              "newPassword": "NewPassword123!"
+                            }
+                            """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid or expired password reset code"));
+    }
+
+    @Test
+    void resetPasswordRejectsInvalidRequest() throws Exception {
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "not-an-email",
+                              "code": "abc",
+                              "newPassword": "short"
+                            }
+                            """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.fieldErrors.email").exists())
+                .andExpect(jsonPath("$.fieldErrors.code").exists())
+                .andExpect(jsonPath("$.fieldErrors.newPassword").exists());
+    }
+
+    private void createVerifiedUser(String email, String phoneNumber) throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "firstName": "Reset",
+                              "lastName": "User",
+                              "email": "%s",
+                              "password": "Password123!",
+                              "phoneNumber": "%s",
+                              "dateOfBirth": "2000-01-01",
+                              "city": "San Francisco",
+                              "stateRegion": "California",
+                              "country": "USA"
+                            }
+                            """.formatted(email, phoneNumber)))
+                .andExpect(status().isCreated());
+
+        String verificationCode = latestEmailVerificationCode();
+
+        mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "%s",
+                              "code": "%s"
+                            }
+                            """.formatted(email, verificationCode)))
+                .andExpect(status().isOk());
+    }
+
+    private String latestEmailVerificationCode() {
+        ArgumentCaptor<String> codeCaptor = ArgumentCaptor.forClass(String.class);
+
+        verify(mailService, org.mockito.Mockito.atLeastOnce()).sendEmailVerificationCode(
+                org.mockito.Mockito.anyString(),
+                codeCaptor.capture()
+        );
+
+        List<String> codes = codeCaptor.getAllValues();
+        return codes.getLast();
+    }
+
+    private String latestPasswordResetCode() {
+        ArgumentCaptor<String> codeCaptor = ArgumentCaptor.forClass(String.class);
+
+        verify(mailService, org.mockito.Mockito.atLeastOnce()).sendPasswordResetCode(
+                org.mockito.Mockito.anyString(),
+                codeCaptor.capture()
+        );
+
+        List<String> codes = codeCaptor.getAllValues();
+        return codes.getLast();
+    }
+
 
 }

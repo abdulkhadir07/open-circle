@@ -77,4 +77,24 @@ class AppUserTest {
         assertThat(user.isEmailVerified()).isTrue();
         assertThat(user.getEmailVerifiedAt()).isEqualTo(verifiedAt);
     }
+
+    @Test
+    void changePasswordUpdatesPasswordHash() {
+        AppUser user = new AppUser(
+                "bright_river_1234",
+                "Jane",
+                "Doe",
+                "jane@example.com",
+                "old-hash",
+                "+14155550123",
+                LocalDate.of(2000, 1, 1),
+                "San Francisco",
+                "California",
+                "USA"
+        );
+
+        user.changePassword("new-hash");
+
+        assertThat(user.getPasswordHash()).isEqualTo("new-hash");
+    }
 }
