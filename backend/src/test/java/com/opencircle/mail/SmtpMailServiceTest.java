@@ -31,4 +31,25 @@ class SmtpMailServiceTest {
         assertThat(message.getSubject()).isEqualTo("Verify your OpenCircle account");
         assertThat(message.getText()).contains("123456");
     }
+
+    @Test
+    void sendPasswordResetCodeSendsPlainTextEmail() {
+        JavaMailSender mailSender = mock(JavaMailSender.class);
+        MailProperties properties = new MailProperties();
+        properties.setFrom("no-reply@opencircle.test");
+
+        SmtpMailService service = new SmtpMailService(mailSender, properties);
+
+        service.sendPasswordResetCode("jane@example.com", "654321");
+
+        var captor = forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+
+        SimpleMailMessage message = captor.getValue();
+
+        assertThat(message.getFrom()).isEqualTo("no-reply@opencircle.test");
+        assertThat(message.getTo()).containsExactly("jane@example.com");
+        assertThat(message.getSubject()).isEqualTo("Reset your OpenCircle password");
+        assertThat(message.getText()).contains("654321");
+    }
 }
