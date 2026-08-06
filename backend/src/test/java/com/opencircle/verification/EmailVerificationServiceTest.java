@@ -1,5 +1,6 @@
 package com.opencircle.verification;
 
+import com.opencircle.common.OtpCodeGenerator;
 import com.opencircle.mail.MailService;
 import com.opencircle.user.AppUser;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,7 @@ import static org.mockito.Mockito.*;
 class EmailVerificationServiceTest {
 
     private final EmailVerificationCodeRepository codes = mock(EmailVerificationCodeRepository.class);
-    private final VerificationCodeGenerator codeGenerator = mock(VerificationCodeGenerator.class);
+    private final OtpCodeGenerator codeGenerator = mock(OtpCodeGenerator.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final MailService mailService = mock(MailService.class);
     private final EmailVerificationProperties properties = properties();
