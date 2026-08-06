@@ -102,61 +102,43 @@ public class AppUser {
     }
 
     @PreUpdate
-    void onUpdate() {
-        updatedAt = Instant.now();
-    }
+    void onUpdate() {updatedAt = Instant.now();}
 
-    public UUID getId() {
-        return id;
-    }
+    public UUID getId() {return id;}
 
-    public String getUsername() {
-        return username;
-    }
+    public String getUsername() {return username;}
 
-    public String getFirstName() {
-        return firstName;
-    }
+    public String getFirstName() {return firstName;}
 
-    public String getLastName() {
-        return lastName;
-    }
+    public String getLastName() {return lastName;}
 
-    public String getEmail() {
-        return email;
-    }
+    public String getEmail() {return email;}
 
-    public String getPasswordHash() {
-        return passwordHash;
-    }
+    public String getPasswordHash() {return passwordHash;}
 
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
+    public String getPhoneNumber() {return phoneNumber;}
 
-    public LocalDate getDateOfBirth() {
-        return dateOfBirth;
-    }
+    public LocalDate getDateOfBirth() {return dateOfBirth;}
 
-    public String getCity() {
-        return city;
-    }
+    public String getCity() {return city;}
 
-    public String getStateRegion() {
-        return stateRegion;
-    }
+    public String getStateRegion() {return stateRegion;}
 
-    public String getCountry() {
-        return country;
-    }
+    public String getCountry() {return country;}
 
-    public Role getRole() {
-        return role;
-    }
+    public Role getRole() {return role;}
 
     public boolean isEmailVerified() {return emailVerified;}
 
     public Instant getEmailVerifiedAt() {return emailVerifiedAt;}
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
 
     public void markEmailVerified(Instant verifiedAt) {
         if (verifiedAt == null) {
@@ -167,11 +149,11 @@ public class AppUser {
         emailVerifiedAt = verifiedAt;
     }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+    public void changePassword(String passwordHash) {
+        if (passwordHash == null || passwordHash.isBlank()) {
+            throw new IllegalArgumentException("Password hash is required");
+        }
 
-    public Instant getUpdatedAt() {
-        return updatedAt;
+        this.passwordHash = passwordHash;
     }
 }

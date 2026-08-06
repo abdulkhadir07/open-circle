@@ -1,12 +1,12 @@
-package com.opencircle.verification;
+package com.opencircle.common;
 
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class VerificationCodeGeneratorTest {
+public class OtpCodeGeneratorTest {
 
-    private final VerificationCodeGenerator generator = new VerificationCodeGenerator();
+    private final OtpCodeGenerator generator = new OtpCodeGenerator();
 
     @Test
     void generateReturnsSixDigitCode() {
