@@ -18,12 +18,18 @@ public record UserResponse(
         String city,
         String stateRegion,
         String country,
+        String verifiedCity,
+        String verifiedStateRegion,
+        String verifiedCountry,
+        Instant locationVerifiedAt,
+        String locationSource,
         Role role,
         boolean emailVerified,
         Instant createdAt,
         Instant updatedAt
 ) {
     public static UserResponse from(AppUser user) {
+        // Builds the API-safe user profile returned to clients.
         return new UserResponse(
                 user.getId(),
                 user.getUsername(),
@@ -35,6 +41,11 @@ public record UserResponse(
                 user.getCity(),
                 user.getStateRegion(),
                 user.getCountry(),
+                user.getVerifiedCity(),
+                user.getVerifiedStateRegion(),
+                user.getVerifiedCountry(),
+                user.getLocationVerifiedAt(),
+                user.getLocationSource() == null ? null : user.getLocationSource().name(),
                 user.getRole(),
                 user.isEmailVerified(),
                 user.getCreatedAt(),

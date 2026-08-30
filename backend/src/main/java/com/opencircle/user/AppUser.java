@@ -61,6 +61,22 @@ public class AppUser {
     @Column(name = "email_verified_at")
     private Instant emailVerifiedAt;
 
+    @Column(name = "verified_city", length = 80)
+    private String verifiedCity;
+
+    @Column(name = "verified_state_region", length = 80)
+    private String verifiedStateRegion;
+
+    @Column(name = "verified_country", length = 80)
+    private String verifiedCountry;
+
+    @Column(name = "location_verified_at")
+    private Instant locationVerifiedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "location_source", length = 30)
+    private LocationSource locationSource;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -90,7 +106,10 @@ public class AppUser {
         this.phoneNumber = phoneNumber.trim();
         this.dateOfBirth = dateOfBirth;
         this.city = city.trim();
-        this.stateRegion = stateRegion.trim();
+        // State/region is optional because not every country uses states or provinces.
+        this.stateRegion = stateRegion == null || stateRegion.isBlank()
+                ? null
+                : stateRegion.trim();
         this.country = country.trim();
     }
 
@@ -132,6 +151,16 @@ public class AppUser {
 
     public Instant getEmailVerifiedAt() {return emailVerifiedAt;}
 
+    public String getVerifiedCity() {return verifiedCity;}
+
+    public String getVerifiedStateRegion() {return verifiedStateRegion;}
+
+    public String getVerifiedCountry() {return verifiedCountry;}
+
+    public Instant getLocationVerifiedAt() {return locationVerifiedAt;}
+
+    public LocationSource getLocationSource() {return locationSource;}
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -155,5 +184,33 @@ public class AppUser {
         }
 
         this.passwordHash = passwordHash;
+    }
+
+    // Stores the location resolved from the user's device coordinates.
+    public void verifyLocation(
+            String verifiedCity,
+            String verifiedStateRegion,
+            String verifiedCountry,
+            Instant verifiedAt
+    ) {
+        if (verifiedCity == null || verifiedCity.isBlank()) {
+            throw new IllegalArgumentException("Verified city is required");
+        }
+
+        if (verifiedCountry == null || verifiedCountry.isBlank()) {
+            throw new IllegalArgumentException("Verified country is required");
+        }
+
+        if (verifiedAt == null) {
+            throw new IllegalArgumentException("Location verification time is required");
+        }
+
+        this.verifiedCity = verifiedCity.trim();
+        this.verifiedStateRegion = verifiedStateRegion == null || verifiedStateRegion.isBlank()
+                ? null
+                : verifiedStateRegion.trim();
+        this.verifiedCountry = verifiedCountry.trim();
+        this.locationVerifiedAt = verifiedAt;
+        this.locationSource = LocationSource.DEVICE;
     }
 }
