@@ -97,4 +97,35 @@ class AppUserTest {
 
         assertThat(user.getPasswordHash()).isEqualTo("new-hash");
     }
+
+    @Test
+    void verifyLocationStoresVerifiedLocationState() {
+        AppUser user = new AppUser(
+                "bright_river_1234",
+                "Jane",
+                "Doe",
+                "jane@example.com",
+                "hashed-password",
+                "+14155550123",
+                LocalDate.of(2000, 1, 1),
+                "San Francisco",
+                null,
+                "USA"
+        );
+
+        Instant verifiedAt = Instant.parse("2026-08-23T12:00:00Z");
+
+        user.verifyLocation(
+                "Banjul",
+                null,
+                "The Gambia",
+                verifiedAt
+        );
+
+        assertThat(user.getVerifiedCity()).isEqualTo("Banjul");
+        assertThat(user.getVerifiedStateRegion()).isNull();
+        assertThat(user.getVerifiedCountry()).isEqualTo("The Gambia");
+        assertThat(user.getLocationVerifiedAt()).isEqualTo(verifiedAt);
+        assertThat(user.getLocationSource()).isEqualTo(LocationSource.DEVICE);
+    }
 }
