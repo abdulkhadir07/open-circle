@@ -128,4 +128,47 @@ class AppUserTest {
         assertThat(user.getLocationVerifiedAt()).isEqualTo(verifiedAt);
         assertThat(user.getLocationSource()).isEqualTo(LocationSource.DEVICE);
     }
+
+    @Test
+    void hasVerifiedLocationReturnsFalseBeforeLocationIsVerified() {
+        AppUser user = new AppUser(
+                "bright_river_1234",
+                "Jane",
+                "Doe",
+                "jane@example.com",
+                "hashed-password",
+                "+14155550123",
+                LocalDate.of(2000, 1, 1),
+                "San Francisco",
+                null,
+                "USA"
+        );
+
+        assertThat(user.hasVerifiedLocation()).isFalse();
+    }
+
+    @Test
+    void hasVerifiedLocationReturnsTrueAfterLocationIsVerified() {
+        AppUser user = new AppUser(
+                "bright_river_1234",
+                "Jane",
+                "Doe",
+                "jane@example.com",
+                "hashed-password",
+                "+14155550123",
+                LocalDate.of(2000, 1, 1),
+                "San Francisco",
+                null,
+                "USA"
+        );
+
+        user.verifyLocation(
+                "Banjul",
+                null,
+                "The Gambia",
+                Instant.parse("2026-08-29T12:00:00Z")
+        );
+
+        assertThat(user.hasVerifiedLocation()).isTrue();
+    }
 }

@@ -213,4 +213,12 @@ public class AppUser {
         this.locationVerifiedAt = verifiedAt;
         this.locationSource = LocationSource.DEVICE;
     }
+
+    // Confirms whether the user has a complete verified location snapshot.
+    public boolean hasVerifiedLocation() {
+        return verifiedCity != null
+                && verifiedCountry != null
+                && locationVerifiedAt != null
+                && locationSource != null;
+    }
 }
