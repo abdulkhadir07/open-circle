@@ -11,7 +11,6 @@ import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfigur
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -56,9 +55,14 @@ class SecurityConfigIntegrationTest {
             FlywayAutoConfiguration.class,
             DataJpaRepositoriesAutoConfiguration.class
     })
-    @ComponentScan(basePackageClasses = SecurityConfig.class)
     @EnableConfigurationProperties({JwtProperties.class, CorsProperties.class})
-    @Import(ProtectedTestController.class)
+    @Import({
+            SecurityConfig.class,
+            JwtConfig.class,
+            RestAuthenticationEntryPoint.class,
+            RestAccessDeniedHandler.class,
+            ProtectedTestController.class
+    })
     static class TestApp {
     }
 
@@ -67,6 +71,7 @@ class SecurityConfigIntegrationTest {
 
         @GetMapping("/api/protected-test")
         Map<String, String> protectedTest() {
+            // Provides a protected endpoint used to verify unauthorized JSON errors.
             return Map.of("status", "ok");
         }
     }
