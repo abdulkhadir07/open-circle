@@ -1,4 +1,8 @@
 package com.opencircle.location;
 
-public interface LocationResolver {
+import java.math.BigDecimal;
+
+interface LocationResolver {
+
+    ResolvedLocation resolve(BigDecimal latitude, BigDecimal longitude);
 }
