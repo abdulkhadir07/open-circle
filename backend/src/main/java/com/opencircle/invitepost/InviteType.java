@@ -1,4 +1,7 @@
 package com.opencircle.invitepost;
 
-public enum InviteType {
+// Defines whether an invite post accepts one person or a group.
+enum InviteType {
+    SINGLE,
+    GROUP
 }

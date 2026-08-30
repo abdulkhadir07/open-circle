@@ -1,4 +1,7 @@
 package com.opencircle.invitepost;
 
-public enum InvitePostStatus {
+// Tracks whether an invite post can still receive engagement requests.
+enum InvitePostStatus {
+    ACTIVE,
+    CLOSED
 }
