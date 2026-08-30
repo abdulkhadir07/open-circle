@@ -1,4 +1,8 @@
 package com.opencircle.location;
 
-public record ResolvedLocation() {
+record ResolvedLocation(
+        String city,
+        String stateRegion,
+        String country
+) {
 }
