@@ -54,6 +54,12 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/forgot-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
 
+                        .requestMatchers(HttpMethod.POST, "/api/invite-posts/*/engagements").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/invite-posts/*/engagements").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/engagements/*/accept").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/engagements/*/decline").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/engagements/*/hold").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/engagements/*/withdraw").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/invite-posts").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invite-posts/local").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invite-posts/global").authenticated()
