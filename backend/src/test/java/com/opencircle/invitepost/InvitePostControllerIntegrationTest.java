@@ -106,15 +106,17 @@ class InvitePostControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void localFeedReturnsMatchingLocalPostsOnly() throws Exception {
+        Instant feedNow = Instant.now();
+
         verifiedUser("viewer@example.com", "San Francisco", "California", "USA");
         AppUser localPoster = verifiedUser("local.poster@example.com", "San Francisco", "California", "USA");
         AppUser globalPoster = verifiedUser("global.poster@example.com", "San Francisco", "California", "USA");
         AppUser otherCountryPoster = verifiedUser("other.country@example.com", "Toronto", "Ontario", "Canada");
 
-        posts.save(invitePost(localPoster, "City post", LocationScope.CITY, "San Francisco", "California", "USA", Instant.parse("2026-08-30T10:00:00Z")));
-        posts.save(invitePost(localPoster, "Country post", LocationScope.COUNTRY, "Los Angeles", "California", "USA", Instant.parse("2026-08-30T09:00:00Z")));
-        posts.save(invitePost(globalPoster, "Global post", LocationScope.GLOBAL, "San Francisco", "California", "USA", Instant.parse("2026-08-30T08:00:00Z")));
-        posts.save(invitePost(otherCountryPoster, "Canada post", LocationScope.COUNTRY, "Toronto", "Ontario", "Canada", Instant.parse("2026-08-30T07:00:00Z")));
+        posts.save(invitePost(localPoster, "City post", LocationScope.CITY, "San Francisco", "California", "USA", feedNow.minusSeconds(60)));
+        posts.save(invitePost(localPoster, "Country post", LocationScope.COUNTRY, "Los Angeles", "California", "USA", feedNow.minusSeconds(120)));
+        posts.save(invitePost(globalPoster, "Global post", LocationScope.GLOBAL, "San Francisco", "California", "USA", feedNow.minusSeconds(180)));
+        posts.save(invitePost(otherCountryPoster, "Canada post", LocationScope.COUNTRY, "Toronto", "Ontario", "Canada", feedNow.minusSeconds(240)));
 
         String token = loginToken("viewer@example.com");
 
@@ -128,11 +130,13 @@ class InvitePostControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void globalFeedReturnsGlobalPostsOnly() throws Exception {
+        Instant feedNow = Instant.now();
+
         verifiedUser("global.viewer@example.com", "San Francisco", "California", "USA");
         AppUser poster = verifiedUser("global.feed.poster@example.com", "Banjul", null, "The Gambia");
 
-        posts.save(invitePost(poster, "Global invite", LocationScope.GLOBAL, "Banjul", null, "The Gambia", Instant.parse("2026-08-30T10:00:00Z")));
-        posts.save(invitePost(poster, "Country invite", LocationScope.COUNTRY, "Banjul", null, "The Gambia", Instant.parse("2026-08-30T09:00:00Z")));
+        posts.save(invitePost(poster, "Global invite", LocationScope.GLOBAL, "Banjul", null, "The Gambia", feedNow.minusSeconds(60)));
+        posts.save(invitePost(poster, "Country invite", LocationScope.COUNTRY, "Banjul", null, "The Gambia", feedNow.minusSeconds(120)));
 
         String token = loginToken("global.viewer@example.com");
 
