@@ -123,6 +123,16 @@ class EngagementRequestTest {
                 .hasMessage("Expired engagement requests cannot be withdrawn");
     }
 
+    @Test
+    void constructorRejectsRequesterWhoOwnsInvitePost() {
+        AppUser poster = user("poster@example.com");
+        InvitePost post = invitePost(poster);
+
+        assertThatThrownBy(() -> new EngagementRequest(post, poster, CREATED_AT))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Requester cannot engage with their own invite post");
+    }
+
     private EngagementRequest engagementRequest() {
         return new EngagementRequest(invitePost(), user("requester@example.com"), CREATED_AT);
     }
