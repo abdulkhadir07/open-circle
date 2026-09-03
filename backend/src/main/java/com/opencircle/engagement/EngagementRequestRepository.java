@@ -15,6 +15,15 @@ interface EngagementRequestRepository extends JpaRepository<EngagementRequest, U
 
     Optional<EngagementRequest> findByInvitePostAndRequester(InvitePost invitePost, AppUser requester);
 
+    // Loads requester details so the API can return requesterUsername after the service transaction closes.
+    @Query("""
+            select request
+            from EngagementRequest request
+            join fetch request.invitePost
+            join fetch request.requester
+            where request.invitePost = :invitePost
+            order by request.createdAt desc
+            """)
     List<EngagementRequest> findByInvitePostOrderByCreatedAtDesc(InvitePost invitePost);
 
     // Loads the request, invite post, poster, and requester together for ownership checks.
