@@ -1,6 +1,7 @@
 package com.opencircle.location;
 
 import com.opencircle.user.AppUser;
+import com.opencircle.user.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,13 +12,16 @@ import java.time.Instant;
 class LocationVerificationService {
 
     private final LocationResolver locationResolver;
+    private final UserService userService;
     private final Clock clock;
 
     LocationVerificationService(
             LocationResolver locationResolver,
+            UserService userService,
             Clock clock
     ) {
         this.locationResolver = locationResolver;
+        this.userService = userService;
         this.clock = clock;
     }
 
@@ -36,6 +40,7 @@ class LocationVerificationService {
                 Instant.now(clock)
         );
 
-        return user;
+        // Saves the verified location so later requests can pass the location gate.
+        return userService.save(user);
     }
 }
