@@ -7,6 +7,7 @@ import com.opencircle.invitepost.InviteType;
 import com.opencircle.invitepost.LocationScope;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Transactional
 class ChatRoomRepositoryIntegrationTest extends AbstractIntegrationTest {
 
     private static final Instant NOW = Instant.parse("2026-09-01T12:00:00Z");
