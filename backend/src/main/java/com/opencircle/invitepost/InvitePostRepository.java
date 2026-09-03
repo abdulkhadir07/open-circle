@@ -1,5 +1,6 @@
 package com.opencircle.invitepost;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -9,6 +10,7 @@ import java.util.UUID;
 
 public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
 
+    @EntityGraph(attributePaths = "poster")
     @Query("""
             select post
             from InvitePost post
@@ -25,6 +27,7 @@ public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
             String country
     );
 
+    @EntityGraph(attributePaths = "poster")
     @Query("""
             select post
             from InvitePost post
@@ -43,6 +46,7 @@ public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
             String stateRegion
     );
 
+    @EntityGraph(attributePaths = "poster")
     @Query("""
             select post
             from InvitePost post
@@ -61,6 +65,7 @@ public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
             String city
     );
 
+    @EntityGraph(attributePaths = "poster")
     @Query("""
             select post
             from InvitePost post

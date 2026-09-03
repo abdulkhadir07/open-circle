@@ -59,6 +59,12 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
     }
 
+    @Transactional
+    public AppUser save(AppUser user) {
+        // Persists changes made to an already-loaded user entity.
+        return users.save(user);
+    }
+
     @Transactional(readOnly = true)
     public Optional<AppUser> findByEmail(String email) {
         return users.findByEmailIgnoreCase(email);
