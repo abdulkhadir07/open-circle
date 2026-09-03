@@ -1,5 +1,6 @@
 package com.opencircle.engagement;
 
+import com.opencircle.chat.ChatRoomService;
 import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.invitepost.InviteType;
@@ -27,9 +28,12 @@ class EngagementRequestServiceTest {
 
     private final EngagementRequestRepository requests = mock(EngagementRequestRepository.class);
     private final InvitePostRepository posts = mock(InvitePostRepository.class);
+    private final ChatRoomService chatRoomService = mock(ChatRoomService.class);
+
     private final EngagementRequestService service = new EngagementRequestService(
             requests,
             posts,
+            chatRoomService,
             Clock.fixed(NOW, ZoneOffset.UTC)
     );
 
@@ -52,6 +56,25 @@ class EngagementRequestServiceTest {
         assertThat(request.getExpiresAt()).isEqualTo(post.getExpiresAt());
 
         verify(requests).save(request);
+    }
+
+    @Test
+    void acceptRequestMarksAcceptedConsumesCapacityAndOpensChatRoom() {
+        AppUser poster = verifiedUser("poster.accept@example.com");
+        AppUser requester = verifiedUser("requester.accept@example.com");
+        InvitePost post = invitePost(poster);
+        EngagementRequest request = new EngagementRequest(post, requester, NOW.minusSeconds(60));
+
+        when(requests.findDetailedById(request.getId())).thenReturn(Optional.of(request));
+
+        EngagementRequest result = service.acceptRequest(poster, request.getId());
+
+        assertThat(result.getStatus()).isEqualTo(EngagementRequestStatus.ACCEPTED);
+        assertThat(result.getRespondedAt()).isEqualTo(NOW);
+        assertThat(post.getAcceptedCount()).isEqualTo(1);
+        assertThat(post.getInvitesLeft()).isEqualTo(2);
+
+        verify(chatRoomService).openRoomForAcceptedRequest(post, requester);
     }
 
     @Test
@@ -140,23 +163,6 @@ class EngagementRequestServiceTest {
     }
 
     @Test
-    void acceptRequestMarksAcceptedAndConsumesCapacity() {
-        AppUser poster = verifiedUser("poster.accept@example.com");
-        AppUser requester = verifiedUser("requester.accept@example.com");
-        InvitePost post = invitePost(poster);
-        EngagementRequest request = new EngagementRequest(post, requester, NOW.minusSeconds(60));
-
-        when(requests.findDetailedById(request.getId())).thenReturn(Optional.of(request));
-
-        EngagementRequest result = service.acceptRequest(poster, request.getId());
-
-        assertThat(result.getStatus()).isEqualTo(EngagementRequestStatus.ACCEPTED);
-        assertThat(result.getRespondedAt()).isEqualTo(NOW);
-        assertThat(post.getAcceptedCount()).isEqualTo(1);
-        assertThat(post.getInvitesLeft()).isEqualTo(2);
-    }
-
-    @Test
     void acceptRequestRejectsWhenPostIsAlreadyFull() {
         AppUser poster = verifiedUser("poster.full@example.com");
         AppUser firstRequester = verifiedUser("first.full@example.com");
@@ -187,6 +193,7 @@ class EngagementRequestServiceTest {
                 .hasMessage("Invite post is not open for engagement requests");
 
         assertThat(post.getAcceptedCount()).isEqualTo(1);
+        verifyNoInteractions(chatRoomService);
     }
 
     @Test
