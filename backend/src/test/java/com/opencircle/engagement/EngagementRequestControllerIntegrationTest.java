@@ -111,16 +111,17 @@ class EngagementRequestControllerIntegrationTest extends AbstractIntegrationTest
     }
 
     @Test
-    void posterCanAcceptRequestAndCapacityDecreases() throws Exception {
+    void posterCanAcceptRequestCapacityDecreasesAndChatRoomOpens() throws Exception {
         AppUser poster = verifiedUser("poster.accept.controller@example.com", "San Francisco", "California", "USA");
         AppUser requester = verifiedUser("requester.accept.controller@example.com", "San Francisco", "California", "USA");
         InvitePost post = posts.save(invitePost(poster, "Accept me", InviteType.GROUP, 3));
         EngagementRequest request = requests.save(new EngagementRequest(post, requester, Instant.now()));
 
-        String token = loginToken("poster.accept.controller@example.com");
+        String posterToken = loginToken("poster.accept.controller@example.com");
+        String requesterToken = loginToken("requester.accept.controller@example.com");
 
         mockMvc.perform(patch("/api/engagements/{requestId}/accept", request.getId())
-                        .header("Authorization", "Bearer " + token))
+                        .header("Authorization", "Bearer " + posterToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ACCEPTED"))
                 .andExpect(jsonPath("$.respondedAt").exists());
@@ -128,6 +129,14 @@ class EngagementRequestControllerIntegrationTest extends AbstractIntegrationTest
         InvitePost updatedPost = posts.findById(post.getId()).orElseThrow();
         assertThat(updatedPost.getAcceptedCount()).isEqualTo(1);
         assertThat(updatedPost.getInvitesLeft()).isEqualTo(2);
+
+        mockMvc.perform(get("/api/chat-rooms")
+                        .header("Authorization", "Bearer " + requesterToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].invitePostId").value(post.getId().toString()))
+                .andExpect(jsonPath("$[0].invitePostContent").value("Accept me"))
+                .andExpect(jsonPath("$[0].participants", hasSize(2)));
     }
 
     @Test

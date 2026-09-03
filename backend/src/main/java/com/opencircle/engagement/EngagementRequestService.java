@@ -1,5 +1,6 @@
 package com.opencircle.engagement;
 
+import com.opencircle.chat.ChatRoomService;
 import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.location.LocationNotVerifiedException;
@@ -17,15 +18,18 @@ class EngagementRequestService {
 
     private final EngagementRequestRepository requests;
     private final InvitePostRepository posts;
+    private final ChatRoomService chatRoomService;
     private final Clock clock;
 
     EngagementRequestService(
             EngagementRequestRepository requests,
             InvitePostRepository posts,
+            ChatRoomService chatRoomService,
             Clock clock
     ) {
         this.requests = requests;
         this.posts = posts;
+        this.chatRoomService = chatRoomService;
         this.clock = clock;
     }
 
@@ -74,6 +78,9 @@ class EngagementRequestService {
         } catch (IllegalStateException exception) {
             throw new EngagementRequestNotActionableException(exception.getMessage());
         }
+
+        // Accepted requests create or join the chat room for the invite post.
+        chatRoomService.openRoomForAcceptedRequest(post, request.getRequester());
 
         return request;
     }
