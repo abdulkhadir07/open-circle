@@ -16,7 +16,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class ChatRoomServiceTest {
 
@@ -43,7 +46,7 @@ class ChatRoomServiceTest {
         assertThat(room.getInvitePost()).isEqualTo(post);
         assertThat(room.hasParticipant(poster)).isTrue();
         assertThat(room.hasParticipant(requester)).isTrue();
-        assertThat(room.getParticipants()).hasSize(2);
+        assertThat(room.getCreatedAt()).isEqualTo(NOW);
 
         verify(rooms).save(room);
     }
@@ -54,9 +57,10 @@ class ChatRoomServiceTest {
         AppUser firstRequester = user("first@example.com");
         AppUser secondRequester = user("second@example.com");
         InvitePost post = invitePost(poster);
-        ChatRoom existingRoom = new ChatRoom(post, NOW.minusSeconds(300));
-        existingRoom.addParticipant(poster, NOW.minusSeconds(300));
-        existingRoom.addParticipant(firstRequester, NOW.minusSeconds(300));
+
+        ChatRoom existingRoom = new ChatRoom(post, NOW.minusSeconds(60));
+        existingRoom.addParticipant(poster, NOW.minusSeconds(60));
+        existingRoom.addParticipant(firstRequester, NOW.minusSeconds(50));
 
         when(rooms.findByInvitePost(post)).thenReturn(Optional.of(existingRoom));
         when(rooms.save(existingRoom)).thenReturn(existingRoom);
@@ -66,85 +70,82 @@ class ChatRoomServiceTest {
         assertThat(room.hasParticipant(poster)).isTrue();
         assertThat(room.hasParticipant(firstRequester)).isTrue();
         assertThat(room.hasParticipant(secondRequester)).isTrue();
-        assertThat(room.getParticipants()).hasSize(3);
-        assertThat(room.getUpdatedAt()).isEqualTo(NOW);
 
         verify(rooms).save(existingRoom);
     }
 
     @Test
-    void getRoomsForReturnsRoomsForParticipant() {
+    void getRoomsForReturnsVisibleRoomsForParticipant() {
         AppUser user = user("member@example.com");
         List<ChatRoom> expectedRooms = List.of(new ChatRoom(invitePost(user("poster@example.com")), NOW));
 
-        when(rooms.findDistinctByParticipantsUserOrderByUpdatedAtDesc(user)).thenReturn(expectedRooms);
+        when(rooms.findVisibleRoomsFor(user)).thenReturn(expectedRooms);
 
         assertThat(service.getRoomsFor(user)).isEqualTo(expectedRooms);
     }
 
     @Test
-    void getMessagesReturnsMessagesForParticipant() {
-        AppUser sender = user("sender@example.com");
-        ChatRoom room = new ChatRoom(invitePost(sender), NOW);
-        room.addParticipant(sender, NOW);
-
+    void getMessagesReturnsMessagesForActiveParticipant() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = roomWithParticipants(poster, requester);
         UUID roomId = UUID.randomUUID();
-        ChatMessage message = new ChatMessage(room, sender, "Hello", NOW);
+        List<ChatMessage> expectedMessages = List.of(new ChatMessage(room, poster, "Hello", NOW));
 
         when(rooms.findById(roomId)).thenReturn(Optional.of(room));
-        when(participants.existsByChatRoomAndUser(room, sender)).thenReturn(true);
-        when(messages.findByChatRoomOrderByCreatedAtAscIdAsc(room)).thenReturn(List.of(message));
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, requester)).thenReturn(true);
+        when(messages.findByChatRoomOrderByCreatedAtAscIdAsc(room)).thenReturn(expectedMessages);
 
-        assertThat(service.getMessages(sender, roomId)).containsExactly(message);
+        assertThat(service.getMessages(requester, roomId)).isEqualTo(expectedMessages);
     }
 
     @Test
     void getMessagesRejectsNonParticipant() {
-        AppUser sender = user("sender@example.com");
+        AppUser poster = user("poster@example.com");
         AppUser outsider = user("outsider@example.com");
-        ChatRoom room = new ChatRoom(invitePost(sender), NOW);
-
+        ChatRoom room = roomWithParticipants(poster, user("requester@example.com"));
         UUID roomId = UUID.randomUUID();
 
         when(rooms.findById(roomId)).thenReturn(Optional.of(room));
-        when(participants.existsByChatRoomAndUser(room, outsider)).thenReturn(false);
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, outsider)).thenReturn(false);
 
         assertThatThrownBy(() -> service.getMessages(outsider, roomId))
                 .isInstanceOf(ChatParticipantRequiredException.class);
     }
 
     @Test
-    void sendMessageCreatesMessageForParticipant() {
-        AppUser sender = user("sender@example.com");
-        ChatRoom room = new ChatRoom(invitePost(sender), NOW);
-        room.addParticipant(sender, NOW);
-
+    void sendMessageCreatesMessageForActiveParticipant() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = roomWithParticipants(poster, requester);
         UUID roomId = UUID.randomUUID();
 
         when(rooms.findById(roomId)).thenReturn(Optional.of(room));
-        when(participants.existsByChatRoomAndUser(room, sender)).thenReturn(true);
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, requester)).thenReturn(true);
+        when(rooms.save(room)).thenReturn(room);
         when(messages.save(any(ChatMessage.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ChatMessage message = service.sendMessage(sender, roomId, "  Hello there  ");
+        ChatMessage message = service.sendMessage(requester, roomId, "  Hello there  ");
 
         assertThat(message.getChatRoom()).isEqualTo(room);
-        assertThat(message.getSender()).isEqualTo(sender);
+        assertThat(message.getSender()).isEqualTo(requester);
         assertThat(message.getBody()).isEqualTo("Hello there");
         assertThat(message.getCreatedAt()).isEqualTo(NOW);
+        assertThat(room.getUpdatedAt()).isEqualTo(NOW);
 
+        verify(rooms).save(room);
         verify(messages).save(message);
     }
 
     @Test
     void sendMessageRejectsNonParticipant() {
-        AppUser sender = user("sender@example.com");
+        AppUser poster = user("poster@example.com");
         AppUser outsider = user("outsider@example.com");
-        ChatRoom room = new ChatRoom(invitePost(sender), NOW);
-
+        ChatRoom room = roomWithParticipants(poster, user("requester@example.com"));
         UUID roomId = UUID.randomUUID();
 
         when(rooms.findById(roomId)).thenReturn(Optional.of(room));
-        when(participants.existsByChatRoomAndUser(room, outsider)).thenReturn(false);
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, outsider)).thenReturn(false);
 
         assertThatThrownBy(() -> service.sendMessage(outsider, roomId, "Hello"))
                 .isInstanceOf(ChatParticipantRequiredException.class);
@@ -161,6 +162,163 @@ class ChatRoomServiceTest {
                 .isInstanceOf(ChatRoomNotFoundException.class);
     }
 
+    @Test
+    void sendMessageRejectsClosedRoom() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = roomWithParticipants(poster, requester);
+        UUID roomId = UUID.randomUUID();
+
+        room.close(NOW.minusSeconds(10));
+
+        when(rooms.findById(roomId)).thenReturn(Optional.of(room));
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, requester)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.sendMessage(requester, roomId, "Hello"))
+                .isInstanceOf(ChatRoomActionNotAllowedException.class);
+    }
+
+    @Test
+    void sendMessageRejectsRoomWithOnlyOneActiveParticipant() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = roomWithParticipants(poster, requester);
+        UUID roomId = UUID.randomUUID();
+
+        room.leave(requester, NOW.minusSeconds(30));
+
+        when(rooms.findById(roomId)).thenReturn(Optional.of(room));
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, poster)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.sendMessage(poster, roomId, "Anyone here?"))
+                .isInstanceOf(ChatRoomActionNotAllowedException.class);
+    }
+
+    @Test
+    void saveRoomMarksRoomSavedByActiveParticipant() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = roomWithParticipants(poster, requester);
+        UUID roomId = UUID.randomUUID();
+
+        when(rooms.findById(roomId)).thenReturn(Optional.of(room));
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, requester)).thenReturn(true);
+        when(rooms.save(room)).thenReturn(room);
+
+        ChatRoom savedRoom = service.saveRoom(requester, roomId);
+
+        assertThat(savedRoom.isSaved()).isTrue();
+        assertThat(savedRoom.getSavedAt()).isEqualTo(NOW);
+        assertThat(savedRoom.getSavedBy()).isEqualTo(requester);
+
+        verify(rooms).save(room);
+    }
+
+    @Test
+    void leaveRoomMarksParticipantInactiveAndStartsAutoCloseCountdown() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = roomWithParticipants(poster, requester);
+        UUID roomId = UUID.randomUUID();
+
+        when(rooms.findById(roomId)).thenReturn(Optional.of(room));
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, requester)).thenReturn(true);
+        when(rooms.save(room)).thenReturn(room);
+
+        ChatRoom updatedRoom = service.leaveRoom(requester, roomId);
+
+        assertThat(updatedRoom.hasActiveParticipant(requester)).isFalse();
+        assertThat(updatedRoom.getAutoCloseAt()).isEqualTo(NOW.plusSeconds(24 * 60 * 60));
+
+        verify(rooms).save(room);
+    }
+
+    @Test
+    void removeParticipantMarksRequesterRemovedWhenCurrentUserIsPoster() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = roomWithParticipants(poster, requester);
+        UUID roomId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
+        ChatRoomParticipant requesterParticipant = participantFor(room, requester);
+
+        when(rooms.findById(roomId)).thenReturn(Optional.of(room));
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, poster)).thenReturn(true);
+        when(participants.findByChatRoomAndUser_Id(room, requesterId)).thenReturn(Optional.of(requesterParticipant));
+        when(rooms.save(room)).thenReturn(room);
+
+        ChatRoom updatedRoom = service.removeParticipant(poster, roomId, requesterId);
+
+        assertThat(updatedRoom.hasActiveParticipant(requester)).isFalse();
+        assertThat(requesterParticipant.getRemovedAt()).isEqualTo(NOW);
+        assertThat(requesterParticipant.getRemovedBy()).isEqualTo(poster);
+
+        verify(rooms).save(room);
+    }
+
+    @Test
+    void removeParticipantRejectsNonPoster() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = roomWithParticipants(poster, requester);
+        UUID roomId = UUID.randomUUID();
+
+        when(rooms.findById(roomId)).thenReturn(Optional.of(room));
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, requester)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.removeParticipant(requester, roomId, UUID.randomUUID()))
+                .isInstanceOf(ChatRoomForbiddenException.class);
+    }
+
+    @Test
+    void hideRoomMarksParticipantHiddenWithoutRemovingAccess() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = roomWithParticipants(poster, requester);
+        UUID roomId = UUID.randomUUID();
+        ChatRoomParticipant requesterParticipant = participantFor(room, requester);
+
+        when(rooms.findById(roomId)).thenReturn(Optional.of(room));
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, requester)).thenReturn(true);
+        when(rooms.save(room)).thenReturn(room);
+
+        ChatRoom updatedRoom = service.hideRoom(requester, roomId);
+
+        assertThat(updatedRoom.hasActiveParticipant(requester)).isTrue();
+        assertThat(requesterParticipant.getHiddenAt()).isEqualTo(NOW);
+
+        verify(rooms).save(room);
+    }
+
+    @Test
+    void closeRoomsReadyForAutoCloseClosesReadyRooms() {
+        ChatRoom room = roomWithParticipants(user("poster@example.com"), user("requester@example.com"));
+
+        when(rooms.findRoomsReadyToAutoClose(NOW)).thenReturn(List.of(room));
+
+        int closedCount = service.closeRoomsReadyForAutoClose();
+
+        assertThat(closedCount).isEqualTo(1);
+        assertThat(room.isClosed()).isTrue();
+        assertThat(room.getClosedAt()).isEqualTo(NOW);
+
+        verify(rooms).saveAll(List.of(room));
+    }
+
+    private ChatRoom roomWithParticipants(AppUser poster, AppUser requester) {
+        ChatRoom room = new ChatRoom(invitePost(poster), NOW.minusSeconds(120));
+        room.addParticipant(poster, NOW.minusSeconds(120));
+        room.addParticipant(requester, NOW.minusSeconds(90));
+        return room;
+    }
+
+    private ChatRoomParticipant participantFor(ChatRoom room, AppUser user) {
+        return room.getParticipants().stream()
+                .filter(participant -> participant.belongsTo(user))
+                .findFirst()
+                .orElseThrow();
+    }
+
     private InvitePost invitePost(AppUser poster) {
         poster.markEmailVerified(NOW);
         poster.verifyLocation("San Francisco", "California", "USA", NOW);
@@ -171,9 +329,9 @@ class ChatRoomServiceTest {
                 InviteType.GROUP,
                 3,
                 LocationScope.CITY,
-                "San Francisco",
-                "California",
-                "USA",
+                poster.getVerifiedCity(),
+                poster.getVerifiedStateRegion(),
+                poster.getVerifiedCountry(),
                 NOW
         );
     }
