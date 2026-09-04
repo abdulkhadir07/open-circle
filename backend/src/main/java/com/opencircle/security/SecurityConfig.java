@@ -69,6 +69,11 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/chat-rooms/*/messages").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/chat-rooms/*/messages").authenticated()
 
+                        .requestMatchers(HttpMethod.PATCH, "/api/chat-rooms/{roomId}/save").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/chat-rooms/{roomId}/leave").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/chat-rooms/{roomId}/hide").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/chat-rooms/{roomId}/participants/{userId}/remove").authenticated()
+
                         .anyRequest().authenticated()
                 )
 
