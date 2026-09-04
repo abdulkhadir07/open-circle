@@ -1,6 +1,8 @@
 package com.opencircle.security;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -12,14 +14,16 @@ import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.stream.Stream;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(
@@ -36,16 +40,44 @@ class SecurityConfigIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Test
-    void protectedEndpointReturnsCustomUnauthorizedErrorWhenMissingToken() throws Exception {
-        mockMvc.perform(get("/api/protected-test")
+    @ParameterizedTest
+    @MethodSource("protectedRoutes")
+    void protectedRoutesReturnCustomUnauthorizedErrorWhenMissingToken(HttpMethod method, String path) throws Exception {
+        mockMvc.perform(request(method, path)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.message").value("Authentication required"))
-                .andExpect(jsonPath("$.path").value("/api/protected-test"));
+                .andExpect(jsonPath("$.path").value(path));
+    }
+
+    private static Stream<Arguments> protectedRoutes() {
+        return Stream.of(
+                Arguments.of(HttpMethod.GET, "/api/protected-test"),
+                Arguments.of(HttpMethod.GET, "/api/users/me"),
+                Arguments.of(HttpMethod.PUT, "/api/users/me/location"),
+
+                Arguments.of(HttpMethod.POST, "/api/invite-posts"),
+                Arguments.of(HttpMethod.GET, "/api/invite-posts/local"),
+                Arguments.of(HttpMethod.GET, "/api/invite-posts/global"),
+
+                Arguments.of(HttpMethod.POST, "/api/invite-posts/00000000-0000-0000-0000-000000000001/engagements"),
+                Arguments.of(HttpMethod.GET, "/api/invite-posts/00000000-0000-0000-0000-000000000001/engagements"),
+                Arguments.of(HttpMethod.PATCH, "/api/engagements/00000000-0000-0000-0000-000000000001/accept"),
+                Arguments.of(HttpMethod.PATCH, "/api/engagements/00000000-0000-0000-0000-000000000001/decline"),
+                Arguments.of(HttpMethod.PATCH, "/api/engagements/00000000-0000-0000-0000-000000000001/hold"),
+                Arguments.of(HttpMethod.PATCH, "/api/engagements/00000000-0000-0000-0000-000000000001/withdraw"),
+
+                Arguments.of(HttpMethod.GET, "/api/chat-rooms"),
+                Arguments.of(HttpMethod.GET, "/api/chat-rooms/00000000-0000-0000-0000-000000000001/messages"),
+                Arguments.of(HttpMethod.POST, "/api/chat-rooms/00000000-0000-0000-0000-000000000001/messages"),
+                Arguments.of(HttpMethod.PATCH, "/api/chat-rooms/00000000-0000-0000-0000-000000000001/save"),
+                Arguments.of(HttpMethod.PATCH, "/api/chat-rooms/00000000-0000-0000-0000-000000000001/leave"),
+                Arguments.of(HttpMethod.PATCH, "/api/chat-rooms/00000000-0000-0000-0000-000000000001/hide"),
+                Arguments.of(HttpMethod.PATCH, "/api/chat-rooms/00000000-0000-0000-0000-000000000001/participants/00000000-0000-0000-0000-000000000002/remove")
+        );
     }
 
     @SpringBootConfiguration

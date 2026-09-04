@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -39,6 +40,8 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired private ChatRoomParticipantRepository participants;
 
     @Autowired
     private UserService users;
@@ -191,6 +194,112 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void saveRoomMarksRoomSaved() throws Exception {
+        AppUser poster = verifiedUser("poster.save@example.com");
+        AppUser requester = verifiedUser("requester.save@example.com");
+        ChatRoom room = chatRoom(poster, requester, "Save this room");
+        String token = loginToken(requester.getEmail());
+
+        mockMvc.perform(patch("/api/chat-rooms/{roomId}/save", room.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.saved").value(true))
+                .andExpect(jsonPath("$.savedByUserId").value(requester.getId().toString()))
+                .andExpect(jsonPath("$.savedByUsername").value(requester.getUsername()))
+                .andExpect(jsonPath("$.closed").value(false));
+
+        ChatRoom savedRoom = rooms.findById(room.getId()).orElseThrow();
+
+        assertThat(savedRoom.isSaved()).isTrue();
+        assertThat(savedRoom.getSavedBy().getId()).isEqualTo(requester.getId());
+        assertThat(savedRoom.getSavedAt()).isNotNull();
+    }
+
+    @Test
+    void leaveRoomMarksCurrentUserInactiveAndStartsAutoCloseCountdown() throws Exception {
+        AppUser poster = verifiedUser("poster.leave@example.com");
+        AppUser requester = verifiedUser("requester.leave@example.com");
+        ChatRoom room = chatRoom(poster, requester, "Leave this room");
+        String token = loginToken(requester.getEmail());
+
+        mockMvc.perform(patch("/api/chat-rooms/{roomId}/leave", room.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.autoCloseAt").exists())
+                .andExpect(jsonPath("$.closed").value(false));
+
+        ChatRoomParticipant participant = participants.findByChatRoomAndUser(room, requester)
+                .orElseThrow();
+
+        ChatRoom updatedRoom = rooms.findById(room.getId()).orElseThrow();
+
+        assertThat(participant.isActive()).isFalse();
+        assertThat(participant.getLeftAt()).isNotNull();
+        assertThat(updatedRoom.getAutoCloseAt()).isNotNull();
+    }
+
+    @Test
+    void hideRoomRemovesRoomFromCurrentUsersRoomListOnly() throws Exception {
+        AppUser poster = verifiedUser("poster.hide@example.com");
+        AppUser requester = verifiedUser("requester.hide@example.com");
+        ChatRoom room = chatRoom(poster, requester, "Hide this room");
+        String requesterToken = loginToken(requester.getEmail());
+        String posterToken = loginToken(poster.getEmail());
+
+        mockMvc.perform(patch("/api/chat-rooms/{roomId}/hide", room.getId())
+                        .header("Authorization", "Bearer " + requesterToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hiddenForCurrentUser").value(true));
+
+        mockMvc.perform(get("/api/chat-rooms")
+                        .header("Authorization", "Bearer " + requesterToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+
+        mockMvc.perform(get("/api/chat-rooms")
+                        .header("Authorization", "Bearer " + posterToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(room.getId().toString()));
+    }
+
+    @Test
+    void posterCanRemoveParticipantFromRoom() throws Exception {
+        AppUser poster = verifiedUser("poster.remove@example.com");
+        AppUser requester = verifiedUser("requester.remove@example.com");
+        ChatRoom room = chatRoom(poster, requester, "Remove participant");
+        String token = loginToken(poster.getEmail());
+
+        mockMvc.perform(patch("/api/chat-rooms/{roomId}/participants/{userId}/remove", room.getId(), requester.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.closed").value(false))
+                .andExpect(jsonPath("$.autoCloseAt").exists());
+
+        ChatRoomParticipant removedParticipant = participants.findByChatRoomAndUser(room, requester)
+                .orElseThrow();
+
+        assertThat(removedParticipant.isActive()).isFalse();
+        assertThat(removedParticipant.getRemovedAt()).isNotNull();
+        assertThat(removedParticipant.getRemovedBy().getId()).isEqualTo(poster.getId());
+    }
+
+    @Test
+    void nonPosterCannotRemoveParticipantFromRoom() throws Exception {
+        AppUser poster = verifiedUser("poster.remove.forbidden@example.com");
+        AppUser requester = verifiedUser("requester.remove.forbidden@example.com");
+        AppUser otherUser = verifiedUser("other.remove.forbidden@example.com");
+        ChatRoom room = chatRoom(poster, requester, "Remove forbidden");
+        String token = loginToken(otherUser.getEmail());
+
+        room.addParticipant(otherUser, NOW);
+        rooms.save(room);
+
+        mockMvc.perform(patch("/api/chat-rooms/{roomId}/participants/{userId}/remove", room.getId(), requester.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
     }
 
     private ChatRoom chatRoom(AppUser poster, AppUser participant, String content) {

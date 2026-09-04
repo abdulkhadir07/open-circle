@@ -44,8 +44,16 @@ class ChatMessage {
             throw new IllegalArgumentException("Message body is required");
         }
 
-        if (!chatRoom.hasParticipant(sender)) {
-            throw new IllegalArgumentException("Sender must be a chat room participant");
+        if (chatRoom.isClosed()) {
+            throw new IllegalArgumentException("Closed chat rooms cannot receive new messages");
+        }
+
+        if (!chatRoom.hasActiveParticipant(sender)) {
+            throw new IllegalArgumentException("Sender must be an active chat room participant");
+        }
+
+        if (chatRoom.activeParticipantCount() < 2) {
+            throw new IllegalArgumentException("At least two active participants are required to send messages");
         }
 
         this.chatRoom = chatRoom;
