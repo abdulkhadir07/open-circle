@@ -10,5 +10,12 @@ interface ChatRoomParticipantRepository extends JpaRepository<ChatRoomParticipan
 
     boolean existsByChatRoomAndUser(ChatRoom chatRoom, AppUser user);
 
+    boolean existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(
+            ChatRoom chatRoom,
+            AppUser user
+    );
+
     Optional<ChatRoomParticipant> findByChatRoomAndUser(ChatRoom chatRoom, AppUser user);
+
+    Optional<ChatRoomParticipant> findByChatRoomAndUser_Id(ChatRoom chatRoom, UUID userId);
 }
