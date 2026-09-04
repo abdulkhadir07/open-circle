@@ -19,8 +19,10 @@ class ChatMessageTest {
     @Test
     void constructorCreatesMessageFromParticipant() {
         AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
         ChatRoom room = new ChatRoom(invitePost(poster), NOW);
         room.addParticipant(poster, NOW);
+        room.addParticipant(requester, NOW.plusSeconds(30));
 
         ChatMessage message = new ChatMessage(room, poster, "  Hey there!  ", NOW.plusSeconds(60));
 
@@ -50,7 +52,45 @@ class ChatMessageTest {
 
         assertThatThrownBy(() -> new ChatMessage(room, stranger, "Can I join?", NOW))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Sender must be a chat room participant");
+                .hasMessage("Sender must be an active chat room participant");
+    }
+
+    @Test
+    void constructorRejectsSenderWhoLeftRoom() {
+        AppUser poster = user("poster@example.com");
+        ChatRoom room = new ChatRoom(invitePost(poster), NOW);
+        room.addParticipant(poster, NOW);
+        room.leave(poster, NOW.plusSeconds(60));
+
+        assertThatThrownBy(() -> new ChatMessage(room, poster, "Still here?", NOW.plusSeconds(120)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Sender must be an active chat room participant");
+    }
+
+    @Test
+    void constructorRejectsClosedRoom() {
+        AppUser poster = user("poster@example.com");
+        ChatRoom room = new ChatRoom(invitePost(poster), NOW);
+        room.addParticipant(poster, NOW);
+        room.close(NOW.plusSeconds(60));
+
+        assertThatThrownBy(() -> new ChatMessage(room, poster, "Anyone here?", NOW.plusSeconds(120)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Closed chat rooms cannot receive new messages");
+    }
+
+    @Test
+    void constructorRejectsRoomWithOnlyOneActiveParticipant() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = new ChatRoom(invitePost(poster), NOW);
+        room.addParticipant(poster, NOW);
+        room.addParticipant(requester, NOW.plusSeconds(60));
+        room.leave(requester, NOW.plusSeconds(120));
+
+        assertThatThrownBy(() -> new ChatMessage(room, poster, "Still here?", NOW.plusSeconds(180)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("At least two active participants are required to send messages");
     }
 
     private InvitePost invitePost(AppUser poster) {
