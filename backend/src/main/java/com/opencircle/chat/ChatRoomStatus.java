@@ -1,4 +1,6 @@
 package com.opencircle.chat;
 
-public class ChatRoomStatus {
+public enum ChatRoomStatus {
+    ACTIVE,
+    CLOSED
 }
