@@ -56,6 +56,14 @@ public class ChatRoomService {
         return messages.findByChatRoomOrderByCreatedAtAscIdAsc(room);
     }
 
+    // Checks whether the user is still an active participant in the room.
+    @Transactional(readOnly = true)
+    public boolean isActiveParticipant(AppUser user, UUID roomId) {
+        return rooms.findById(roomId)
+                .map(room -> participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, user))
+                .orElse(false);
+    }
+
     @Transactional
     public ChatMessage sendMessage(AppUser sender, UUID roomId, String body) {
         ChatRoom room = getActiveParticipantRoom(sender, roomId);
