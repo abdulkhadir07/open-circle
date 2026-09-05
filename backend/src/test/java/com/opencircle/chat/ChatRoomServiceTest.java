@@ -195,6 +195,42 @@ class ChatRoomServiceTest {
     }
 
     @Test
+    void isActiveParticipantReturnsTrueWhenUserIsActiveParticipant() {
+        AppUser user = user("participant@example.com");
+        ChatRoom room = roomWithParticipants(user, user("other.participant@example.com"));
+        UUID roomId = UUID.randomUUID();
+
+        when(rooms.findById(roomId)).thenReturn(Optional.of(room));
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, user))
+                .thenReturn(true);
+
+        assertThat(service.isActiveParticipant(user, roomId)).isTrue();
+    }
+
+    @Test
+    void isActiveParticipantReturnsFalseWhenUserIsNotActiveParticipant() {
+        AppUser user = user("inactive.participant@example.com");
+        ChatRoom room = roomWithParticipants(user("poster.active-check@example.com"), user("member.active-check@example.com"));
+        UUID roomId = UUID.randomUUID();
+
+        when(rooms.findById(roomId)).thenReturn(Optional.of(room));
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, user))
+                .thenReturn(false);
+
+        assertThat(service.isActiveParticipant(user, roomId)).isFalse();
+    }
+
+    @Test
+    void isActiveParticipantReturnsFalseWhenRoomDoesNotExist() {
+        AppUser user = user("participant.missing@example.com");
+        UUID roomId = UUID.randomUUID();
+
+        when(rooms.findById(roomId)).thenReturn(Optional.empty());
+
+        assertThat(service.isActiveParticipant(user, roomId)).isFalse();
+    }
+
+    @Test
     void saveRoomMarksRoomSavedByActiveParticipant() {
         AppUser poster = user("poster@example.com");
         AppUser requester = user("requester@example.com");
