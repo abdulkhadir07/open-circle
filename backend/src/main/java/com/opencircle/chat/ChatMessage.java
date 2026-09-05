@@ -8,7 +8,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "chat_messages")
-class ChatMessage {
+public class ChatMessage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
