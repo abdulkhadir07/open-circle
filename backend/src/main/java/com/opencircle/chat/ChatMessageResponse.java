@@ -12,7 +12,7 @@ public record ChatMessageResponse(
         Instant createdAt
 ) {
 
-    static ChatMessageResponse from(ChatMessage message) {
+    public static ChatMessageResponse from(ChatMessage message) {
         return new ChatMessageResponse(
                 message.getId(),
                 message.getChatRoom().getId(),
