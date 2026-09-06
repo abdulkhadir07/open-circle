@@ -10,9 +10,16 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import com.opencircle.security.JwtProperties;
 import com.opencircle.verification.EmailVerificationProperties;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import com.opencircle.storage.StorageProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties({JwtProperties.class, CorsProperties.class, EmailVerificationProperties.class, MailProperties.class, PasswordResetProperties.class, LocationProperties.class})
+@EnableConfigurationProperties({JwtProperties.class,
+        CorsProperties.class,
+        EmailVerificationProperties.class,
+        MailProperties.class,
+        PasswordResetProperties.class,
+        LocationProperties.class,
+        StorageProperties.class})
 @EnableScheduling
 public class OpenCircleApiApplication {
 

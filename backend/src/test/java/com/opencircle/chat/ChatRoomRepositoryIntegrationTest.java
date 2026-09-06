@@ -201,8 +201,8 @@ class ChatRoomRepositoryIntegrationTest extends AbstractIntegrationTest {
         room.addParticipant(requester, NOW);
         rooms.save(room);
 
-        ChatMessage first = messages.save(new ChatMessage(room, poster, "First message", NOW.plusSeconds(10)));
-        ChatMessage second = messages.save(new ChatMessage(room, requester, "Second message", NOW.plusSeconds(20)));
+        ChatMessage first = messages.save(ChatMessage.text(room, poster, "First message", NOW.plusSeconds(10)));
+        ChatMessage second = messages.save(ChatMessage.text(room, poster, "Second message", NOW.plusSeconds(20)));
 
         assertThat(messages.findByChatRoomOrderByCreatedAtAscIdAsc(room))
                 .extracting(ChatMessage::getId)
