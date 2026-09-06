@@ -1,4 +1,12 @@
 package com.opencircle.chat;
 
-public class ChatAttachmentUpload {
+import java.io.InputStream;
+
+record ChatAttachmentUpload(
+        String originalFilename,
+        String contentType,
+        long fileSizeBytes,
+        InputStream inputStream,
+        String caption
+) {
 }
