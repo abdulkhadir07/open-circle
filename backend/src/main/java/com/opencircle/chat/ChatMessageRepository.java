@@ -8,6 +8,6 @@ import java.util.UUID;
 
 interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {
 
-    @EntityGraph(attributePaths = {"chatRoom", "sender"})
+    @EntityGraph(attributePaths = {"chatRoom", "sender", "attachment"})
     List<ChatMessage> findByChatRoomOrderByCreatedAtAscIdAsc(ChatRoom chatRoom);
 }

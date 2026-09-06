@@ -66,18 +66,11 @@ public class ChatRoomService {
 
     @Transactional
     public ChatMessage sendMessage(AppUser sender, UUID roomId, String body) {
-        ChatRoom room = getActiveParticipantRoom(sender, roomId);
         Instant now = Instant.now(clock);
+        ChatRoom room = getRoomReadyForNewMessage(sender, roomId, now);
+        ChatMessage message = ChatMessage.text(room, sender, body, now);
 
-        reconcileAutoClose(room, now);
-        requireRoomCanReceiveMessages(room);
-
-        ChatMessage message = new ChatMessage(room, sender, body, now);
-
-        room.recordMessageSent(now);
-        rooms.save(room);
-
-        return messages.save(message);
+        return saveNewMessage(room, message, now);
     }
 
     @Transactional
@@ -195,5 +188,23 @@ public class ChatRoomService {
         if (room.shouldAutoClose(now)) {
             room.close(now);
         }
+    }
+
+    ChatRoom getRoomReadyForNewMessage(AppUser sender, UUID roomId, Instant now) {
+        ChatRoom room = getActiveParticipantRoom(sender, roomId);
+
+        // Applies the same room access, auto-close, and messaging rules before any new message is created.
+        reconcileAutoClose(room, now);
+        requireRoomCanReceiveMessages(room);
+
+        return room;
+    }
+
+    ChatMessage saveNewMessage(ChatRoom room, ChatMessage message, Instant sentAt) {
+        // Message writes update the room timestamp so room lists stay ordered by latest activity.
+        room.recordMessageSent(sentAt);
+        rooms.save(room);
+
+        return messages.save(message);
     }
 }

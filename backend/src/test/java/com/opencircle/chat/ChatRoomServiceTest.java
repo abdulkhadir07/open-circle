@@ -90,7 +90,7 @@ class ChatRoomServiceTest {
         AppUser requester = user("requester@example.com");
         ChatRoom room = roomWithParticipants(poster, requester);
         UUID roomId = UUID.randomUUID();
-        List<ChatMessage> expectedMessages = List.of(new ChatMessage(room, poster, "Hello", NOW));
+        List<ChatMessage> expectedMessages = List.of(ChatMessage.text(room, poster, "Hello", NOW));
 
         when(rooms.findById(roomId)).thenReturn(Optional.of(room));
         when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, requester)).thenReturn(true);
