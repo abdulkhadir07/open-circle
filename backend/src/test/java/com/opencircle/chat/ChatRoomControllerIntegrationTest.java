@@ -89,8 +89,8 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
 
         inTransaction(() -> {
             ChatRoom managedRoom = rooms.findById(room.getId()).orElseThrow();
-            messages.save(new ChatMessage(managedRoom, poster, "First message", NOW.minusSeconds(30)));
-            messages.save(new ChatMessage(managedRoom, requester, "Second message", NOW.minusSeconds(10)));
+            messages.save(ChatMessage.text(managedRoom, poster, "First message", NOW.minusSeconds(30)));
+            messages.save(ChatMessage.text(managedRoom, requester, "Second message", NOW.minusSeconds(10)));
             return null;
         });
 
