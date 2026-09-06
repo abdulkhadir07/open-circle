@@ -1,4 +1,10 @@
 package com.opencircle.storage;
 
-public class AttachmentDownloadUrl {
+import java.net.URI;
+import java.time.Instant;
+
+public record AttachmentDownloadUrl(
+        URI url,
+        Instant expiresAt
+) {
 }
