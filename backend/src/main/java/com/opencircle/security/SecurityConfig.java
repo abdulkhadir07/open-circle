@@ -69,6 +69,9 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/chat-rooms").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/chat-rooms/*/messages").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/chat-rooms/*/messages").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/chat-rooms/*/attachments").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/chat-rooms/attachments/*/download-url").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/attachments/*/download-url").authenticated()
 
                         .requestMatchers(HttpMethod.PATCH, "/api/chat-rooms/{roomId}/save").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/chat-rooms/{roomId}/leave").authenticated()
