@@ -1,14 +1,13 @@
 package com.opencircle.realtime;
 
 import com.opencircle.chat.ChatMessage;
-import com.opencircle.chat.ChatMessageResponse;
+import com.opencircle.chat.ChatMessageBroadcaster;
 import com.opencircle.chat.ChatRoomService;
 import com.opencircle.user.AppUser;
 import jakarta.validation.Valid;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
@@ -19,16 +18,16 @@ class RealtimeChatController {
 
     private final ChatRoomService chatRoomService;
     private final WebSocketPrincipalResolver principalResolver;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final ChatMessageBroadcaster messageBroadcaster;
 
     RealtimeChatController(
             ChatRoomService chatRoomService,
             WebSocketPrincipalResolver principalResolver,
-            SimpMessagingTemplate messagingTemplate
+            ChatMessageBroadcaster messageBroadcaster
     ) {
         this.chatRoomService = chatRoomService;
         this.principalResolver = principalResolver;
-        this.messagingTemplate = messagingTemplate;
+        this.messageBroadcaster = messageBroadcaster;
     }
 
     @MessageMapping("/chat-rooms/{roomId}/messages")
@@ -42,9 +41,6 @@ class RealtimeChatController {
         // Reuses the REST message path so realtime messages keep the same room rules and persistence behavior.
         ChatMessage message = chatRoomService.sendMessage(sender, roomId, request.body());
 
-        messagingTemplate.convertAndSend(
-                "/topic/chat-rooms/" + roomId,
-                ChatMessageResponse.from(message)
-        );
+        messageBroadcaster.broadcast(message);
     }
 }
