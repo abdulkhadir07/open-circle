@@ -4,6 +4,7 @@ import com.opencircle.security.CurrentUserProvider;
 import com.opencircle.user.AppUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,9 +13,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,10 +28,19 @@ public class ChatRoomController {
 
     private final CurrentUserProvider currentUserProvider;
     private final ChatRoomService chatRoomService;
+    private final ChatAttachmentService chatAttachmentService;
+    private final ChatMessageBroadcaster messageBroadcaster;
 
-    ChatRoomController(CurrentUserProvider currentUserProvider, ChatRoomService chatRoomService) {
+    ChatRoomController(
+            CurrentUserProvider currentUserProvider,
+            ChatRoomService chatRoomService,
+            ChatAttachmentService chatAttachmentService,
+            ChatMessageBroadcaster messageBroadcaster
+    ) {
         this.currentUserProvider = currentUserProvider;
         this.chatRoomService = chatRoomService;
+        this.chatAttachmentService = chatAttachmentService;
+        this.messageBroadcaster = messageBroadcaster;
     }
 
     @GetMapping
@@ -62,10 +75,39 @@ public class ChatRoomController {
     ) {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
 
-        // Creates a message as the authenticated active participant.
+        // Creates a text message as the authenticated active participant.
         ChatMessage message = chatRoomService.sendMessage(currentUser, roomId, request.body());
 
         return ChatMessageResponse.from(message);
+    }
+
+    @PostMapping(value = "/{roomId}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ChatMessageResponse uploadAttachment(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID roomId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "caption", required = false) String caption
+    ) {
+        AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+
+        try {
+            ChatAttachmentUpload upload = new ChatAttachmentUpload(
+                    file.getOriginalFilename(),
+                    file.getContentType(),
+                    file.getSize(),
+                    file.getInputStream(),
+                    caption
+            );
+
+            // Stores the file, creates an attachment message, then broadcasts after the service transaction returns.
+            ChatMessage message = chatAttachmentService.uploadAttachment(currentUser, roomId, upload);
+            messageBroadcaster.broadcast(message);
+
+            return ChatMessageResponse.from(message);
+        } catch (IOException exception) {
+            throw new InvalidChatAttachmentException("Unable to read uploaded file");
+        }
     }
 
     @PatchMapping("/{roomId}/save")

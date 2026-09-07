@@ -24,11 +24,13 @@ class ChatMessageTest {
         room.addParticipant(poster, NOW);
         room.addParticipant(requester, NOW.plusSeconds(30));
 
-        ChatMessage message = new ChatMessage(room, poster, "  Hey there!  ", NOW.plusSeconds(60));
+        ChatMessage message = ChatMessage.text(room, poster, "  Hey there!  ", NOW.plusSeconds(60));
 
         assertThat(message.getChatRoom()).isEqualTo(room);
         assertThat(message.getSender()).isEqualTo(poster);
+        assertThat(message.getType()).isEqualTo(ChatMessageType.TEXT);
         assertThat(message.getBody()).isEqualTo("Hey there!");
+        assertThat(message.getAttachment()).isNull();
         assertThat(message.getCreatedAt()).isEqualTo(NOW.plusSeconds(60));
     }
 
@@ -38,7 +40,7 @@ class ChatMessageTest {
         ChatRoom room = new ChatRoom(invitePost(poster), NOW);
         room.addParticipant(poster, NOW);
 
-        assertThatThrownBy(() -> new ChatMessage(room, poster, "   ", NOW))
+        assertThatThrownBy(() -> ChatMessage.text(room, poster, "   ", NOW))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Message body is required");
     }
@@ -50,7 +52,7 @@ class ChatMessageTest {
         ChatRoom room = new ChatRoom(invitePost(poster), NOW);
         room.addParticipant(poster, NOW);
 
-        assertThatThrownBy(() -> new ChatMessage(room, stranger, "Can I join?", NOW))
+        assertThatThrownBy(() -> ChatMessage.text(room, stranger, "Can i join?", NOW))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Sender must be an active chat room participant");
     }
@@ -62,7 +64,7 @@ class ChatMessageTest {
         room.addParticipant(poster, NOW);
         room.leave(poster, NOW.plusSeconds(60));
 
-        assertThatThrownBy(() -> new ChatMessage(room, poster, "Still here?", NOW.plusSeconds(120)))
+        assertThatThrownBy(() -> ChatMessage.text(room, poster, "Still here?", NOW.plusSeconds(120)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Sender must be an active chat room participant");
     }
@@ -74,7 +76,7 @@ class ChatMessageTest {
         room.addParticipant(poster, NOW);
         room.close(NOW.plusSeconds(60));
 
-        assertThatThrownBy(() -> new ChatMessage(room, poster, "Anyone here?", NOW.plusSeconds(120)))
+        assertThatThrownBy(() -> ChatMessage.text(room, poster, "Anyone here?", NOW.plusSeconds(120)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Closed chat rooms cannot receive new messages");
     }
@@ -88,7 +90,7 @@ class ChatMessageTest {
         room.addParticipant(requester, NOW.plusSeconds(60));
         room.leave(requester, NOW.plusSeconds(120));
 
-        assertThatThrownBy(() -> new ChatMessage(room, poster, "Still here?", NOW.plusSeconds(180)))
+        assertThatThrownBy(() -> ChatMessage.text(room, poster, "Still here?", NOW.plusSeconds(180)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("At least two active participants are required to send messages");
     }
