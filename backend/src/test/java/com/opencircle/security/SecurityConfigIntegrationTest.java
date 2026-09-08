@@ -3,6 +3,7 @@ package com.opencircle.security;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -23,7 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(
@@ -51,6 +54,17 @@ class SecurityConfigIntegrationTest {
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.message").value("Authentication required"))
                 .andExpect(jsonPath("$.path").value(path));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/v3/api-docs",
+            "/swagger-ui.html",
+            "/swagger-ui/index.html"
+    })
+    void apiDocumentationRoutesDoNotRequireAuthentication(String path) throws Exception {
+        mockMvc.perform(get(path))
+                .andExpect(result -> assertThat(result.getResponse().getStatus()).isNotEqualTo(401));
     }
 
     private static Stream<Arguments> protectedRoutes() {
