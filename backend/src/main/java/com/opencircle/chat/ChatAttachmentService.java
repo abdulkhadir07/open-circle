@@ -1,10 +1,10 @@
 package com.opencircle.chat;
 
 import com.opencircle.storage.StorageProperties;
+import com.opencircle.storage.StorageAccessUrl;
 import com.opencircle.storage.StorageService;
 import com.opencircle.storage.StoredFile;
 import com.opencircle.user.AppUser;
-import com.opencircle.storage.AttachmentDownloadUrl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,7 +69,7 @@ class ChatAttachmentService {
     }
 
     @Transactional(readOnly = true)
-    public AttachmentDownloadUrl getDownloadUrl(AppUser requester, UUID attachmentId) {
+    public StorageAccessUrl getDownloadUrl(AppUser requester, UUID attachmentId) {
         ChatAttachment attachment = attachments.findById(attachmentId)
                 .orElseThrow(() -> new ChatAttachmentNotFoundException("Attachment not found"));
 

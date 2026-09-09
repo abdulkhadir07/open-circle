@@ -69,7 +69,8 @@ class InvitePostControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.city").value("San Francisco"))
                 .andExpect(jsonPath("$.stateRegion").value("California"))
                 .andExpect(jsonPath("$.country").value("USA"))
-                .andExpect(jsonPath("$.status").value("ACTIVE"));
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.images", hasSize(0)));
     }
 
     @Test
