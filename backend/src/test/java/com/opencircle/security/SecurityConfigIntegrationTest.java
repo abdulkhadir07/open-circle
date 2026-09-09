@@ -76,6 +76,7 @@ class SecurityConfigIntegrationTest {
                 Arguments.of(HttpMethod.POST, "/api/invite-posts"),
                 Arguments.of(HttpMethod.GET, "/api/invite-posts/local"),
                 Arguments.of(HttpMethod.GET, "/api/invite-posts/global"),
+                Arguments.of(HttpMethod.POST, "/api/invite-posts/00000000-0000-0000-0000-000000000001/images"),
 
                 Arguments.of(HttpMethod.POST, "/api/invite-posts/00000000-0000-0000-0000-000000000001/engagements"),
                 Arguments.of(HttpMethod.GET, "/api/invite-posts/00000000-0000-0000-0000-000000000001/engagements"),

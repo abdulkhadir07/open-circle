@@ -5,7 +5,7 @@ import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.invitepost.InviteType;
 import com.opencircle.invitepost.LocationScope;
-import com.opencircle.storage.AttachmentDownloadUrl;
+import com.opencircle.storage.StorageAccessUrl;
 import com.opencircle.storage.StorageService;
 import com.opencircle.storage.StoredFile;
 import com.opencircle.user.AppUser;
@@ -193,7 +193,7 @@ class ChatAttachmentControllerIntegrationTest extends AbstractIntegrationTest {
                 "opencircle-test-attachments",
                 "chat-attachments/chat-rooms/" + room.getId() + "/menu.pdf",
                 "menu.pdf"
-        )).thenReturn(new AttachmentDownloadUrl(
+        )).thenReturn(new StorageAccessUrl(
                 URI.create("https://example.com/download/menu.pdf"),
                 expiresAt
         ));
