@@ -3,12 +3,21 @@ package com.opencircle.invitepost;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+
+import jakarta.persistence.LockModeType;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = "poster")
+    @Query("select post from InvitePost post where post.id = :postId")
+    Optional<InvitePost> findByIdForImageUpload(UUID postId);
 
     @EntityGraph(attributePaths = "poster")
     @Query("""
