@@ -1,6 +1,7 @@
 package com.opencircle;
 
 import com.opencircle.location.LocationProperties;
+import com.opencircle.invitepost.image.InvitePostImageProperties;
 import com.opencircle.mail.MailProperties;
 import com.opencircle.passwordreset.PasswordResetProperties;
 import com.opencircle.security.CorsProperties;
@@ -19,6 +20,7 @@ import com.opencircle.storage.StorageProperties;
         MailProperties.class,
         PasswordResetProperties.class,
         LocationProperties.class,
+        InvitePostImageProperties.class,
         StorageProperties.class})
 @EnableScheduling
 public class OpenCircleApiApplication {
