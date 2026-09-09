@@ -20,6 +20,9 @@ public class StorageProperties {
     @Valid
     private final Attachments attachments = new Attachments();
 
+    @Valid
+    private final InvitePostImages invitePostImages = new InvitePostImages();
+
     public S3 getS3() {
         return s3;
     }
@@ -28,15 +31,27 @@ public class StorageProperties {
         return attachments;
     }
 
+    public InvitePostImages getInvitePostImages() {
+        return invitePostImages;
+    }
+
     public boolean isAllowedAttachmentContentType(String contentType) {
+        return isAllowedContentType(contentType, attachments.allowedContentTypes);
+    }
+
+    public boolean isAllowedInvitePostImageContentType(String contentType) {
+        return isAllowedContentType(contentType, invitePostImages.allowedContentTypes);
+    }
+
+    private boolean isAllowedContentType(String contentType, List<String> allowedContentTypes) {
         if (contentType == null || contentType.isBlank()) {
             return false;
         }
 
         String normalized = contentType.trim();
 
-        return attachments.allowedContentTypes.stream()
-                .anyMatch(allowed -> allowed.equalsIgnoreCase(normalized));
+        return allowedContentTypes.stream()
+                .anyMatch(allowed -> allowed.trim().equalsIgnoreCase(normalized));
     }
 
     public static class S3 {
@@ -97,6 +112,42 @@ public class StorageProperties {
 
         public void setAllowedContentTypes(List<String> allowedContentTypes) {
             this.allowedContentTypes = allowedContentTypes;
+        }
+    }
+
+    public static class InvitePostImages {
+
+        @Positive
+        private long maxFileSizeBytes;
+
+        @NotEmpty
+        private List<@NotBlank String> allowedContentTypes = new ArrayList<>();
+
+        @Positive
+        private int viewUrlExpirationMinutes;
+
+        public long getMaxFileSizeBytes() {
+            return maxFileSizeBytes;
+        }
+
+        public void setMaxFileSizeBytes(long maxFileSizeBytes) {
+            this.maxFileSizeBytes = maxFileSizeBytes;
+        }
+
+        public List<String> getAllowedContentTypes() {
+            return allowedContentTypes;
+        }
+
+        public void setAllowedContentTypes(List<String> allowedContentTypes) {
+            this.allowedContentTypes = allowedContentTypes;
+        }
+
+        public int getViewUrlExpirationMinutes() {
+            return viewUrlExpirationMinutes;
+        }
+
+        public void setViewUrlExpirationMinutes(int viewUrlExpirationMinutes) {
+            this.viewUrlExpirationMinutes = viewUrlExpirationMinutes;
         }
     }
 }

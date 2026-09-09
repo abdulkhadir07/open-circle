@@ -3,7 +3,7 @@ package com.opencircle.storage;
 import java.net.URI;
 import java.time.Instant;
 
-public record AttachmentDownloadUrl(
+public record StorageAccessUrl(
         URI url,
         Instant expiresAt
 ) {

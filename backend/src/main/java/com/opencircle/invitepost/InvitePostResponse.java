@@ -1,6 +1,9 @@
 package com.opencircle.invitepost;
 
+import com.opencircle.invitepost.image.InvitePostImageResponse;
+
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 record InvitePostResponse(
@@ -19,10 +22,15 @@ record InvitePostResponse(
         InvitePostStatus status,
         Instant expiresAt,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        List<InvitePostImageResponse> images
 ) {
 
     static InvitePostResponse from(InvitePost post) {
+        return from(post, List.of());
+    }
+
+    static InvitePostResponse from(InvitePost post, List<InvitePostImageResponse> images) {
         return new InvitePostResponse(
                 post.getId(),
                 post.getPoster().getId(),
@@ -39,7 +47,8 @@ record InvitePostResponse(
                 post.getStatus(),
                 post.getExpiresAt(),
                 post.getCreatedAt(),
-                post.getUpdatedAt()
+                post.getUpdatedAt(),
+                List.copyOf(images)
         );
     }
 }

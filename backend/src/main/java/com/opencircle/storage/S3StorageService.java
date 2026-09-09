@@ -61,7 +61,7 @@ class S3StorageService implements StorageService {
     }
 
     @Override
-    public AttachmentDownloadUrl generateDownloadUrl(String bucket, String key, String downloadFilename) {
+    public StorageAccessUrl generateDownloadUrl(String bucket, String key, String downloadFilename) {
         Duration expiration = Duration.ofMinutes(properties.getS3().getPresignedUrlExpirationMinutes());
         Instant expiresAt = Instant.now(clock).plus(expiration);
 
@@ -71,18 +71,48 @@ class S3StorageService implements StorageService {
                 .responseContentDisposition("attachment; filename=\"" + safeFilename(downloadFilename) + "\"")
                 .build();
 
+        return presign(objectRequest, expiration, expiresAt, "Unable to create download URL");
+    }
+
+    @Override
+    public StorageAccessUrl generateViewUrl(String bucket, String key, Instant notAfter) {
+        Instant now = Instant.now(clock);
+        Instant configuredExpiration = now.plus(Duration.ofMinutes(
+                properties.getInvitePostImages().getViewUrlExpirationMinutes()
+        ));
+        Instant expiresAt = configuredExpiration.isBefore(notAfter) ? configuredExpiration : notAfter;
+
+        if (!expiresAt.isAfter(now)) {
+            throw new IllegalArgumentException("View URL expiration must be in the future");
+        }
+
+        Duration expiration = Duration.between(now, expiresAt);
+        GetObjectRequest objectRequest = GetObjectRequest.builder()
+                .bucket(requiredText(bucket, "S3 bucket is required"))
+                .key(requiredText(key, "S3 object key is required"))
+                .build();
+
+        return presign(objectRequest, expiration, expiresAt, "Unable to create view URL");
+    }
+
+    private StorageAccessUrl presign(
+            GetObjectRequest objectRequest,
+            Duration expiration,
+            Instant expiresAt,
+            String failureMessage
+    ) {
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
                 .signatureDuration(expiration)
                 .getObjectRequest(objectRequest)
                 .build();
 
         try {
-            return new AttachmentDownloadUrl(
+            return new StorageAccessUrl(
                     URI.create(s3Presigner.presignGetObject(presignRequest).url().toString()),
                     expiresAt
             );
         } catch (SdkException exception) {
-            throw new StorageException("Unable to create download URL", exception);
+            throw new StorageException(failureMessage, exception);
         }
     }
 
