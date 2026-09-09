@@ -1,6 +1,6 @@
 package com.opencircle.chat;
 
-import com.opencircle.storage.AttachmentDownloadUrl;
+import com.opencircle.storage.StorageAccessUrl;
 
 import java.time.Instant;
 
@@ -9,7 +9,7 @@ public record AttachmentDownloadUrlResponse(
         Instant expiresAt
 ) {
 
-    static AttachmentDownloadUrlResponse from(AttachmentDownloadUrl downloadUrl) {
+    static AttachmentDownloadUrlResponse from(StorageAccessUrl downloadUrl) {
         return new AttachmentDownloadUrlResponse(
                 downloadUrl.url().toString(),
                 downloadUrl.expiresAt()
