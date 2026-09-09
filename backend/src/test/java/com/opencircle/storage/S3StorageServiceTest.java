@@ -124,7 +124,7 @@ class S3StorageServiceTest {
         when(presignedRequest.url()).thenReturn(URI.create("https://example.com/download").toURL());
         when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presignedRequest);
 
-        AttachmentDownloadUrl downloadUrl = service.generateDownloadUrl(
+        StorageAccessUrl downloadUrl = service.generateDownloadUrl(
                 "opencircle-test-attachments",
                 "chat-attachments/file-id",
                 "../bad\"file\nname.png"
@@ -158,6 +158,65 @@ class S3StorageServiceTest {
                 .hasMessage("Unable to create download URL");
     }
 
+    @Test
+    void generateViewUrlOmitsContentDispositionAndUsesConfiguredExpiration() throws Exception {
+        PresignedGetObjectRequest presignedRequest = mock(PresignedGetObjectRequest.class);
+        when(presignedRequest.url()).thenReturn(URI.create("https://example.com/view").toURL());
+        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presignedRequest);
+
+        StorageAccessUrl viewUrl = service.generateViewUrl(
+                "opencircle-test-attachments",
+                "invite-post-images/post-id/file-id",
+                NOW.plus(Duration.ofHours(12))
+        );
+
+        var requestCaptor = forClass(GetObjectPresignRequest.class);
+        verify(s3Presigner).presignGetObject(requestCaptor.capture());
+
+        GetObjectPresignRequest request = requestCaptor.getValue();
+        GetObjectRequest objectRequest = request.getObjectRequest();
+
+        assertThat(viewUrl.url()).isEqualTo(URI.create("https://example.com/view"));
+        assertThat(viewUrl.expiresAt()).isEqualTo(NOW.plus(Duration.ofMinutes(60)));
+        assertThat(request.signatureDuration()).isEqualTo(Duration.ofMinutes(60));
+        assertThat(objectRequest.bucket()).isEqualTo("opencircle-test-attachments");
+        assertThat(objectRequest.key()).isEqualTo("invite-post-images/post-id/file-id");
+        assertThat(objectRequest.responseContentDisposition()).isNull();
+    }
+
+    @Test
+    void generateViewUrlDoesNotOutlivePost() throws Exception {
+        PresignedGetObjectRequest presignedRequest = mock(PresignedGetObjectRequest.class);
+        when(presignedRequest.url()).thenReturn(URI.create("https://example.com/view").toURL());
+        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presignedRequest);
+        Instant postExpiresAt = NOW.plus(Duration.ofMinutes(15));
+
+        StorageAccessUrl viewUrl = service.generateViewUrl(
+                "opencircle-test-attachments",
+                "invite-post-images/post-id/file-id",
+                postExpiresAt
+        );
+
+        var requestCaptor = forClass(GetObjectPresignRequest.class);
+        verify(s3Presigner).presignGetObject(requestCaptor.capture());
+
+        assertThat(viewUrl.expiresAt()).isEqualTo(postExpiresAt);
+        assertThat(requestCaptor.getValue().signatureDuration()).isEqualTo(Duration.ofMinutes(15));
+    }
+
+    @Test
+    void generateViewUrlRejectsExpiredDeadline() {
+        assertThatThrownBy(() -> service.generateViewUrl(
+                "opencircle-test-attachments",
+                "invite-post-images/post-id/file-id",
+                NOW
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("View URL expiration must be in the future");
+
+        verifyNoInteractions(s3Presigner);
+    }
+
     private StorageProperties storageProperties() {
         StorageProperties properties = new StorageProperties();
         properties.getS3().setBucket("opencircle-test-attachments");
@@ -167,6 +226,11 @@ class S3StorageServiceTest {
         properties.getAttachments().setAllowedContentTypes(
                 java.util.List.of("image/jpeg", "image/png", "image/webp", "application/pdf")
         );
+        properties.getInvitePostImages().setMaxFileSizeBytes(5_242_880L);
+        properties.getInvitePostImages().setAllowedContentTypes(
+                java.util.List.of("image/jpeg", "image/png", "image/webp")
+        );
+        properties.getInvitePostImages().setViewUrlExpirationMinutes(60);
 
         return properties;
     }

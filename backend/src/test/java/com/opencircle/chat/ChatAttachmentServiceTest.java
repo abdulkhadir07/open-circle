@@ -1,6 +1,6 @@
 package com.opencircle.chat;
 
-import com.opencircle.storage.AttachmentDownloadUrl;
+import com.opencircle.storage.StorageAccessUrl;
 import com.opencircle.storage.StorageProperties;
 import com.opencircle.storage.StorageService;
 import com.opencircle.storage.StoredFile;
@@ -156,7 +156,7 @@ class ChatAttachmentServiceTest {
                 NOW
         );
         ChatAttachment attachment = message.getAttachment();
-        AttachmentDownloadUrl downloadUrl = new AttachmentDownloadUrl(
+        StorageAccessUrl downloadUrl = new StorageAccessUrl(
                 URI.create("https://example.com/download"),
                 NOW.plusSeconds(600)
         );
@@ -165,7 +165,7 @@ class ChatAttachmentServiceTest {
         when(chatRoomService.isActiveParticipant(requester, room.getId())).thenReturn(true);
         when(storageService.generateDownloadUrl("bucket", "key", "receipt.png")).thenReturn(downloadUrl);
 
-        AttachmentDownloadUrl result = service.getDownloadUrl(requester, ATTACHMENT_ID);
+        StorageAccessUrl result = service.getDownloadUrl(requester, ATTACHMENT_ID);
 
         assertThat(result).isEqualTo(downloadUrl);
     }
