@@ -2,6 +2,8 @@ package com.opencircle.invitepost;
 
 import com.opencircle.invitepost.image.InvitePostImageResponse;
 import com.opencircle.invitepost.image.InvitePostImageService;
+import com.opencircle.profileimage.ProfileImageQueryService;
+import com.opencircle.profileimage.ProfileImageResponse;
 import com.opencircle.security.CurrentUserProvider;
 import com.opencircle.user.AppUser;
 import jakarta.validation.Valid;
@@ -12,7 +14,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/invite-posts")
@@ -21,15 +25,18 @@ public class InvitePostController {
     private final CurrentUserProvider currentUserProvider;
     private final InvitePostService invitePostService;
     private final InvitePostImageService imageService;
+    private final ProfileImageQueryService profileImageQueryService;
 
     InvitePostController(
             CurrentUserProvider currentUserProvider,
             InvitePostService invitePostService,
-            InvitePostImageService imageService
+            InvitePostImageService imageService,
+            ProfileImageQueryService profileImageQueryService
     ) {
         this.currentUserProvider = currentUserProvider;
         this.invitePostService = invitePostService;
         this.imageService = imageService;
+        this.profileImageQueryService = profileImageQueryService;
     }
 
     @PostMapping
@@ -41,7 +48,11 @@ public class InvitePostController {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
         InvitePost post = invitePostService.createPost(currentUser, request);
 
-        return InvitePostResponse.from(post);
+        return InvitePostResponse.from(
+                post,
+                profileImageQueryService.getProfileImageByUserId(post.getPoster().getId()),
+                List.of()
+        );
     }
 
     @GetMapping("/local")
@@ -63,10 +74,16 @@ public class InvitePostController {
 
     private List<InvitePostResponse> responsesFor(List<InvitePost> posts) {
         Map<UUID, List<InvitePostImageResponse>> imagesByPost = imageService.getImageResponses(posts);
+        Set<UUID> posterIds = posts.stream()
+                .map(post -> post.getPoster().getId())
+                .collect(Collectors.toSet());
+        Map<UUID, ProfileImageResponse> profileImagesByUser =
+                profileImageQueryService.getProfileImagesByUserIds(posterIds);
 
         return posts.stream()
                 .map(post -> InvitePostResponse.from(
                         post,
+                        profileImagesByUser.get(post.getPoster().getId()),
                         imagesByPost.getOrDefault(post.getId(), List.of())
                 ))
                 .toList();
