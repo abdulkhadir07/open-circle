@@ -1,8 +1,11 @@
 package com.opencircle.invitepost;
 
 import com.opencircle.AbstractIntegrationTest;
+import com.opencircle.profileimage.ProfileImageQueryService;
+import com.opencircle.profileimage.ProfileImageResponse;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,13 +13,20 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -41,10 +51,20 @@ class InvitePostControllerIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private InvitePostRepository posts;
 
+    @MockitoBean
+    private ProfileImageQueryService profileImageQueryService;
+
+    @BeforeEach
+    void defaultMissingProfileImages() {
+        when(profileImageQueryService.getProfileImagesByUserIds(any())).thenReturn(Map.of());
+    }
+
     @Test
     void createPostReturnsCreatedInvitePost() throws Exception {
         AppUser user = verifiedUser("poster@example.com", "San Francisco", "California", "USA");
         String token = loginToken("poster@example.com");
+        ProfileImageResponse profileImage = profileImage("https://example.com/poster.png");
+        when(profileImageQueryService.getProfileImageByUserId(user.getId())).thenReturn(profileImage);
 
         mockMvc.perform(post("/api/invite-posts")
                         .header("Authorization", "Bearer " + token)
@@ -60,6 +80,7 @@ class InvitePostControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.posterId").value(user.getId().toString()))
                 .andExpect(jsonPath("$.posterUsername").value(user.getUsername()))
+                .andExpect(jsonPath("$.posterProfileImage.url").value("https://example.com/poster.png"))
                 .andExpect(jsonPath("$.content").value("Anyone want to grab coffee near campus?"))
                 .andExpect(jsonPath("$.inviteType").value("GROUP"))
                 .andExpect(jsonPath("$.totalCapacity").value(4))
@@ -120,13 +141,21 @@ class InvitePostControllerIntegrationTest extends AbstractIntegrationTest {
         posts.save(invitePost(otherCountryPoster, "Canada post", LocationScope.COUNTRY, "Toronto", "Ontario", "Canada", feedNow.minusSeconds(240)));
 
         String token = loginToken("viewer@example.com");
+        ProfileImageResponse profileImage = profileImage("https://example.com/local-poster.png");
+        Set<UUID> posterIds = Set.of(localPoster.getId());
+        when(profileImageQueryService.getProfileImagesByUserIds(posterIds))
+                .thenReturn(Map.of(localPoster.getId(), profileImage));
 
         mockMvc.perform(get("/api/invite-posts/local")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].content").value("City post"))
-                .andExpect(jsonPath("$[1].content").value("Country post"));
+                .andExpect(jsonPath("$[0].posterProfileImage.url").value("https://example.com/local-poster.png"))
+                .andExpect(jsonPath("$[1].content").value("Country post"))
+                .andExpect(jsonPath("$[1].posterProfileImage.url").value("https://example.com/local-poster.png"));
+
+        verify(profileImageQueryService).getProfileImagesByUserIds(posterIds);
     }
 
     @Test
@@ -208,6 +237,16 @@ class InvitePostControllerIntegrationTest extends AbstractIntegrationTest {
                 stateRegion,
                 country,
                 createdAt
+        );
+    }
+
+    private ProfileImageResponse profileImage(String url) {
+        return new ProfileImageResponse(
+                UUID.randomUUID(),
+                url,
+                Instant.parse("2026-09-09T13:00:00Z"),
+                "image/png",
+                Instant.parse("2026-09-09T12:00:00Z")
         );
     }
 }

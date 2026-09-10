@@ -1,9 +1,11 @@
 package com.opencircle.chat;
 
+import com.opencircle.profileimage.ProfileImageResponse;
 import com.opencircle.user.AppUser;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public record ChatRoomResponse(
@@ -15,6 +17,7 @@ public record ChatRoomResponse(
         Instant savedAt,
         UUID savedByUserId,
         String savedByUsername,
+        ProfileImageResponse savedByProfileImage,
         Instant autoCloseAt,
         boolean closed,
         Instant closedAt,
@@ -25,6 +28,14 @@ public record ChatRoomResponse(
 ) {
 
     public static ChatRoomResponse from(ChatRoom room, AppUser currentUser) {
+        return from(room, currentUser, Map.of());
+    }
+
+    public static ChatRoomResponse from(
+            ChatRoom room,
+            AppUser currentUser,
+            Map<UUID, ProfileImageResponse> profileImagesByUser
+    ) {
         return new ChatRoomResponse(
                 room.getId(),
                 room.getInvitePost().getId(),
@@ -34,12 +45,13 @@ public record ChatRoomResponse(
                 room.getSavedAt(),
                 nullableUserId(room.getSavedBy()),
                 nullableUsername(room.getSavedBy()),
+                profileImageFor(room.getSavedBy(), profileImagesByUser),
                 room.getAutoCloseAt(),
                 room.isClosed(),
                 room.getClosedAt(),
                 hiddenForCurrentUser(room, currentUser),
                 room.getParticipants().stream()
-                        .map(ParticipantResponse::from)
+                        .map(participant -> ParticipantResponse.from(participant, profileImagesByUser))
                         .toList(),
                 room.getCreatedAt(),
                 room.getUpdatedAt()
@@ -47,7 +59,7 @@ public record ChatRoomResponse(
     }
 
     public static ChatRoomResponse from(ChatRoom room) {
-        return from(room, null);
+        return from(room, null, Map.of());
     }
 
     private static boolean hiddenForCurrentUser(ChatRoom room, AppUser currentUser) {
@@ -70,9 +82,17 @@ public record ChatRoomResponse(
         return user == null ? null : user.getUsername();
     }
 
+    private static ProfileImageResponse profileImageFor(
+            AppUser user,
+            Map<UUID, ProfileImageResponse> profileImagesByUser
+    ) {
+        return user == null ? null : profileImagesByUser.get(user.getId());
+    }
+
     public record ParticipantResponse(
             UUID userId,
             String username,
+            ProfileImageResponse profileImage,
             boolean active,
             Instant joinedAt,
             boolean left,
@@ -80,13 +100,18 @@ public record ChatRoomResponse(
             boolean removed,
             Instant removedAt,
             UUID removedByUserId,
-            String removedByUsername
+            String removedByUsername,
+            ProfileImageResponse removedByProfileImage
     ) {
 
-        static ParticipantResponse from(ChatRoomParticipant participant) {
+        static ParticipantResponse from(
+                ChatRoomParticipant participant,
+                Map<UUID, ProfileImageResponse> profileImagesByUser
+        ) {
             return new ParticipantResponse(
                     participant.getUser().getId(),
                     participant.getUser().getUsername(),
+                    ChatRoomResponse.profileImageFor(participant.getUser(), profileImagesByUser),
                     participant.isActive(),
                     participant.getJoinedAt(),
                     participant.getLeftAt() != null,
@@ -94,7 +119,8 @@ public record ChatRoomResponse(
                     participant.getRemovedAt() != null,
                     participant.getRemovedAt(),
                     ChatRoomResponse.nullableUserId(participant.getRemovedBy()),
-                    ChatRoomResponse.nullableUsername(participant.getRemovedBy())
+                    ChatRoomResponse.nullableUsername(participant.getRemovedBy()),
+                    ChatRoomResponse.profileImageFor(participant.getRemovedBy(), profileImagesByUser)
             );
         }
     }
