@@ -1,5 +1,6 @@
 package com.opencircle.location;
 
+import com.opencircle.profileimage.ProfileImageQueryService;
 import com.opencircle.security.CurrentUserProvider;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.dto.UserResponse;
@@ -17,13 +18,16 @@ public class LocationController {
 
     private final CurrentUserProvider currentUserProvider;
     private final LocationVerificationService locationVerificationService;
+    private final ProfileImageQueryService profileImageQueryService;
 
     LocationController(
             CurrentUserProvider currentUserProvider,
-            LocationVerificationService locationVerificationService
+            LocationVerificationService locationVerificationService,
+            ProfileImageQueryService profileImageQueryService
     ) {
         this.currentUserProvider = currentUserProvider;
         this.locationVerificationService = locationVerificationService;
+        this.profileImageQueryService = profileImageQueryService;
     }
 
     @PutMapping
@@ -36,6 +40,9 @@ public class LocationController {
         // Resolves and stores the verified location for the authenticated user.
         AppUser updatedUser = locationVerificationService.verifyLocation(user, request);
 
-        return UserResponse.from(updatedUser);
+        return UserResponse.from(
+                updatedUser,
+                profileImageQueryService.getProfileImageByUserId(updatedUser.getId())
+        );
     }
 }
