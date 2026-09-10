@@ -186,7 +186,8 @@ class ProfileImageControllerIntegrationTest extends AbstractIntegrationTest {
     @Test
     void meReturnsProfileImageWhenPresent() throws Exception {
         AppUser user = user("me-image");
-        ProfileImage image = images.saveAndFlush(storedImage(user, "me-file", "image/png"));
+        ProfileImage savedImage = images.saveAndFlush(storedImage(user, "me-file", "image/png"));
+        ProfileImage image = images.findById(savedImage.getId()).orElseThrow();
         Instant urlExpiresAt = Instant.parse("2026-09-09T15:00:00Z");
 
         when(storageService.generateViewUrl(image.getS3Bucket(), image.getS3ObjectKey()))
