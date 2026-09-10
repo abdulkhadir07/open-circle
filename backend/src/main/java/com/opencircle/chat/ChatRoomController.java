@@ -1,5 +1,7 @@
 package com.opencircle.chat;
 
+import com.opencircle.profileimage.ProfileImageQueryService;
+import com.opencircle.profileimage.ProfileImageResponse;
 import com.opencircle.security.CurrentUserProvider;
 import com.opencircle.user.AppUser;
 import jakarta.validation.Valid;
@@ -19,8 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/chat-rooms")
@@ -30,17 +36,20 @@ public class ChatRoomController {
     private final ChatRoomService chatRoomService;
     private final ChatAttachmentService chatAttachmentService;
     private final ChatMessageBroadcaster messageBroadcaster;
+    private final ProfileImageQueryService profileImageQueryService;
 
     ChatRoomController(
             CurrentUserProvider currentUserProvider,
             ChatRoomService chatRoomService,
             ChatAttachmentService chatAttachmentService,
-            ChatMessageBroadcaster messageBroadcaster
+            ChatMessageBroadcaster messageBroadcaster,
+            ProfileImageQueryService profileImageQueryService
     ) {
         this.currentUserProvider = currentUserProvider;
         this.chatRoomService = chatRoomService;
         this.chatAttachmentService = chatAttachmentService;
         this.messageBroadcaster = messageBroadcaster;
+        this.profileImageQueryService = profileImageQueryService;
     }
 
     @GetMapping
@@ -48,8 +57,11 @@ public class ChatRoomController {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
 
         // Returns only rooms still visible to the authenticated participant.
-        return chatRoomService.getRoomsFor(currentUser).stream()
-                .map(room -> ChatRoomResponse.from(room, currentUser))
+        List<ChatRoom> rooms = chatRoomService.getRoomsFor(currentUser);
+        Map<UUID, ProfileImageResponse> profileImagesByUser = profileImagesForRooms(rooms);
+
+        return rooms.stream()
+                .map(room -> ChatRoomResponse.from(room, currentUser, profileImagesByUser))
                 .toList();
     }
 
@@ -61,8 +73,18 @@ public class ChatRoomController {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
 
         // Reads room messages only after active membership is confirmed by the service.
-        return chatRoomService.getMessages(currentUser, roomId).stream()
-                .map(ChatMessageResponse::from)
+        List<ChatMessage> messages = chatRoomService.getMessages(currentUser, roomId);
+        Set<UUID> senderIds = messages.stream()
+                .map(message -> message.getSender().getId())
+                .collect(Collectors.toSet());
+        Map<UUID, ProfileImageResponse> profileImagesByUser =
+                profileImageQueryService.getProfileImagesByUserIds(senderIds);
+
+        return messages.stream()
+                .map(message -> ChatMessageResponse.from(
+                        message,
+                        profileImagesByUser.get(message.getSender().getId())
+                ))
                 .toList();
     }
 
@@ -78,7 +100,7 @@ public class ChatRoomController {
         // Creates a text message as the authenticated active participant.
         ChatMessage message = chatRoomService.sendMessage(currentUser, roomId, request.body());
 
-        return ChatMessageResponse.from(message);
+        return responseFor(message);
     }
 
     @PostMapping(value = "/{roomId}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -102,9 +124,10 @@ public class ChatRoomController {
 
             // Stores the file, creates an attachment message, then broadcasts after the service transaction returns.
             ChatMessage message = chatAttachmentService.uploadAttachment(currentUser, roomId, upload);
-            messageBroadcaster.broadcast(message);
+            ChatMessageResponse response = responseFor(message);
+            messageBroadcaster.broadcast(response);
 
-            return ChatMessageResponse.from(message);
+            return response;
         } catch (IOException exception) {
             throw new InvalidChatAttachmentException("Unable to read uploaded file");
         }
@@ -118,7 +141,7 @@ public class ChatRoomController {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
 
         // Saves the whole room so it cannot be auto-closed later.
-        return ChatRoomResponse.from(chatRoomService.saveRoom(currentUser, roomId), currentUser);
+        return responseFor(chatRoomService.saveRoom(currentUser, roomId), currentUser);
     }
 
     @PatchMapping("/{roomId}/leave")
@@ -129,7 +152,7 @@ public class ChatRoomController {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
 
         // Marks the authenticated user inactive in the room and refreshes auto-close state.
-        return ChatRoomResponse.from(chatRoomService.leaveRoom(currentUser, roomId), currentUser);
+        return responseFor(chatRoomService.leaveRoom(currentUser, roomId), currentUser);
     }
 
     @PatchMapping("/{roomId}/hide")
@@ -140,7 +163,7 @@ public class ChatRoomController {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
 
         // Hides the room only from the authenticated user's room list.
-        return ChatRoomResponse.from(chatRoomService.hideRoom(currentUser, roomId), currentUser);
+        return responseFor(chatRoomService.hideRoom(currentUser, roomId), currentUser);
     }
 
     @PatchMapping("/{roomId}/participants/{userId}/remove")
@@ -152,6 +175,37 @@ public class ChatRoomController {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
 
         // Allows the poster to remove a participant from their invite-post chat room.
-        return ChatRoomResponse.from(chatRoomService.removeParticipant(currentUser, roomId, userId), currentUser);
+        return responseFor(chatRoomService.removeParticipant(currentUser, roomId, userId), currentUser);
+    }
+
+    private ChatMessageResponse responseFor(ChatMessage message) {
+        return ChatMessageResponse.from(
+                message,
+                profileImageQueryService.getProfileImageByUserId(message.getSender().getId())
+        );
+    }
+
+    private ChatRoomResponse responseFor(ChatRoom room, AppUser currentUser) {
+        return ChatRoomResponse.from(room, currentUser, profileImagesForRooms(List.of(room)));
+    }
+
+    private Map<UUID, ProfileImageResponse> profileImagesForRooms(List<ChatRoom> rooms) {
+        Set<UUID> userIds = new LinkedHashSet<>();
+
+        rooms.forEach(room -> {
+            addUserId(userIds, room.getSavedBy());
+            room.getParticipants().forEach(participant -> {
+                addUserId(userIds, participant.getUser());
+                addUserId(userIds, participant.getRemovedBy());
+            });
+        });
+
+        return profileImageQueryService.getProfileImagesByUserIds(userIds);
+    }
+
+    private void addUserId(Set<UUID> userIds, AppUser user) {
+        if (user != null) {
+            userIds.add(user.getId());
+        }
     }
 }

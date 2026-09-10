@@ -68,6 +68,8 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/invite-posts/*/engagements").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invite-posts/*/engagements").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/invite-posts/*/images").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/users/me/profile-image").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/me/profile-image").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/invite-posts").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invite-posts/local").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invite-posts/global").authenticated()
