@@ -5,8 +5,11 @@ import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.invitepost.InviteType;
 import com.opencircle.invitepost.LocationScope;
+import com.opencircle.profileimage.ProfileImageQueryService;
+import com.opencircle.profileimage.ProfileImageResponse;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,14 +17,21 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -48,6 +58,14 @@ class EngagementRequestControllerIntegrationTest extends AbstractIntegrationTest
     @Autowired
     private EngagementRequestRepository requests;
 
+    @MockitoBean
+    private ProfileImageQueryService profileImageQueryService;
+
+    @BeforeEach
+    void defaultMissingProfileImages() {
+        when(profileImageQueryService.getProfileImagesByUserIds(any())).thenReturn(Map.of());
+    }
+
     @Test
     void createRequestReturnsCreatedEngagementRequest() throws Exception {
         AppUser poster = verifiedUser("poster.engage@example.com", "San Francisco", "California", "USA");
@@ -55,6 +73,8 @@ class EngagementRequestControllerIntegrationTest extends AbstractIntegrationTest
         InvitePost post = posts.save(invitePost(poster, "Anyone want coffee?", InviteType.GROUP, 3));
 
         String token = loginToken("requester.engage@example.com");
+        when(profileImageQueryService.getProfileImageByUserId(requester.getId()))
+                .thenReturn(profileImage("https://example.com/requester.png"));
 
         mockMvc.perform(post("/api/invite-posts/{postId}/engagements", post.getId())
                         .header("Authorization", "Bearer " + token))
@@ -62,6 +82,7 @@ class EngagementRequestControllerIntegrationTest extends AbstractIntegrationTest
                 .andExpect(jsonPath("$.invitePostId").value(post.getId().toString()))
                 .andExpect(jsonPath("$.requesterId").value(requester.getId().toString()))
                 .andExpect(jsonPath("$.requesterUsername").value(requester.getUsername()))
+                .andExpect(jsonPath("$.requesterProfileImage.url").value("https://example.com/requester.png"))
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.expiresAt").value(post.getExpiresAt().toString()));
     }
@@ -87,13 +108,23 @@ class EngagementRequestControllerIntegrationTest extends AbstractIntegrationTest
         requests.save(new EngagementRequest(post, requester, Instant.now()));
 
         String token = loginToken("poster.list@example.com");
+        Set<UUID> requesterIds = Set.of(requester.getId());
+        when(profileImageQueryService.getProfileImagesByUserIds(requesterIds))
+                .thenReturn(Map.of(
+                        requester.getId(),
+                        profileImage("https://example.com/list-requester.png")
+                ));
 
         mockMvc.perform(get("/api/invite-posts/{postId}/engagements", post.getId())
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].requesterId").value(requester.getId().toString()))
+                .andExpect(jsonPath("$[0].requesterProfileImage.url")
+                        .value("https://example.com/list-requester.png"))
                 .andExpect(jsonPath("$[0].status").value("PENDING"));
+
+        verify(profileImageQueryService).getProfileImagesByUserIds(requesterIds);
     }
 
     @Test
@@ -244,6 +275,16 @@ class EngagementRequestControllerIntegrationTest extends AbstractIntegrationTest
                 poster.getVerifiedStateRegion(),
                 poster.getVerifiedCountry(),
                 Instant.now()
+        );
+    }
+
+    private ProfileImageResponse profileImage(String url) {
+        return new ProfileImageResponse(
+                UUID.randomUUID(),
+                url,
+                Instant.parse("2026-09-09T13:00:00Z"),
+                "image/png",
+                Instant.parse("2026-09-09T12:00:00Z")
         );
     }
 
