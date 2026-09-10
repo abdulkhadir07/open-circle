@@ -1,5 +1,6 @@
 package com.opencircle.user;
 
+import com.opencircle.profileimage.ProfileImageQueryService;
 import com.opencircle.security.CurrentUserProvider;
 import com.opencircle.user.dto.UserResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,14 +14,24 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final CurrentUserProvider currentUserProvider;
+    private final ProfileImageQueryService profileImageQueryService;
 
-    UserController(CurrentUserProvider currentUserProvider) {
+    UserController(
+            CurrentUserProvider currentUserProvider,
+            ProfileImageQueryService profileImageQueryService
+    ) {
         this.currentUserProvider = currentUserProvider;
+        this.profileImageQueryService = profileImageQueryService;
     }
 
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal Jwt jwt) {
         // Returns the profile for the user represented by the validated bearer token.
-        return UserResponse.from(currentUserProvider.getCurrentUser(jwt));
+        AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+
+        return UserResponse.from(
+                currentUser,
+                profileImageQueryService.getProfileImageByUserId(currentUser.getId())
+        );
     }
 }

@@ -1,6 +1,7 @@
 package com.opencircle.auth;
 
 import com.opencircle.passwordreset.PasswordResetService;
+import com.opencircle.profileimage.ProfileImageQueryService;
 import com.opencircle.security.JwtService;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
@@ -18,19 +19,22 @@ class AuthService {
     private final JwtService jwtService;
     private final EmailVerificationService emailVerificationService;
     private final PasswordResetService passwordResetService;
+    private final ProfileImageQueryService profileImageQueryService;
 
     AuthService(
             UserService userService,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             EmailVerificationService emailVerificationService,
-            PasswordResetService passwordResetService
+            PasswordResetService passwordResetService,
+            ProfileImageQueryService profileImageQueryService
     ) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.emailVerificationService = emailVerificationService;
         this.passwordResetService = passwordResetService;
+        this.profileImageQueryService = profileImageQueryService;
     }
 
     @Transactional
@@ -133,7 +137,10 @@ class AuthService {
         // Build the response with a JWT token and user details.
         return new AuthResponse(
                 jwtService.generateToken(user),
-                UserResponse.from(user)
+                UserResponse.from(
+                        user,
+                        profileImageQueryService.getProfileImageByUserId(user.getId())
+                )
         );
     }
 }

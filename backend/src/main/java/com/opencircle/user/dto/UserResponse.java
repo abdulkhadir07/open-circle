@@ -1,5 +1,6 @@
 package com.opencircle.user.dto;
 
+import com.opencircle.profileimage.ProfileImageResponse;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.Role;
 
@@ -10,6 +11,7 @@ import java.util.UUID;
 public record UserResponse(
         UUID id,
         String username,
+        ProfileImageResponse profileImage,
         String firstName,
         String lastName,
         String email,
@@ -29,10 +31,15 @@ public record UserResponse(
         Instant updatedAt
 ) {
     public static UserResponse from(AppUser user) {
+        return from(user, null);
+    }
+
+    public static UserResponse from(AppUser user, ProfileImageResponse profileImage) {
         // Builds the API-safe user profile returned to clients.
         return new UserResponse(
                 user.getId(),
                 user.getUsername(),
+                profileImage,
                 user.getFirstName(),
                 user.getLastName(),
                 user.getEmail(),
