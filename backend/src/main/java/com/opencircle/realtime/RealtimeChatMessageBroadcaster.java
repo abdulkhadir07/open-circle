@@ -1,6 +1,5 @@
 package com.opencircle.realtime;
 
-import com.opencircle.chat.ChatMessage;
 import com.opencircle.chat.ChatMessageBroadcaster;
 import com.opencircle.chat.ChatMessageResponse;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -16,9 +15,7 @@ class RealtimeChatMessageBroadcaster implements ChatMessageBroadcaster {
     }
 
     @Override
-    public void broadcast(ChatMessage message) {
-        ChatMessageResponse response = ChatMessageResponse.from(message);
-
+    public void broadcast(ChatMessageResponse response) {
         messagingTemplate.convertAndSend(
                 "/topic/chat-rooms/" + response.roomId(),
                 response

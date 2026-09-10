@@ -5,8 +5,11 @@ import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.invitepost.InviteType;
 import com.opencircle.invitepost.LocationScope;
+import com.opencircle.profileimage.ProfileImageQueryService;
+import com.opencircle.profileimage.ProfileImageResponse;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,6 +17,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -22,10 +26,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -61,6 +71,14 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
+    @MockitoBean
+    private ProfileImageQueryService profileImageQueryService;
+
+    @BeforeEach
+    void defaultMissingProfileImages() {
+        when(profileImageQueryService.getProfileImagesByUserIds(any())).thenReturn(Map.of());
+    }
+
     @Test
     void getMyRoomsReturnsOnlyRoomsWhereCurrentUserIsParticipant() throws Exception {
         AppUser poster = verifiedUser("poster.rooms@example.com");
@@ -71,6 +89,12 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
         chatRoom(poster, outsider, "Other chat");
 
         String token = loginToken(requester.getEmail());
+        Set<UUID> participantIds = Set.of(poster.getId(), requester.getId());
+        when(profileImageQueryService.getProfileImagesByUserIds(participantIds))
+                .thenReturn(Map.of(
+                        poster.getId(), profileImage("https://example.com/room-poster.png"),
+                        requester.getId(), profileImage("https://example.com/room-requester.png")
+                ));
 
         mockMvc.perform(get("/api/chat-rooms")
                         .header("Authorization", "Bearer " + token))
@@ -78,7 +102,12 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(requesterRoom.getId().toString()))
                 .andExpect(jsonPath("$[0].invitePostContent").value("Coffee chat"))
-                .andExpect(jsonPath("$[0].participants.length()").value(2));
+                .andExpect(jsonPath("$[0].participants.length()").value(2))
+                .andExpect(jsonPath(
+                        "$[0].participants[?(@.userId == '%s')].profileImage.url".formatted(requester.getId())
+                ).value(contains("https://example.com/room-requester.png")));
+
+        verify(profileImageQueryService).getProfileImagesByUserIds(participantIds);
     }
 
     @Test
@@ -95,13 +124,25 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
         });
 
         String token = loginToken(requester.getEmail());
+        Set<UUID> senderIds = Set.of(poster.getId(), requester.getId());
+        when(profileImageQueryService.getProfileImagesByUserIds(senderIds))
+                .thenReturn(Map.of(
+                        poster.getId(), profileImage("https://example.com/message-poster.png"),
+                        requester.getId(), profileImage("https://example.com/message-requester.png")
+                ));
 
         mockMvc.perform(get("/api/chat-rooms/{roomId}/messages", room.getId())
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].body").value("First message"))
-                .andExpect(jsonPath("$[1].body").value("Second message"));
+                .andExpect(jsonPath("$[0].senderProfileImage.url")
+                        .value("https://example.com/message-poster.png"))
+                .andExpect(jsonPath("$[1].body").value("Second message"))
+                .andExpect(jsonPath("$[1].senderProfileImage.url")
+                        .value("https://example.com/message-requester.png"));
+
+        verify(profileImageQueryService).getProfileImagesByUserIds(senderIds);
     }
 
     @Test
@@ -111,6 +152,8 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
         ChatRoom room = chatRoom(poster, requester, "Send chat");
 
         String token = loginToken(requester.getEmail());
+        when(profileImageQueryService.getProfileImageByUserId(requester.getId()))
+                .thenReturn(profileImage("https://example.com/sender.png"));
 
         mockMvc.perform(post("/api/chat-rooms/{roomId}/messages", room.getId())
                         .header("Authorization", "Bearer " + token)
@@ -123,6 +166,7 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.roomId").value(room.getId().toString()))
                 .andExpect(jsonPath("$.senderId").value(requester.getId().toString()))
+                .andExpect(jsonPath("$.senderProfileImage.url").value("https://example.com/sender.png"))
                 .andExpect(jsonPath("$.body").value("Hello from requester"));
 
         inTransaction(() -> {
@@ -202,6 +246,12 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
         AppUser requester = verifiedUser("requester.save@example.com");
         ChatRoom room = chatRoom(poster, requester, "Save this room");
         String token = loginToken(requester.getEmail());
+        Set<UUID> participantIds = Set.of(poster.getId(), requester.getId());
+        when(profileImageQueryService.getProfileImagesByUserIds(participantIds))
+                .thenReturn(Map.of(
+                        requester.getId(),
+                        profileImage("https://example.com/saved-by.png")
+                ));
 
         mockMvc.perform(patch("/api/chat-rooms/{roomId}/save", room.getId())
                         .header("Authorization", "Bearer " + token))
@@ -209,6 +259,7 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.saved").value(true))
                 .andExpect(jsonPath("$.savedByUserId").value(requester.getId().toString()))
                 .andExpect(jsonPath("$.savedByUsername").value(requester.getUsername()))
+                .andExpect(jsonPath("$.savedByProfileImage.url").value("https://example.com/saved-by.png"))
                 .andExpect(jsonPath("$.closed").value(false));
 
         ChatRoom savedRoom = rooms.findById(room.getId()).orElseThrow();
@@ -271,12 +322,22 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
         AppUser requester = verifiedUser("requester.remove@example.com");
         ChatRoom room = chatRoom(poster, requester, "Remove participant");
         String token = loginToken(poster.getEmail());
+        Set<UUID> participantIds = Set.of(poster.getId(), requester.getId());
+        when(profileImageQueryService.getProfileImagesByUserIds(participantIds))
+                .thenReturn(Map.of(
+                        poster.getId(),
+                        profileImage("https://example.com/removed-by.png")
+                ));
 
         mockMvc.perform(patch("/api/chat-rooms/{roomId}/participants/{userId}/remove", room.getId(), requester.getId())
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.closed").value(false))
-                .andExpect(jsonPath("$.autoCloseAt").exists());
+                .andExpect(jsonPath("$.autoCloseAt").exists())
+                .andExpect(jsonPath(
+                        "$.participants[?(@.userId == '%s')].removedByProfileImage.url"
+                                .formatted(requester.getId())
+                ).value(contains("https://example.com/removed-by.png")));
 
         ChatRoomParticipant removedParticipant = participants.findByChatRoomAndUser(room, requester)
                 .orElseThrow();
@@ -366,5 +427,15 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
 
     private <T> T inTransaction(Supplier<T> supplier) {
         return new TransactionTemplate(transactionManager).execute(status -> supplier.get());
+    }
+
+    private ProfileImageResponse profileImage(String url) {
+        return new ProfileImageResponse(
+                UUID.randomUUID(),
+                url,
+                Instant.parse("2026-09-09T13:00:00Z"),
+                "image/png",
+                Instant.parse("2026-09-09T12:00:00Z")
+        );
     }
 }
