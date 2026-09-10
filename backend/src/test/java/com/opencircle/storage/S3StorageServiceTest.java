@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -119,6 +120,30 @@ class S3StorageServiceTest {
     }
 
     @Test
+    void deleteRemovesObjectFromStorage() {
+        service.delete("opencircle-test-attachments", "profile-images/users/user-id/file-id");
+
+        var requestCaptor = forClass(DeleteObjectRequest.class);
+        verify(s3Client).deleteObject(requestCaptor.capture());
+
+        assertThat(requestCaptor.getValue().bucket()).isEqualTo("opencircle-test-attachments");
+        assertThat(requestCaptor.getValue().key()).isEqualTo("profile-images/users/user-id/file-id");
+    }
+
+    @Test
+    void deleteWrapsS3Failure() {
+        when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
+                .thenThrow(SdkClientException.builder().message("S3 unavailable").build());
+
+        assertThatThrownBy(() -> service.delete(
+                "opencircle-test-attachments",
+                "profile-images/users/user-id/file-id"
+        ))
+                .isInstanceOf(StorageException.class)
+                .hasMessage("Unable to delete stored file");
+    }
+
+    @Test
     void generateDownloadUrlUsesConfiguredExpirationAndSafeFilename() throws Exception {
         PresignedGetObjectRequest presignedRequest = mock(PresignedGetObjectRequest.class);
         when(presignedRequest.url()).thenReturn(URI.create("https://example.com/download").toURL());
@@ -185,6 +210,28 @@ class S3StorageServiceTest {
     }
 
     @Test
+    void generatePersistentImageViewUrlUsesProfileImageExpiration() throws Exception {
+        PresignedGetObjectRequest presignedRequest = mock(PresignedGetObjectRequest.class);
+        when(presignedRequest.url()).thenReturn(URI.create("https://example.com/profile").toURL());
+        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presignedRequest);
+
+        StorageAccessUrl viewUrl = service.generateViewUrl(
+                "opencircle-test-attachments",
+                "profile-images/users/user-id/file-id"
+        );
+
+        var requestCaptor = forClass(GetObjectPresignRequest.class);
+        verify(s3Presigner).presignGetObject(requestCaptor.capture());
+
+        GetObjectPresignRequest request = requestCaptor.getValue();
+
+        assertThat(viewUrl.url()).isEqualTo(URI.create("https://example.com/profile"));
+        assertThat(viewUrl.expiresAt()).isEqualTo(NOW.plus(Duration.ofMinutes(60)));
+        assertThat(request.signatureDuration()).isEqualTo(Duration.ofMinutes(60));
+        assertThat(request.getObjectRequest().responseContentDisposition()).isNull();
+    }
+
+    @Test
     void generateViewUrlDoesNotOutlivePost() throws Exception {
         PresignedGetObjectRequest presignedRequest = mock(PresignedGetObjectRequest.class);
         when(presignedRequest.url()).thenReturn(URI.create("https://example.com/view").toURL());
@@ -231,6 +278,11 @@ class S3StorageServiceTest {
                 java.util.List.of("image/jpeg", "image/png", "image/webp")
         );
         properties.getInvitePostImages().setViewUrlExpirationMinutes(60);
+        properties.getProfileImages().setMaxFileSizeBytes(5_242_880L);
+        properties.getProfileImages().setAllowedContentTypes(
+                java.util.List.of("image/jpeg", "image/png", "image/webp")
+        );
+        properties.getProfileImages().setViewUrlExpirationMinutes(60);
 
         return properties;
     }

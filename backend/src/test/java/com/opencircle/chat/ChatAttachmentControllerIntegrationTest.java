@@ -118,15 +118,10 @@ class ChatAttachmentControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.attachment.contentType").value("image/png"))
                 .andExpect(jsonPath("$.attachment.fileSizeBytes").value(7));
 
-        ArgumentCaptor<ChatMessage> broadcastedMessageCaptor = ArgumentCaptor.forClass(ChatMessage.class);
+        ArgumentCaptor<ChatMessageResponse> broadcastedMessageCaptor = ArgumentCaptor.forClass(ChatMessageResponse.class);
         verify(messageBroadcaster).broadcast(broadcastedMessageCaptor.capture());
 
-        ChatMessage broadcastedMessage = broadcastedMessageCaptor.getValue();
-        ChatMessageResponse broadcastedResponse = ChatMessageResponse.from(broadcastedMessage);
-
-        assertThat(broadcastedMessage.getType()).isEqualTo(ChatMessageType.ATTACHMENT);
-        assertThat(broadcastedMessage.getBody()).isEqualTo("Receipt photo");
-        assertThat(broadcastedMessage.getAttachment()).isNotNull();
+        ChatMessageResponse broadcastedResponse = broadcastedMessageCaptor.getValue();
 
         assertThat(broadcastedResponse.roomId()).isEqualTo(room.getId());
         assertThat(broadcastedResponse.senderId()).isEqualTo(requester.getId());

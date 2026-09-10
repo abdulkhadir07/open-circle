@@ -23,6 +23,9 @@ public class StorageProperties {
     @Valid
     private final InvitePostImages invitePostImages = new InvitePostImages();
 
+    @Valid
+    private final ProfileImages profileImages = new ProfileImages();
+
     public S3 getS3() {
         return s3;
     }
@@ -35,12 +38,20 @@ public class StorageProperties {
         return invitePostImages;
     }
 
+    public ProfileImages getProfileImages() {
+        return profileImages;
+    }
+
     public boolean isAllowedAttachmentContentType(String contentType) {
         return isAllowedContentType(contentType, attachments.allowedContentTypes);
     }
 
     public boolean isAllowedInvitePostImageContentType(String contentType) {
         return isAllowedContentType(contentType, invitePostImages.allowedContentTypes);
+    }
+
+    public boolean isAllowedProfileImageContentType(String contentType) {
+        return isAllowedContentType(contentType, profileImages.allowedContentTypes);
     }
 
     private boolean isAllowedContentType(String contentType, List<String> allowedContentTypes) {
@@ -116,6 +127,42 @@ public class StorageProperties {
     }
 
     public static class InvitePostImages {
+
+        @Positive
+        private long maxFileSizeBytes;
+
+        @NotEmpty
+        private List<@NotBlank String> allowedContentTypes = new ArrayList<>();
+
+        @Positive
+        private int viewUrlExpirationMinutes;
+
+        public long getMaxFileSizeBytes() {
+            return maxFileSizeBytes;
+        }
+
+        public void setMaxFileSizeBytes(long maxFileSizeBytes) {
+            this.maxFileSizeBytes = maxFileSizeBytes;
+        }
+
+        public List<String> getAllowedContentTypes() {
+            return allowedContentTypes;
+        }
+
+        public void setAllowedContentTypes(List<String> allowedContentTypes) {
+            this.allowedContentTypes = allowedContentTypes;
+        }
+
+        public int getViewUrlExpirationMinutes() {
+            return viewUrlExpirationMinutes;
+        }
+
+        public void setViewUrlExpirationMinutes(int viewUrlExpirationMinutes) {
+            this.viewUrlExpirationMinutes = viewUrlExpirationMinutes;
+        }
+    }
+
+    public static class ProfileImages {
 
         @Positive
         private long maxFileSizeBytes;

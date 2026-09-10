@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -61,6 +62,20 @@ class S3StorageService implements StorageService {
     }
 
     @Override
+    public void delete(String bucket, String key) {
+        DeleteObjectRequest request = DeleteObjectRequest.builder()
+                .bucket(requiredText(bucket, "S3 bucket is required"))
+                .key(requiredText(key, "S3 object key is required"))
+                .build();
+
+        try {
+            s3Client.deleteObject(request);
+        } catch (SdkException exception) {
+            throw new StorageException("Unable to delete stored file", exception);
+        }
+    }
+
+    @Override
     public StorageAccessUrl generateDownloadUrl(String bucket, String key, String downloadFilename) {
         Duration expiration = Duration.ofMinutes(properties.getS3().getPresignedUrlExpirationMinutes());
         Instant expiresAt = Instant.now(clock).plus(expiration);
@@ -75,6 +90,16 @@ class S3StorageService implements StorageService {
     }
 
     @Override
+    public StorageAccessUrl generateViewUrl(String bucket, String key) {
+        Instant now = Instant.now(clock);
+        Instant expiresAt = now.plus(Duration.ofMinutes(
+                properties.getProfileImages().getViewUrlExpirationMinutes()
+        ));
+
+        return generateViewUrl(bucket, key, now, expiresAt);
+    }
+
+    @Override
     public StorageAccessUrl generateViewUrl(String bucket, String key, Instant notAfter) {
         Instant now = Instant.now(clock);
         Instant configuredExpiration = now.plus(Duration.ofMinutes(
@@ -86,6 +111,10 @@ class S3StorageService implements StorageService {
             throw new IllegalArgumentException("View URL expiration must be in the future");
         }
 
+        return generateViewUrl(bucket, key, now, expiresAt);
+    }
+
+    private StorageAccessUrl generateViewUrl(String bucket, String key, Instant now, Instant expiresAt) {
         Duration expiration = Duration.between(now, expiresAt);
         GetObjectRequest objectRequest = GetObjectRequest.builder()
                 .bucket(requiredText(bucket, "S3 bucket is required"))

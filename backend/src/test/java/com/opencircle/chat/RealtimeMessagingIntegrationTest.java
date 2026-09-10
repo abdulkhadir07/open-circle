@@ -5,6 +5,8 @@ import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.invitepost.InviteType;
 import com.opencircle.invitepost.LocationScope;
+import com.opencircle.profileimage.ProfileImageQueryService;
+import com.opencircle.profileimage.ProfileImageResponse;
 import com.opencircle.security.JwtService;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
@@ -20,6 +22,7 @@ import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
@@ -33,8 +36,10 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -66,6 +71,9 @@ class RealtimeMessagingIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private ChatMessageRepository messages;
 
+    @MockitoBean
+    private ProfileImageQueryService profileImageQueryService;
+
     private final List<StompSession> sessions = new ArrayList<>();
     private final List<WebSocketStompClient> clients = new ArrayList<>();
     private final List<ChatRoom> createdRooms = new ArrayList<>();
@@ -95,6 +103,14 @@ class RealtimeMessagingIntegrationTest extends AbstractIntegrationTest {
         AppUser poster = verifiedUser("poster.realtime");
         AppUser requester = verifiedUser("requester.realtime");
         ChatRoom room = chatRoom(poster, requester, "Realtime chat");
+        when(profileImageQueryService.getProfileImageByUserId(requester.getId()))
+                .thenReturn(new ProfileImageResponse(
+                        UUID.randomUUID(),
+                        "https://example.com/realtime-sender.png",
+                        NOW.plusSeconds(3600),
+                        "image/png",
+                        NOW
+                ));
 
         StompSession session = connectAs(requester);
         BlockingQueue<Map<String, Object>> receivedMessages = new LinkedBlockingQueue<>();
@@ -116,6 +132,9 @@ class RealtimeMessagingIntegrationTest extends AbstractIntegrationTest {
         assertThat(response.get("senderId")).isEqualTo(requester.getId().toString());
         assertThat(response.get("senderUsername")).isEqualTo(requester.getUsername());
         assertThat(response.get("body")).isEqualTo("Hello over WebSocket");
+        assertThat(response.get("senderProfileImage"))
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                .containsEntry("url", "https://example.com/realtime-sender.png");
     }
 
     @Test

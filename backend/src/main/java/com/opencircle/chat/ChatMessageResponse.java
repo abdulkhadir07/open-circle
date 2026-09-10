@@ -1,5 +1,7 @@
 package com.opencircle.chat;
 
+import com.opencircle.profileimage.ProfileImageResponse;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -8,6 +10,7 @@ public record ChatMessageResponse(
         UUID roomId,
         UUID senderId,
         String senderUsername,
+        ProfileImageResponse senderProfileImage,
         ChatMessageType type,
         String body,
         AttachmentResponse attachment,
@@ -15,11 +18,19 @@ public record ChatMessageResponse(
 ) {
 
     public static ChatMessageResponse from(ChatMessage message) {
+        return from(message, null);
+    }
+
+    public static ChatMessageResponse from(
+            ChatMessage message,
+            ProfileImageResponse senderProfileImage
+    ) {
         return new ChatMessageResponse(
                 message.getId(),
                 message.getChatRoom().getId(),
                 message.getSender().getId(),
                 message.getSender().getUsername(),
+                senderProfileImage,
                 message.getType(),
                 message.getBody(),
                 AttachmentResponse.from(message.getAttachment()),
