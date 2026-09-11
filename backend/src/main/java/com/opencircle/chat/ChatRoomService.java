@@ -1,6 +1,7 @@
 package com.opencircle.chat;
 
 import com.opencircle.invitepost.InvitePost;
+import com.opencircle.rating.RatingLifecycleService;
 import com.opencircle.user.AppUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,17 +17,20 @@ public class ChatRoomService {
     private final ChatRoomRepository rooms;
     private final ChatRoomParticipantRepository participants;
     private final ChatMessageRepository messages;
+    private final RatingLifecycleService ratingLifecycleService;
     private final Clock clock;
 
     ChatRoomService(
             ChatRoomRepository rooms,
             ChatRoomParticipantRepository participants,
             ChatMessageRepository messages,
+            RatingLifecycleService ratingLifecycleService,
             Clock clock
     ) {
         this.rooms = rooms;
         this.participants = participants;
         this.messages = messages;
+        this.ratingLifecycleService = ratingLifecycleService;
         this.clock = clock;
     }
 
@@ -94,7 +98,10 @@ public class ChatRoomService {
             throw new ChatRoomActionNotAllowedException("Closed chat rooms cannot be left");
         }
 
-        return saveAfterAction(room, () -> room.leave(user, now));
+        ChatRoom updatedRoom = saveAfterAction(room, () -> room.leave(user, now));
+        ratingLifecycleService.handleParticipantExit(room.getInvitePost().getId(), user.getId(), now);
+
+        return updatedRoom;
     }
 
     @Transactional
@@ -113,7 +120,17 @@ public class ChatRoomService {
         ChatRoomParticipant participant = participants.findByChatRoomAndUser_Id(room, userId)
                 .orElseThrow(ChatParticipantRequiredException::new);
 
-        return saveAfterAction(room, () -> room.removeParticipant(participant.getUser(), poster, now));
+        ChatRoom updatedRoom = saveAfterAction(
+                room,
+                () -> room.removeParticipant(participant.getUser(), poster, now)
+        );
+        ratingLifecycleService.handleParticipantExit(
+                room.getInvitePost().getId(),
+                participant.getUser().getId(),
+                now
+        );
+
+        return updatedRoom;
     }
 
     @Transactional
@@ -196,6 +213,7 @@ public class ChatRoomService {
         // Applies the same room access, auto-close, and messaging rules before any new message is created.
         reconcileAutoClose(room, now);
         requireRoomCanReceiveMessages(room);
+        ratingLifecycleService.reconcileInvitePost(room.getInvitePost().getId(), now);
 
         return room;
     }
@@ -205,6 +223,12 @@ public class ChatRoomService {
         room.recordMessageSent(sentAt);
         rooms.save(room);
 
-        return messages.save(message);
+        ChatMessage savedMessage = messages.save(message);
+        messages.flush();
+
+        // A post-write pass catches the third qualifying message after the 14-day limit.
+        ratingLifecycleService.reconcileInvitePost(room.getInvitePost().getId(), sentAt);
+
+        return savedMessage;
     }
 }
