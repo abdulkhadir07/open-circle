@@ -3,6 +3,7 @@ package com.opencircle.chat;
 import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InviteType;
 import com.opencircle.invitepost.LocationScope;
+import com.opencircle.rating.RatingLifecycleService;
 import com.opencircle.user.AppUser;
 import org.junit.jupiter.api.Test;
 
@@ -18,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,8 +31,15 @@ class ChatRoomServiceTest {
     private final ChatRoomRepository rooms = mock(ChatRoomRepository.class);
     private final ChatRoomParticipantRepository participants = mock(ChatRoomParticipantRepository.class);
     private final ChatMessageRepository messages = mock(ChatMessageRepository.class);
+    private final RatingLifecycleService ratingLifecycleService = mock(RatingLifecycleService.class);
 
-    private final ChatRoomService service = new ChatRoomService(rooms, participants, messages, CLOCK);
+    private final ChatRoomService service = new ChatRoomService(
+            rooms,
+            participants,
+            messages,
+            ratingLifecycleService,
+            CLOCK
+    );
 
     @Test
     void openRoomForAcceptedRequestCreatesRoomAndAddsPosterAndRequester() {
@@ -135,6 +144,7 @@ class ChatRoomServiceTest {
 
         verify(rooms).save(room);
         verify(messages).save(message);
+        verify(ratingLifecycleService, times(2)).reconcileInvitePost(room.getInvitePost().getId(), NOW);
     }
 
     @Test
@@ -267,6 +277,7 @@ class ChatRoomServiceTest {
         assertThat(updatedRoom.getAutoCloseAt()).isEqualTo(NOW.plusSeconds(24 * 60 * 60));
 
         verify(rooms).save(room);
+        verify(ratingLifecycleService).handleParticipantExit(room.getInvitePost().getId(), requester.getId(), NOW);
     }
 
     @Test
@@ -290,6 +301,7 @@ class ChatRoomServiceTest {
         assertThat(requesterParticipant.getRemovedBy()).isEqualTo(poster);
 
         verify(rooms).save(room);
+        verify(ratingLifecycleService).handleParticipantExit(room.getInvitePost().getId(), requester.getId(), NOW);
     }
 
     @Test
