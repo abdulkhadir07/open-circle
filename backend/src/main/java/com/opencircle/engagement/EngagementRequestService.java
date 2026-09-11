@@ -4,6 +4,7 @@ import com.opencircle.chat.ChatRoomService;
 import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.location.LocationNotVerifiedException;
+import com.opencircle.rating.RatingEnrollmentService;
 import com.opencircle.user.AppUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,17 +20,20 @@ class EngagementRequestService {
     private final EngagementRequestRepository requests;
     private final InvitePostRepository posts;
     private final ChatRoomService chatRoomService;
+    private final RatingEnrollmentService ratingEnrollmentService;
     private final Clock clock;
 
     EngagementRequestService(
             EngagementRequestRepository requests,
             InvitePostRepository posts,
             ChatRoomService chatRoomService,
+            RatingEnrollmentService ratingEnrollmentService,
             Clock clock
     ) {
         this.requests = requests;
         this.posts = posts;
         this.chatRoomService = chatRoomService;
+        this.ratingEnrollmentService = ratingEnrollmentService;
         this.clock = clock;
     }
 
@@ -81,6 +85,7 @@ class EngagementRequestService {
 
         // Accepted requests create or join the chat room for the invite post.
         chatRoomService.openRoomForAcceptedRequest(post, request.getRequester());
+        ratingEnrollmentService.enrollAcceptedEngagement(request, now);
 
         return request;
     }
