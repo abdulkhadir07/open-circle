@@ -6,6 +6,7 @@ import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.invitepost.InviteType;
 import com.opencircle.invitepost.LocationScope;
 import com.opencircle.location.LocationNotVerifiedException;
+import com.opencircle.rating.RatingEnrollmentService;
 import com.opencircle.user.AppUser;
 import org.junit.jupiter.api.Test;
 
@@ -29,11 +30,13 @@ class EngagementRequestServiceTest {
     private final EngagementRequestRepository requests = mock(EngagementRequestRepository.class);
     private final InvitePostRepository posts = mock(InvitePostRepository.class);
     private final ChatRoomService chatRoomService = mock(ChatRoomService.class);
+    private final RatingEnrollmentService ratingEnrollmentService = mock(RatingEnrollmentService.class);
 
     private final EngagementRequestService service = new EngagementRequestService(
             requests,
             posts,
             chatRoomService,
+            ratingEnrollmentService,
             Clock.fixed(NOW, ZoneOffset.UTC)
     );
 
@@ -75,6 +78,7 @@ class EngagementRequestServiceTest {
         assertThat(post.getInvitesLeft()).isEqualTo(2);
 
         verify(chatRoomService).openRoomForAcceptedRequest(post, requester);
+        verify(ratingEnrollmentService).enrollAcceptedEngagement(request, NOW);
     }
 
     @Test
@@ -194,6 +198,7 @@ class EngagementRequestServiceTest {
 
         assertThat(post.getAcceptedCount()).isEqualTo(1);
         verifyNoInteractions(chatRoomService);
+        verifyNoInteractions(ratingEnrollmentService);
     }
 
     @Test
