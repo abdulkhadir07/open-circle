@@ -74,6 +74,8 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/users/me/ratings/due").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/me/ratings/received").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/*/reputation").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/users/me/score").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/scoreboard").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/invite-posts").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invite-posts/local").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invite-posts/global").authenticated()
