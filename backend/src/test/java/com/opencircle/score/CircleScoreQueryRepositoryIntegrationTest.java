@@ -217,6 +217,76 @@ class CircleScoreQueryRepositoryIntegrationTest extends AbstractIntegrationTest 
                 .isEqualTo(scoreboard.getFirst().annualScore());
     }
 
+    @Test
+    void awardCandidatesUseLifetimeReputationFrozenAtTheSeasonBoundary() {
+        int seasonYear = 2025;
+        Instant reputationCutoff = Instant.parse("2026-01-01T00:00:00Z");
+        Instant previousSeason = Instant.parse("2025-06-01T12:00:00Z");
+
+        AppUser seasonEndWinner = user("award-season-end-winner");
+        AppUser firstWinnerRater = user("award-first-winner-rater");
+        AppUser secondWinnerRater = user("award-second-winner-rater");
+        addRevealedRating(
+                firstWinnerRater,
+                seasonEndWinner,
+                5,
+                previousSeason,
+                "award-winner-first-rating"
+        );
+        addRevealedRating(
+                secondWinnerRater,
+                seasonEndWinner,
+                5,
+                previousSeason,
+                "award-winner-second-rating"
+        );
+        addMissedObligation(
+                seasonEndWinner,
+                user("award-winner-counterpart"),
+                previousSeason,
+                "award-winner-penalty"
+        );
+
+        AppUser liveReputationWinner = user("award-live-reputation-winner");
+        addRevealedRating(
+                user("award-first-live-rater"),
+                liveReputationWinner,
+                3,
+                previousSeason,
+                "award-live-first-rating"
+        );
+        addRevealedRating(
+                user("award-second-live-rater"),
+                liveReputationWinner,
+                3,
+                previousSeason,
+                "award-live-second-rating"
+        );
+
+        Instant followingSeason = Instant.parse("2026-03-01T12:00:00Z");
+        addRevealedRating(
+                firstWinnerRater,
+                seasonEndWinner,
+                1,
+                followingSeason,
+                "award-winner-later-first-rating"
+        );
+        addRevealedRating(
+                secondWinnerRater,
+                seasonEndWinner,
+                1,
+                followingSeason,
+                "award-winner-later-second-rating"
+        );
+
+        assertThat(scores.findTopRanks(seasonYear, 1))
+                .extracting(RankedScoreboardEntry::userId)
+                .containsExactly(liveReputationWinner.getId());
+        assertThat(scores.findTopAwardCandidates(seasonYear, reputationCutoff))
+                .extracting(RankedScoreboardEntry::userId)
+                .containsExactly(seasonEndWinner.getId());
+    }
+
     private void addRatingFromNewRater(
             AppUser ratedUser,
             int score,
