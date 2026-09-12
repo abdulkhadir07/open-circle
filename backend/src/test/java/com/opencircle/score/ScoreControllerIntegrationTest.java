@@ -2,6 +2,7 @@ package com.opencircle.score;
 
 import com.opencircle.AbstractIntegrationTest;
 import com.opencircle.profileimage.ProfileImageQueryService;
+import com.opencircle.profileimage.ProfileImageResponse;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -17,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -41,10 +44,12 @@ class ScoreControllerIntegrationTest extends AbstractIntegrationTest {
 
     private static final String PASSWORD = "Password123!";
     private static final Instant NOW = Instant.parse("2026-09-11T12:00:00Z");
+    private static final Instant AWARD_FINALIZED_AT = Instant.parse("2026-01-01T00:05:00Z");
 
     @Autowired private MockMvc mockMvc;
     @Autowired private UserService users;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private JdbcTemplate jdbc;
 
     @MockitoBean private CircleScoreQueryRepository scores;
     @MockitoBean private ProfileImageQueryService profileImages;
@@ -115,6 +120,91 @@ class ScoreControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/scoreboard"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void returnsAStoredAnnualAwardWithOneBatchedProfileImageLookup() throws Exception {
+        AppUser currentUser = verifiedUser("annual-award-viewer@example.com");
+        AppUser winner = verifiedUser("annual-award-winner@example.com");
+        String token = loginToken(currentUser.getEmail());
+        UUID profileImageId = UUID.randomUUID();
+        Instant imageExpiry = Instant.parse("2026-01-01T01:05:00Z");
+        Set<UUID> winnerIds = Set.of(winner.getId());
+
+        insertAwardFinalization(2025);
+        jdbc.update(
+                """
+                INSERT INTO annual_awards (
+                    id, season_year, winner_user_id, final_score, awarded_at
+                )
+                VALUES (?, 2025, ?, 55, ?)
+                """,
+                UUID.randomUUID(),
+                winner.getId(),
+                Timestamp.from(AWARD_FINALIZED_AT)
+        );
+        when(profileImages.getProfileImagesByUserIds(winnerIds)).thenReturn(Map.of(
+                winner.getId(),
+                new ProfileImageResponse(
+                        profileImageId,
+                        "https://example.com/profile.jpg",
+                        imageExpiry,
+                        "image/jpeg",
+                        AWARD_FINALIZED_AT
+                )
+        ));
+
+        mockMvc.perform(get("/api/awards/2025")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.seasonYear").value(2025))
+                .andExpect(jsonPath("$.name").value("Circle Champion 2025"))
+                .andExpect(jsonPath("$.finalizedAt").value(AWARD_FINALIZED_AT.toString()))
+                .andExpect(jsonPath("$.winners.length()").value(1))
+                .andExpect(jsonPath("$.winners[0].userId").value(winner.getId().toString()))
+                .andExpect(jsonPath("$.winners[0].username").value(winner.getUsername()))
+                .andExpect(jsonPath("$.winners[0].finalScore").value(55))
+                .andExpect(jsonPath("$.winners[0].profileImage.id")
+                        .value(profileImageId.toString()));
+
+        verify(profileImages).getProfileImagesByUserIds(winnerIds);
+    }
+
+    @Test
+    void representsACompletedNoWinnerSeasonAndRejectsUnfinalizedOrUnauthenticatedReads()
+            throws Exception {
+        AppUser currentUser = verifiedUser("annual-award-empty-viewer@example.com");
+        String token = loginToken(currentUser.getEmail());
+        insertAwardFinalization(2024);
+
+        mockMvc.perform(get("/api/awards/2024")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.seasonYear").value(2024))
+                .andExpect(jsonPath("$.name").value("Circle Champion 2024"))
+                .andExpect(jsonPath("$.winners").isEmpty());
+
+        verify(profileImages).getProfileImagesByUserIds(Set.of());
+
+        mockMvc.perform(get("/api/awards/2023")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message")
+                        .value("Annual award has not been finalized for 2023"));
+
+        mockMvc.perform(get("/api/awards/2025"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private void insertAwardFinalization(int seasonYear) {
+        jdbc.update(
+                """
+                INSERT INTO annual_award_finalizations (season_year, finalized_at)
+                VALUES (?, ?)
+                """,
+                seasonYear,
+                Timestamp.from(AWARD_FINALIZED_AT)
+        );
     }
 
     private AppUser verifiedUser(String email) {
