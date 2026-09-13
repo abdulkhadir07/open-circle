@@ -4,6 +4,8 @@ import com.opencircle.common.OtpCodeGenerator;
 import com.opencircle.mail.MailService;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
+import com.opencircle.session.SessionRevocationReason;
+import com.opencircle.session.SessionService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,7 @@ public class PasswordResetService {
     private final MailService mailService;
     private final PasswordResetProperties properties;
     private final Clock clock;
+    private final SessionService sessionService;
 
     PasswordResetService(
             PasswordResetCodeRepository codes,
@@ -29,7 +32,8 @@ public class PasswordResetService {
             PasswordEncoder passwordEncoder,
             MailService mailService,
             PasswordResetProperties properties,
-            Clock clock
+            Clock clock,
+            SessionService sessionService
     ) {
         this.codes = codes;
         this.userService = userService;
@@ -38,6 +42,7 @@ public class PasswordResetService {
         this.mailService = mailService;
         this.properties = properties;
         this.clock = clock;
+        this.sessionService = sessionService;
     }
 
     @Transactional
@@ -86,6 +91,9 @@ public class PasswordResetService {
 
         // Hash and save the new password for the user.
         user.changePassword(passwordEncoder.encode(newPassword));
+
+        // Password recovery is an account-level security event, so every session is revoked.
+        sessionService.revokeAll(user.getId(), SessionRevocationReason.PASSWORD_RESET);
     }
 
     private void issueCode(AppUser user) {
