@@ -3,6 +3,9 @@ package com.opencircle.auth;
 import com.opencircle.passwordreset.PasswordResetService;
 import com.opencircle.profileimage.ProfileImageQueryService;
 import com.opencircle.security.JwtService;
+import com.opencircle.session.IssuedSession;
+import com.opencircle.session.RefreshedSession;
+import com.opencircle.session.SessionService;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
 import com.opencircle.user.dto.UserResponse;
@@ -20,6 +23,7 @@ class AuthService {
     private final EmailVerificationService emailVerificationService;
     private final PasswordResetService passwordResetService;
     private final ProfileImageQueryService profileImageQueryService;
+    private final SessionService sessionService;
 
     AuthService(
             UserService userService,
@@ -27,7 +31,8 @@ class AuthService {
             JwtService jwtService,
             EmailVerificationService emailVerificationService,
             PasswordResetService passwordResetService,
-            ProfileImageQueryService profileImageQueryService
+            ProfileImageQueryService profileImageQueryService,
+            SessionService sessionService
     ) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
@@ -35,10 +40,11 @@ class AuthService {
         this.emailVerificationService = emailVerificationService;
         this.passwordResetService = passwordResetService;
         this.profileImageQueryService = profileImageQueryService;
+        this.sessionService = sessionService;
     }
 
     @Transactional
-    AuthResponse signup(SignupRequest request) {
+    SignupResponse signup(SignupRequest request) {
         // Check if the submitted email already belongs to an existing user.
         if (userService.emailExists(request.email())) {
             throw new EmailAlreadyExistsException();
@@ -65,12 +71,12 @@ class AuthService {
         // Send the email verification code after the user is created.
         emailVerificationService.issueCode(user);
 
-        // Return the auth token and user details for the newly created account.
-        return createAuthResponse(user);
+        // Unverified accounts never receive access or refresh credentials.
+        return new SignupResponse(UserResponse.from(user, null));
     }
 
-    @Transactional(readOnly = true)
-    AuthResponse login(LoginRequest request) {
+    @Transactional
+    AuthenticatedSession login(LoginRequest request, String userAgent) {
         // Find the user account for the submitted email address.
         AppUser user = userService.findByEmail(request.email())
                 .orElseThrow(InvalidCredentialsException::new);
@@ -85,12 +91,11 @@ class AuthService {
             throw new EmailNotVerifiedException();
         }
 
-        // Return the auth token and user details after successful login.
-        return createAuthResponse(user);
+        return createAuthenticatedSession(user, userAgent);
     }
 
     @Transactional
-    AuthResponse verifyEmail(VerifyEmailRequest request) {
+    AuthenticatedSession verifyEmail(VerifyEmailRequest request, String userAgent) {
         // Find the user account for the submitted email address.
         AppUser user = userService.findByEmail(request.email())
                 .orElseThrow(InvalidCredentialsException::new);
@@ -98,8 +103,7 @@ class AuthService {
         // Verify the submitted email verification code for this user.
         emailVerificationService.verify(user, request.code());
 
-        // Return the auth token and updated user details after email verification.
-        return createAuthResponse(user);
+        return createAuthenticatedSession(user, userAgent);
     }
 
     @Transactional
@@ -133,8 +137,27 @@ class AuthService {
         );
     }
 
+    RefreshedAuthentication refresh(String rawRefreshToken) {
+        RefreshedSession refreshed = sessionService.refresh(rawRefreshToken);
+        AppUser user = userService.getById(refreshed.userId());
+        return new RefreshedAuthentication(
+                new AccessTokenResponse(jwtService.generateToken(user)),
+                refreshed.refreshToken(),
+                refreshed.refreshTokenExpiresAt()
+        );
+    }
+
+    @Transactional
+    void logout(String rawRefreshToken) {
+        sessionService.revokeCurrent(rawRefreshToken);
+    }
+
+    private AuthenticatedSession createAuthenticatedSession(AppUser user, String userAgent) {
+        IssuedSession session = sessionService.create(user, userAgent);
+        return new AuthenticatedSession(createAuthResponse(user), session);
+    }
+
     private AuthResponse createAuthResponse(AppUser user) {
-        // Build the response with a JWT token and user details.
         return new AuthResponse(
                 jwtService.generateToken(user),
                 UserResponse.from(

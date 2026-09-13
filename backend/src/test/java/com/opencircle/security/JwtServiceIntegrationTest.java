@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.TestPropertySource;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -17,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(classes = JwtServiceIntegrationTest.TestConfig.class)
 @TestPropertySource(properties = {
         "app.security.jwt.secret=test-secret-must-be-at-least-32-characters-long",
-        "app.security.jwt.expiration-minutes=60"
+        "app.security.jwt.expiration-minutes=15"
 })
 class JwtServiceIntegrationTest {
 
@@ -45,10 +46,12 @@ class JwtServiceIntegrationTest {
         Jwt jwt = jwtService.validateToken(token);
 
         assertThat(jwt.getSubject()).isEqualTo(user.getId().toString());
+        assertThat(jwt.getId()).isNotBlank();
         assertThat(jwt.getClaimAsString("email")).isEqualTo("jane@example.com");
         assertThat(jwt.getClaimAsString("username")).isEqualTo("bright_river_1234");
         assertThat(jwt.getClaimAsString("role")).isEqualTo("USER");
-        assertThat(jwt.getExpiresAt()).isAfter(jwt.getIssuedAt());
+        assertThat(Duration.between(jwt.getIssuedAt(), jwt.getExpiresAt()))
+                .isEqualTo(Duration.ofMinutes(15));
     }
 
     private void setId(AppUser user) {

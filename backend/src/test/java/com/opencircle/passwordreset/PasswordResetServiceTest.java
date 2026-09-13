@@ -4,6 +4,8 @@ import com.opencircle.common.OtpCodeGenerator;
 import com.opencircle.mail.MailService;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
+import com.opencircle.session.SessionRevocationReason;
+import com.opencircle.session.SessionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -13,6 +15,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,6 +31,7 @@ class PasswordResetServiceTest {
     private final MailService mailService = mock(MailService.class);
     private final PasswordResetProperties properties = properties();
     private final Clock clock = Clock.fixed(Instant.parse("2026-08-06T00:00:00Z"), ZoneOffset.UTC);
+    private final SessionService sessionService = mock(SessionService.class);
 
     private final PasswordResetService service = new PasswordResetService(
             codes,
@@ -36,7 +40,8 @@ class PasswordResetServiceTest {
             passwordEncoder,
             mailService,
             properties,
-            clock
+            clock,
+            sessionService
     );
 
     @Test
@@ -97,6 +102,7 @@ class PasswordResetServiceTest {
 
         assertThat(code.isUsed()).isTrue();
         assertThat(user.getPasswordHash()).isEqualTo("new-password-hash");
+        verify(sessionService).revokeAll(user.getId(), SessionRevocationReason.PASSWORD_RESET);
     }
 
     @Test
@@ -180,7 +186,7 @@ class PasswordResetServiceTest {
     }
 
     private AppUser user() {
-        return new AppUser(
+        AppUser user = new AppUser(
                 "bright_river_1234",
                 "Jane",
                 "Doe",
@@ -192,5 +198,17 @@ class PasswordResetServiceTest {
                 "California",
                 "USA"
         );
+        setId(user);
+        return user;
+    }
+
+    private void setId(AppUser user) {
+        try {
+            java.lang.reflect.Field id = AppUser.class.getDeclaredField("id");
+            id.setAccessible(true);
+            id.set(user, UUID.randomUUID());
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Could not set test user id", exception);
+        }
     }
 }
