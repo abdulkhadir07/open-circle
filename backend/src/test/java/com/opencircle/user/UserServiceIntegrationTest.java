@@ -17,6 +17,9 @@ class UserServiceIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private UserProfileRepository profiles;
+
     @Test
     void createUserGeneratesUsernameAndSavesUser() {
         AppUser user = userService.createUser(
@@ -40,5 +43,13 @@ class UserServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(user.getRole()).isEqualTo(Role.USER);
         assertThat(user.getCreatedAt()).isNotNull();
         assertThat(user.getUpdatedAt()).isNotNull();
+
+        AppUser persistedUser = userService.getById(user.getId());
+        UserProfile profile = profiles.findForDisplay(user.getId()).orElseThrow();
+        assertThat(profile.getDisplayName()).isEqualTo("Jane");
+        assertThat(profile.getBio()).isNull();
+        assertThat(profile.getInterests()).isEmpty();
+        assertThat(profile.getCreatedAt()).isEqualTo(persistedUser.getCreatedAt());
+        assertThat(profile.getUpdatedAt()).isEqualTo(persistedUser.getCreatedAt());
     }
 }

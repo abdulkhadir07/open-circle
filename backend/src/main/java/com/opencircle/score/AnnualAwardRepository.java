@@ -17,4 +17,16 @@ interface AnnualAwardRepository extends JpaRepository<AnnualAward, UUID> {
             order by award.winner.id
             """)
     List<AnnualAward> findAllForSeason(int seasonYear);
+
+    @Query("""
+            select new com.opencircle.score.EarnedAnnualAward(
+                award.finalization.seasonYear,
+                award.finalScore,
+                award.awardedAt
+            )
+            from AnnualAward award
+            where award.winner.id = :winnerUserId
+            order by award.finalization.seasonYear desc
+            """)
+    List<EarnedAnnualAward> findAllForWinner(UUID winnerUserId);
 }
