@@ -10,10 +10,16 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository users;
+    private final UserProfileRepository profiles;
     private final UsernameGenerator usernameGenerator;
 
-    UserService(UserRepository users, UsernameGenerator usernameGenerator) {
+    UserService(
+            UserRepository users,
+            UserProfileRepository profiles,
+            UsernameGenerator usernameGenerator
+    ) {
         this.users = users;
+        this.profiles = profiles;
         this.usernameGenerator = usernameGenerator;
     }
 
@@ -44,7 +50,9 @@ public class UserService {
                 country
         );
 
-        return users.save(user);
+        AppUser savedUser = users.save(user);
+        profiles.save(new UserProfile(savedUser, savedUser.getCreatedAt()));
+        return savedUser;
     }
 
     @Transactional(readOnly = true)

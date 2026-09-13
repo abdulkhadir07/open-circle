@@ -2,7 +2,7 @@ package com.opencircle.rating;
 
 import java.math.BigDecimal;
 
-record LifetimeReputationSummary(
+public record LifetimeReputationSummary(
         BigDecimal averageRating,
         long totalRatingsReceived,
         long distinctRaterCount
