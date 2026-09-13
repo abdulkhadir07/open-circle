@@ -12,19 +12,16 @@ import java.util.UUID;
 class ReputationService {
 
     private final UserService users;
-    private final RatingLifecycleService lifecycleService;
-    private final RatingContributionQueryService contributions;
+    private final ReputationSummaryQueryService reputationSummaries;
     private final ProfileImageQueryService profileImages;
 
     ReputationService(
             UserService users,
-            RatingLifecycleService lifecycleService,
-            RatingContributionQueryService contributions,
+            ReputationSummaryQueryService reputationSummaries,
             ProfileImageQueryService profileImages
     ) {
         this.users = users;
-        this.lifecycleService = lifecycleService;
-        this.contributions = contributions;
+        this.reputationSummaries = reputationSummaries;
         this.profileImages = profileImages;
     }
 
@@ -33,8 +30,7 @@ class ReputationService {
         AppUser user = users.findById(userId)
                 .orElseThrow(ReputationUserNotFoundException::new);
 
-        lifecycleService.reconcileUser(userId);
-        LifetimeReputationSummary summary = contributions.getLifetimeSummary(userId);
+        LifetimeReputationSummary summary = reputationSummaries.getLifetimeSummary(userId);
 
         return new ReputationResponse(
                 user.getId(),

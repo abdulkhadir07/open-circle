@@ -205,6 +205,31 @@ class ProfileImageControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void publicUserProfileReturnsProfileImageWhenPresent() throws Exception {
+        AppUser user = user("public-profile-image");
+        ProfileImage savedImage = images.saveAndFlush(storedImage(user, "public-profile-file", "image/png"));
+        ProfileImage image = images.findById(savedImage.getId()).orElseThrow();
+        Instant urlExpiresAt = Instant.parse("2026-09-09T16:00:00Z");
+
+        when(storageService.generateViewUrl(image.getS3Bucket(), image.getS3ObjectKey()))
+                .thenReturn(new StorageAccessUrl(
+                        URI.create("https://example.com/public-profile.png"),
+                        urlExpiresAt
+                ));
+
+        mockMvc.perform(get("/api/users/{userId}/profile", user.getId())
+                        .header("Authorization", bearerToken(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(user.getId().toString()))
+                .andExpect(jsonPath("$.displayName").value("Profile"))
+                .andExpect(jsonPath("$.profileImage.id").value(image.getId().toString()))
+                .andExpect(jsonPath("$.profileImage.url")
+                        .value("https://example.com/public-profile.png"))
+                .andExpect(jsonPath("$.profileImage.urlExpiresAt").value(urlExpiresAt.toString()))
+                .andExpect(jsonPath("$.profileImage.contentType").value("image/png"));
+    }
+
+    @Test
     void meReturnsNullProfileImageWhenMissing() throws Exception {
         AppUser user = user("me-missing");
 

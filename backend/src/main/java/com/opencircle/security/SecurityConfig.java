@@ -71,6 +71,8 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/invite-posts/*/images").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/users/me/profile-image").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/users/me/profile-image").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/users/*/profile").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/users/me/profile").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/me/ratings/due").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/me/ratings/received").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/*/reputation").authenticated()
