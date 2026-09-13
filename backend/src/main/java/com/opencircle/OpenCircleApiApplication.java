@@ -5,6 +5,7 @@ import com.opencircle.invitepost.image.InvitePostImageProperties;
 import com.opencircle.mail.MailProperties;
 import com.opencircle.passwordreset.PasswordResetProperties;
 import com.opencircle.security.CorsProperties;
+import com.opencircle.session.SessionProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -21,6 +22,7 @@ import com.opencircle.storage.StorageProperties;
         PasswordResetProperties.class,
         LocationProperties.class,
         InvitePostImageProperties.class,
+        SessionProperties.class,
         StorageProperties.class})
 @EnableScheduling
 public class OpenCircleApiApplication {
