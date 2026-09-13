@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,7 +33,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
     private MailService mailService;
 
     @Test
-    void signupCreatesUserAndReturnsToken() throws Exception {
+    void signupCreatesUnverifiedUserWithoutIssuingCredentials() throws Exception {
         mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -47,9 +48,10 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                                   "stateRegion": "California",
                                   "country": "USA"
                                 }
-                                """))
+                """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.token", notNullValue()))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE))
                 .andExpect(jsonPath("$.user.email").value("jane.controller@example.com"))
                 .andExpect(jsonPath("$.user.emailVerified").value(false))
                 .andExpect(jsonPath("$.user.username", notNullValue()));
@@ -159,8 +161,11 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                                   "email": "amina.controller@example.com",
                                   "code": "%s"
                                 }
-                                """.formatted(code)))
+                """.formatted(code)))
                 .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("open_circle_refresh=")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("HttpOnly")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("SameSite=Lax")))
                 .andExpect(jsonPath("$.token", notNullValue()))
                 .andExpect(jsonPath("$.user.email").value("amina.controller@example.com"))
                 .andExpect(jsonPath("$.user.emailVerified").value(true));
@@ -172,8 +177,9 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                                   "email": "amina.controller@example.com",
                                   "password": "Password123!"
                                 }
-                                """))
+                """))
                 .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("open_circle_refresh=")))
                 .andExpect(jsonPath("$.token", notNullValue()))
                 .andExpect(jsonPath("$.user.emailVerified").value(true));
     }
@@ -247,8 +253,9 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                               "email": "fatou.controller@example.com",
                               "code": "000000"
                             }
-                            """))
+                """))
                 .andExpect(status().isBadRequest())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE))
                 .andExpect(jsonPath("$.message").value("Invalid or expired verification code"));
     }
 
