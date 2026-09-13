@@ -34,7 +34,8 @@ class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                // The API uses JWT authentication, so CSRF protection for browser sessions is not needed.
+                // API mutations use bearer tokens. Cookie-authenticated refresh/logout requests are
+                // additionally restricted by SameSite cookies and an explicit Origin allowlist.
                 .csrf(csrf -> csrf.disable())
 
                 // Applies the configured frontend origins, methods, and headers to all API requests.
@@ -59,6 +60,8 @@ class SecurityConfig {
 
                         .requestMatchers(HttpMethod.POST, "/api/auth/forgot-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
 
                         .requestMatchers(HttpMethod.PATCH, "/api/engagements/*/accept").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/engagements/*/decline").authenticated()
@@ -118,6 +121,7 @@ class SecurityConfig {
         config.setAllowedOrigins(corsProperties.getAllowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
