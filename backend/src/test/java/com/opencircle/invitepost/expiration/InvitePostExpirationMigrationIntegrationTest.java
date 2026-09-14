@@ -15,6 +15,7 @@ import javax.sql.DataSource;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +45,7 @@ class InvitePostExpirationMigrationIntegrationTest extends AbstractIntegrationTe
         UUID posterId = UUID.randomUUID();
         UUID expiredPostId = UUID.randomUUID();
         UUID futurePostId = UUID.randomUUID();
-        Instant now = Instant.now();
+        Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
         Instant expiredAt = now.minusSeconds(60 * 60);
         Instant futureExpiration = now.plusSeconds(60 * 60);
         insertUser(posterId);
