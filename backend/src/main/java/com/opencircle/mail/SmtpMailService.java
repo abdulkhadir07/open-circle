@@ -52,4 +52,36 @@ class SmtpMailService implements MailService {
 
         mailSender.send(message);
     }
+
+    @Override
+    public void sendEmailChangeCode(String to, String code) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(mailProperties.getFrom());
+        message.setTo(to);
+        message.setSubject("Verify your new OpenCircle email address");
+        message.setText("""
+                We received a request to use this email address for an OpenCircle account.
+
+                Your email change code is: %s
+
+                This code will expire soon. If you did not request this change, you can ignore this email.
+                """.formatted(code));
+
+        mailSender.send(message);
+    }
+
+    @Override
+    public void sendEmailChangedNotice(String oldEmail, String newEmail) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(mailProperties.getFrom());
+        message.setTo(oldEmail);
+        message.setSubject("Your OpenCircle email address was changed");
+        message.setText("""
+                The email address on your OpenCircle account was changed to %s.
+
+                If you did not make this change, reset your password immediately.
+                """.formatted(newEmail));
+
+        mailSender.send(message);
+    }
 }
