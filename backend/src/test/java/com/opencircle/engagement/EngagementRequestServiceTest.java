@@ -6,9 +6,14 @@ import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.invitepost.InviteType;
 import com.opencircle.invitepost.LocationScope;
 import com.opencircle.location.LocationNotVerifiedException;
+import com.opencircle.notification.NotificationCommand;
+import com.opencircle.notification.NotificationPublisher;
+import com.opencircle.notification.NotificationResourceType;
+import com.opencircle.notification.NotificationType;
 import com.opencircle.rating.RatingEnrollmentService;
 import com.opencircle.user.AppUser;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -31,12 +36,14 @@ class EngagementRequestServiceTest {
     private final InvitePostRepository posts = mock(InvitePostRepository.class);
     private final ChatRoomService chatRoomService = mock(ChatRoomService.class);
     private final RatingEnrollmentService ratingEnrollmentService = mock(RatingEnrollmentService.class);
+    private final NotificationPublisher notificationPublisher = mock(NotificationPublisher.class);
 
     private final EngagementRequestService service = new EngagementRequestService(
             requests,
             posts,
             chatRoomService,
             ratingEnrollmentService,
+            notificationPublisher,
             Clock.fixed(NOW, ZoneOffset.UTC)
     );
 
@@ -48,7 +55,11 @@ class EngagementRequestServiceTest {
 
         when(posts.findById(post.getId())).thenReturn(Optional.of(post));
         when(requests.existsByInvitePostAndRequester(post, requester)).thenReturn(false);
-        when(requests.save(any(EngagementRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(requests.save(any(EngagementRequest.class))).thenAnswer(invocation -> {
+            EngagementRequest request = invocation.getArgument(0);
+            ReflectionTestUtils.setField(request, "id", UUID.randomUUID());
+            return request;
+        });
 
         EngagementRequest request = service.createRequest(requester, post.getId());
 
@@ -59,6 +70,16 @@ class EngagementRequestServiceTest {
         assertThat(request.getExpiresAt()).isEqualTo(post.getExpiresAt());
 
         verify(requests).save(request);
+        verify(notificationPublisher).publish(new NotificationCommand(
+                poster.getId(),
+                requester.getId(),
+                NotificationType.ENGAGEMENT_REQUESTED,
+                NotificationResourceType.ENGAGEMENT_REQUEST,
+                request.getId(),
+                NotificationResourceType.INVITE_POST,
+                post.getId(),
+                NOW
+        ));
     }
 
     @Test
@@ -66,7 +87,7 @@ class EngagementRequestServiceTest {
         AppUser poster = verifiedUser("poster.accept@example.com");
         AppUser requester = verifiedUser("requester.accept@example.com");
         InvitePost post = invitePost(poster);
-        EngagementRequest request = new EngagementRequest(post, requester, NOW.minusSeconds(60));
+        EngagementRequest request = engagementRequest(post, requester, NOW.minusSeconds(60));
 
         when(requests.findDetailedById(request.getId())).thenReturn(Optional.of(request));
 
@@ -79,6 +100,16 @@ class EngagementRequestServiceTest {
 
         verify(chatRoomService).openRoomForAcceptedRequest(post, requester);
         verify(ratingEnrollmentService).enrollAcceptedEngagement(request, NOW);
+        verify(notificationPublisher).publish(new NotificationCommand(
+                requester.getId(),
+                poster.getId(),
+                NotificationType.ENGAGEMENT_ACCEPTED,
+                NotificationResourceType.ENGAGEMENT_REQUEST,
+                request.getId(),
+                NotificationResourceType.INVITE_POST,
+                post.getId(),
+                NOW
+        ));
     }
 
     @Test
@@ -143,7 +174,7 @@ class EngagementRequestServiceTest {
         AppUser poster = verifiedUser("poster.requests@example.com");
         AppUser requester = verifiedUser("requester.requests@example.com");
         InvitePost post = invitePost(poster);
-        EngagementRequest request = new EngagementRequest(post, requester, NOW);
+        EngagementRequest request = engagementRequest(post, requester, NOW);
 
         when(posts.findById(post.getId())).thenReturn(Optional.of(post));
         when(requests.findByInvitePostOrderByCreatedAtDesc(post)).thenReturn(List.of(request));
@@ -184,11 +215,11 @@ class EngagementRequestServiceTest {
                 NOW.minusSeconds(60)
         );
 
-        EngagementRequest acceptedRequest = new EngagementRequest(post, firstRequester, NOW.minusSeconds(50));
+        EngagementRequest acceptedRequest = engagementRequest(post, firstRequester, NOW.minusSeconds(50));
         acceptedRequest.accept(NOW.minusSeconds(40));
         post.recordAcceptedEngagement();
 
-        EngagementRequest pendingRequest = new EngagementRequest(post, secondRequester, NOW.minusSeconds(30));
+        EngagementRequest pendingRequest = engagementRequest(post, secondRequester, NOW.minusSeconds(30));
 
         when(requests.findDetailedById(pendingRequest.getId())).thenReturn(Optional.of(pendingRequest));
 
@@ -206,7 +237,7 @@ class EngagementRequestServiceTest {
         AppUser poster = verifiedUser("poster.decline@example.com");
         AppUser requester = verifiedUser("requester.decline@example.com");
         InvitePost post = invitePost(poster);
-        EngagementRequest request = new EngagementRequest(post, requester, NOW.minusSeconds(60));
+        EngagementRequest request = engagementRequest(post, requester, NOW.minusSeconds(60));
 
         when(requests.findDetailedById(request.getId())).thenReturn(Optional.of(request));
 
@@ -215,6 +246,16 @@ class EngagementRequestServiceTest {
         assertThat(result.getStatus()).isEqualTo(EngagementRequestStatus.DECLINED);
         assertThat(result.getRespondedAt()).isEqualTo(NOW);
         assertThat(post.getAcceptedCount()).isZero();
+        verify(notificationPublisher).publish(new NotificationCommand(
+                requester.getId(),
+                poster.getId(),
+                NotificationType.ENGAGEMENT_DECLINED,
+                NotificationResourceType.ENGAGEMENT_REQUEST,
+                request.getId(),
+                NotificationResourceType.INVITE_POST,
+                post.getId(),
+                NOW
+        ));
     }
 
     @Test
@@ -222,7 +263,7 @@ class EngagementRequestServiceTest {
         AppUser poster = verifiedUser("poster.hold@example.com");
         AppUser requester = verifiedUser("requester.hold@example.com");
         InvitePost post = invitePost(poster);
-        EngagementRequest request = new EngagementRequest(post, requester, NOW.minusSeconds(60));
+        EngagementRequest request = engagementRequest(post, requester, NOW.minusSeconds(60));
 
         when(requests.findDetailedById(request.getId())).thenReturn(Optional.of(request));
 
@@ -231,6 +272,16 @@ class EngagementRequestServiceTest {
         assertThat(result.getStatus()).isEqualTo(EngagementRequestStatus.HELD);
         assertThat(result.getRespondedAt()).isEqualTo(NOW);
         assertThat(post.getAcceptedCount()).isZero();
+        verify(notificationPublisher).publish(new NotificationCommand(
+                requester.getId(),
+                poster.getId(),
+                NotificationType.ENGAGEMENT_HELD,
+                NotificationResourceType.ENGAGEMENT_REQUEST,
+                request.getId(),
+                NotificationResourceType.INVITE_POST,
+                post.getId(),
+                NOW
+        ));
     }
 
     @Test
@@ -238,7 +289,7 @@ class EngagementRequestServiceTest {
         AppUser poster = verifiedUser("poster.withdraw@example.com");
         AppUser requester = verifiedUser("requester.withdraw@example.com");
         InvitePost post = invitePost(poster);
-        EngagementRequest request = new EngagementRequest(post, requester, NOW.minusSeconds(60));
+        EngagementRequest request = engagementRequest(post, requester, NOW.minusSeconds(60));
 
         when(requests.findDetailedById(request.getId())).thenReturn(Optional.of(request));
 
@@ -246,6 +297,16 @@ class EngagementRequestServiceTest {
 
         assertThat(result.getStatus()).isEqualTo(EngagementRequestStatus.WITHDRAWN);
         assertThat(result.getWithdrawnAt()).isEqualTo(NOW);
+        verify(notificationPublisher).publish(new NotificationCommand(
+                poster.getId(),
+                requester.getId(),
+                NotificationType.ENGAGEMENT_WITHDRAWN,
+                NotificationResourceType.ENGAGEMENT_REQUEST,
+                request.getId(),
+                NotificationResourceType.INVITE_POST,
+                post.getId(),
+                NOW
+        ));
     }
 
     @Test
@@ -254,7 +315,7 @@ class EngagementRequestServiceTest {
         AppUser requester = verifiedUser("requester.withdraw.forbidden@example.com");
         AppUser otherUser = verifiedUser("other.withdraw.forbidden@example.com");
         InvitePost post = invitePost(poster);
-        EngagementRequest request = new EngagementRequest(post, requester, NOW.minusSeconds(60));
+        EngagementRequest request = engagementRequest(post, requester, NOW.minusSeconds(60));
 
         when(requests.findDetailedById(request.getId())).thenReturn(Optional.of(request));
 
@@ -264,7 +325,7 @@ class EngagementRequestServiceTest {
     }
 
     private InvitePost invitePost(AppUser poster) {
-        return new InvitePost(
+        InvitePost post = new InvitePost(
                 poster,
                 "Anyone want to hang out?",
                 InviteType.GROUP,
@@ -275,6 +336,19 @@ class EngagementRequestServiceTest {
                 "USA",
                 NOW.minusSeconds(60)
         );
+
+        ReflectionTestUtils.setField(post, "id", UUID.randomUUID());
+        return post;
+    }
+
+    private EngagementRequest engagementRequest(
+            InvitePost post,
+            AppUser requester,
+            Instant createdAt
+    ) {
+        EngagementRequest request = new EngagementRequest(post, requester, createdAt);
+        ReflectionTestUtils.setField(request, "id", UUID.randomUUID());
+        return request;
     }
 
     private AppUser verifiedUser(String email) {
@@ -284,7 +358,7 @@ class EngagementRequestServiceTest {
     }
 
     private AppUser user(String email) {
-        return new AppUser(
+        AppUser user = new AppUser(
                 email.substring(0, email.indexOf("@")).replace(".", "_") + "_1234",
                 "Test",
                 "User",
@@ -296,5 +370,8 @@ class EngagementRequestServiceTest {
                 "California",
                 "USA"
         );
+
+        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+        return user;
     }
 }
