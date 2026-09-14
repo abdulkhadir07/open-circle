@@ -23,7 +23,7 @@ class NotificationDeliveryListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    void deliver(NotificationCreatedEvent event) {
+    void deliver(NotificationDeliveryRequestedEvent event) {
         try {
             notificationQueryService.getRealtimeResponse(
                             event.notificationId(),
