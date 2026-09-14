@@ -53,6 +53,9 @@ public class InvitePost {
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
+    @Column(name = "expiration_notified_at", insertable = false, updatable = false)
+    private Instant expirationNotifiedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -191,6 +194,10 @@ public class InvitePost {
 
     public Instant getExpiresAt() {
         return expiresAt;
+    }
+
+    public Instant getExpirationNotifiedAt() {
+        return expirationNotifiedAt;
     }
 
     public Instant getCreatedAt() {
