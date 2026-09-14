@@ -3,6 +3,7 @@ package com.opencircle;
 import com.opencircle.location.LocationProperties;
 import com.opencircle.invitepost.image.InvitePostImageProperties;
 import com.opencircle.mail.MailProperties;
+import com.opencircle.notification.NotificationProperties;
 import com.opencircle.passwordreset.PasswordResetProperties;
 import com.opencircle.security.CorsProperties;
 import com.opencircle.session.SessionProperties;
@@ -22,6 +23,7 @@ import com.opencircle.storage.StorageProperties;
         PasswordResetProperties.class,
         LocationProperties.class,
         InvitePostImageProperties.class,
+        NotificationProperties.class,
         SessionProperties.class,
         StorageProperties.class})
 @EnableScheduling
