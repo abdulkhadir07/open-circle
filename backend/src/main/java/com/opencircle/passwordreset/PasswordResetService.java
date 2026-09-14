@@ -96,6 +96,13 @@ public class PasswordResetService {
         sessionService.revokeAll(user.getId(), SessionRevocationReason.PASSWORD_RESET);
     }
 
+    @Transactional
+    public void invalidateActiveCodes(AppUser user) {
+        Instant now = Instant.now(clock);
+        codes.findByUserAndUsedAtIsNull(user)
+                .forEach(code -> code.markUsed(now));
+    }
+
     private void issueCode(AppUser user) {
         Instant now = Instant.now(clock);
 
