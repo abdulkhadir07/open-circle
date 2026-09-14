@@ -52,4 +52,36 @@ class SmtpMailServiceTest {
         assertThat(message.getSubject()).isEqualTo("Reset your OpenCircle password");
         assertThat(message.getText()).contains("654321");
     }
+
+    @Test
+    void sendEmailChangeCodeTargetsNewAddress() {
+        JavaMailSender mailSender = mock(JavaMailSender.class);
+        MailProperties properties = new MailProperties();
+        properties.setFrom("no-reply@opencircle.test");
+        SmtpMailService service = new SmtpMailService(mailSender, properties);
+
+        service.sendEmailChangeCode("new@example.com", "123456");
+
+        var captor = forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+        assertThat(captor.getValue().getTo()).containsExactly("new@example.com");
+        assertThat(captor.getValue().getSubject()).contains("new OpenCircle email");
+        assertThat(captor.getValue().getText()).contains("123456");
+    }
+
+    @Test
+    void sendEmailChangedNoticeTargetsOldAddress() {
+        JavaMailSender mailSender = mock(JavaMailSender.class);
+        MailProperties properties = new MailProperties();
+        properties.setFrom("no-reply@opencircle.test");
+        SmtpMailService service = new SmtpMailService(mailSender, properties);
+
+        service.sendEmailChangedNotice("old@example.com", "new@example.com");
+
+        var captor = forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+        assertThat(captor.getValue().getTo()).containsExactly("old@example.com");
+        assertThat(captor.getValue().getSubject()).contains("was changed");
+        assertThat(captor.getValue().getText()).contains("new@example.com");
+    }
 }

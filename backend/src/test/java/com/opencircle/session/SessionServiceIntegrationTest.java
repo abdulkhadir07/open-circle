@@ -55,6 +55,7 @@ class SessionServiceIntegrationTest extends AbstractIntegrationTest {
 
         IssuedSession issued = sessionService.create(user, "  Test Browser  ");
 
+        assertThat(issued.sessionId()).isNotNull();
         assertThat(issued.refreshToken()).isEqualTo("first-raw-refresh-token");
         assertThat(issued.refreshTokenExpiresAt()).isEqualTo(Instant.parse("2026-09-20T12:00:00Z"));
 
@@ -83,6 +84,7 @@ class SessionServiceIntegrationTest extends AbstractIntegrationTest {
         RefreshedSession refreshed = sessionService.refresh(issued.refreshToken());
 
         assertThat(refreshed.userId()).isEqualTo(user.getId());
+        assertThat(refreshed.sessionId()).isEqualTo(issued.sessionId());
         assertThat(refreshed.refreshToken()).isEqualTo("second-token");
         assertThat(refreshed.refreshTokenExpiresAt())
                 .isEqualTo(NOW.plusSeconds(60).plusSeconds(7L * 24 * 60 * 60));
@@ -93,6 +95,76 @@ class SessionServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(refreshTokens.findByTokenHash(tokenHasher.hash("second-token")))
                 .get()
                 .matches(token -> token.getUsedAt() == null);
+    }
+
+    @Test
+    @Transactional
+    void listsOnlyActiveSessionsWithCurrentSessionFirst() {
+        AppUser user = createUser("list");
+        when(tokenGenerator.generate()).thenReturn("older-token", "current-token");
+        IssuedSession older = sessionService.create(user, "Older Browser");
+
+        when(clock.instant()).thenReturn(NOW.plusSeconds(60));
+        IssuedSession current = sessionService.create(user, "Current Browser");
+        sessionService.revokeOwned(user.getId(), older.sessionId(), SessionRevocationReason.USER_REVOKED);
+
+        List<SessionDetails> active = sessionService.getActiveSessions(user.getId(), current.sessionId());
+
+        assertThat(active).singleElement().satisfies(session -> {
+            assertThat(session.id()).isEqualTo(current.sessionId());
+            assertThat(session.userAgent()).isEqualTo("Current Browser");
+            assertThat(session.current()).isTrue();
+            assertThat(session.inactiveAt()).isEqualTo(current.refreshTokenExpiresAt());
+        });
+    }
+
+    @Test
+    @Transactional
+    void securityChangeRotatesCurrentAndRevokesEveryOtherSession() {
+        AppUser user = createUser("secure-current");
+        when(tokenGenerator.generate()).thenReturn("current-token", "other-token", "secured-token");
+        IssuedSession current = sessionService.create(user, "Current Browser");
+        IssuedSession other = sessionService.create(user, "Other Browser");
+
+        when(clock.instant()).thenReturn(NOW.plusSeconds(60));
+        IssuedSession secured = sessionService.rotateCurrentAndRevokeOthers(
+                user.getId(),
+                current.sessionId(),
+                SessionRevocationReason.PASSWORD_CHANGE
+        );
+
+        assertThat(secured.sessionId()).isEqualTo(current.sessionId());
+        assertThat(secured.refreshToken()).isEqualTo("secured-token");
+        assertThat(refreshTokens.findByTokenHash(tokenHasher.hash(current.refreshToken())))
+                .get()
+                .extracting(SessionRefreshToken::getUsedAt)
+                .isEqualTo(NOW.plusSeconds(60));
+        assertThatThrownBy(() -> sessionService.refresh(other.refreshToken()))
+                .isInstanceOf(InvalidRefreshTokenException.class);
+
+        when(tokenGenerator.generate()).thenReturn("secured-again-token");
+        assertThat(sessionService.refresh(secured.refreshToken()).sessionId())
+                .isEqualTo(current.sessionId());
+    }
+
+    @Test
+    @Transactional
+    void cannotRevokeAnotherUsersSession() {
+        AppUser owner = createUser("session-owner");
+        AppUser otherUser = createUser("session-outsider");
+        when(tokenGenerator.generate()).thenReturn("owner-token");
+        IssuedSession owned = sessionService.create(owner, null);
+
+        assertThatThrownBy(() -> sessionService.revokeOwned(
+                otherUser.getId(),
+                owned.sessionId(),
+                SessionRevocationReason.USER_REVOKED
+        )).isInstanceOf(SessionNotFoundException.class);
+
+        assertThat(sessionService.getActiveSessions(owner.getId(), owned.sessionId()))
+                .singleElement()
+                .extracting(SessionDetails::id)
+                .isEqualTo(owned.sessionId());
     }
 
     @Test
