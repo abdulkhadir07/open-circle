@@ -99,6 +99,18 @@ class AppUserTest {
     }
 
     @Test
+    void changeVerifiedEmailNormalizesAndPreservesVerification() {
+        AppUser user = newUser();
+        Instant verifiedAt = Instant.parse("2026-09-13T12:00:00Z");
+
+        user.changeVerifiedEmail("  New.Email@Example.COM  ", verifiedAt);
+
+        assertThat(user.getEmail()).isEqualTo("new.email@example.com");
+        assertThat(user.isEmailVerified()).isTrue();
+        assertThat(user.getEmailVerifiedAt()).isEqualTo(verifiedAt);
+    }
+
+    @Test
     void verifyLocationStoresVerifiedLocationState() {
         AppUser user = new AppUser(
                 "bright_river_1234",
