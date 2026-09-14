@@ -4,6 +4,10 @@ import com.opencircle.chat.ChatRoomService;
 import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.location.LocationNotVerifiedException;
+import com.opencircle.notification.NotificationCommand;
+import com.opencircle.notification.NotificationPublisher;
+import com.opencircle.notification.NotificationResourceType;
+import com.opencircle.notification.NotificationType;
 import com.opencircle.rating.RatingEnrollmentService;
 import com.opencircle.user.AppUser;
 import org.springframework.stereotype.Service;
@@ -21,6 +25,7 @@ class EngagementRequestService {
     private final InvitePostRepository posts;
     private final ChatRoomService chatRoomService;
     private final RatingEnrollmentService ratingEnrollmentService;
+    private final NotificationPublisher notificationPublisher;
     private final Clock clock;
 
     EngagementRequestService(
@@ -28,12 +33,14 @@ class EngagementRequestService {
             InvitePostRepository posts,
             ChatRoomService chatRoomService,
             RatingEnrollmentService ratingEnrollmentService,
+            NotificationPublisher notificationPublisher,
             Clock clock
     ) {
         this.requests = requests;
         this.posts = posts;
         this.chatRoomService = chatRoomService;
         this.ratingEnrollmentService = ratingEnrollmentService;
+        this.notificationPublisher = notificationPublisher;
         this.clock = clock;
     }
 
@@ -52,7 +59,16 @@ class EngagementRequestService {
         requireNoDuplicateRequest(post, requester);
 
         EngagementRequest request = new EngagementRequest(post, requester, now);
-        return requests.save(request);
+        EngagementRequest savedRequest = requests.save(request);
+        publishNotification(
+                savedRequest,
+                post.getPoster(),
+                requester,
+                NotificationType.ENGAGEMENT_REQUESTED,
+                now
+        );
+
+        return savedRequest;
     }
 
     // Returns all engagement requests for a post owned by the current user.
@@ -86,6 +102,13 @@ class EngagementRequestService {
         // Accepted requests create or join the chat room for the invite post.
         chatRoomService.openRoomForAcceptedRequest(post, request.getRequester());
         ratingEnrollmentService.enrollAcceptedEngagement(request, now);
+        publishNotification(
+                request,
+                request.getRequester(),
+                poster,
+                NotificationType.ENGAGEMENT_ACCEPTED,
+                now
+        );
 
         return request;
     }
@@ -105,6 +128,14 @@ class EngagementRequestService {
             throw new EngagementRequestNotActionableException(exception.getMessage());
         }
 
+        publishNotification(
+                request,
+                request.getRequester(),
+                poster,
+                NotificationType.ENGAGEMENT_DECLINED,
+                now
+        );
+
         return request;
     }
 
@@ -123,6 +154,14 @@ class EngagementRequestService {
             throw new EngagementRequestNotActionableException(exception.getMessage());
         }
 
+        publishNotification(
+                request,
+                request.getRequester(),
+                poster,
+                NotificationType.ENGAGEMENT_HELD,
+                now
+        );
+
         return request;
     }
 
@@ -133,13 +172,42 @@ class EngagementRequestService {
 
         requireRequester(request, requester);
 
+        Instant now = Instant.now(clock);
+
         try {
-            request.withdraw(Instant.now(clock));
+            request.withdraw(now);
         } catch (IllegalStateException exception) {
             throw new EngagementRequestNotActionableException(exception.getMessage());
         }
 
+        publishNotification(
+                request,
+                request.getInvitePost().getPoster(),
+                requester,
+                NotificationType.ENGAGEMENT_WITHDRAWN,
+                now
+        );
+
         return request;
+    }
+
+    private void publishNotification(
+            EngagementRequest request,
+            AppUser recipient,
+            AppUser actor,
+            NotificationType type,
+            Instant occurredAt
+    ) {
+        notificationPublisher.publish(new NotificationCommand(
+                recipient.getId(),
+                actor.getId(),
+                type,
+                NotificationResourceType.ENGAGEMENT_REQUEST,
+                request.getId(),
+                NotificationResourceType.INVITE_POST,
+                request.getInvitePost().getId(),
+                occurredAt
+        ));
     }
 
     private EngagementRequest detailedRequest(UUID requestId) {
