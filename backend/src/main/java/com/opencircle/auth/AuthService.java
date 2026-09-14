@@ -14,6 +14,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 class AuthService {
 
@@ -141,7 +143,7 @@ class AuthService {
         RefreshedSession refreshed = sessionService.refresh(rawRefreshToken);
         AppUser user = userService.getById(refreshed.userId());
         return new RefreshedAuthentication(
-                new AccessTokenResponse(jwtService.generateToken(user)),
+                new AccessTokenResponse(jwtService.generateToken(user, refreshed.sessionId())),
                 refreshed.refreshToken(),
                 refreshed.refreshTokenExpiresAt()
         );
@@ -154,12 +156,12 @@ class AuthService {
 
     private AuthenticatedSession createAuthenticatedSession(AppUser user, String userAgent) {
         IssuedSession session = sessionService.create(user, userAgent);
-        return new AuthenticatedSession(createAuthResponse(user), session);
+        return new AuthenticatedSession(createAuthResponse(user, session.sessionId()), session);
     }
 
-    private AuthResponse createAuthResponse(AppUser user) {
+    private AuthResponse createAuthResponse(AppUser user, UUID sessionId) {
         return new AuthResponse(
-                jwtService.generateToken(user),
+                jwtService.generateToken(user, sessionId),
                 UserResponse.from(
                         user,
                         profileImageQueryService.getProfileImageByUserId(user.getId())

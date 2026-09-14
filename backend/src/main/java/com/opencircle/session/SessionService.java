@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -50,7 +51,7 @@ public class SessionService {
                 refreshTokenExpiresAt
         ));
 
-        return new IssuedSession(rawToken, refreshTokenExpiresAt);
+        return new IssuedSession(session.getId(), rawToken, refreshTokenExpiresAt);
     }
 
     @Transactional(noRollbackFor = InvalidRefreshTokenException.class)
@@ -71,24 +72,69 @@ public class SessionService {
             throw new InvalidRefreshTokenException();
         }
 
-        token.markUsed(now);
-        refreshTokens.flush();
-        session.recordUse(now);
-
-        String rotatedRawToken = tokenGenerator.generate();
-        Instant refreshTokenExpiresAt = nextRefreshTokenExpiry(now, session.getExpiresAt());
-        refreshTokens.save(new SessionRefreshToken(
-                session,
-                tokenHasher.hash(rotatedRawToken),
-                now,
-                refreshTokenExpiresAt
-        ));
+        IssuedSession rotated = rotateToken(session, token, now);
 
         return new RefreshedSession(
                 session.getUser().getId(),
-                rotatedRawToken,
-                refreshTokenExpiresAt
+                session.getId(),
+                rotated.refreshToken(),
+                rotated.refreshTokenExpiresAt()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<SessionDetails> getActiveSessions(UUID userId, UUID currentSessionId) {
+        if (userId == null || currentSessionId == null) {
+            throw new IllegalArgumentException("User and current session are required");
+        }
+
+        return sessions.findActiveByUserId(userId, currentSessionId, Instant.now(clock)).stream()
+                .map(session -> new SessionDetails(
+                        session.getId(),
+                        session.getUserAgent(),
+                        session.getId().equals(currentSessionId),
+                        session.getCreatedAt(),
+                        session.getLastUsedAt(),
+                        session.getInactiveAt(),
+                        session.getExpiresAt()
+                ))
+                .toList();
+    }
+
+    @Transactional
+    public IssuedSession rotateCurrentAndRevokeOthers(
+            UUID userId,
+            UUID currentSessionId,
+            SessionRevocationReason reason
+    ) {
+        if (userId == null || currentSessionId == null || reason == null) {
+            throw new IllegalArgumentException("User, current session, and reason are required");
+        }
+
+        Instant now = Instant.now(clock);
+        AuthSession session = sessions.findOwnedForUpdate(currentSessionId, userId)
+                .orElseThrow(CurrentSessionUnavailableException::new);
+        SessionRefreshToken token = refreshTokens.findFirstBySessionAndUsedAtIsNull(session)
+                .orElseThrow(CurrentSessionUnavailableException::new);
+
+        if (!session.isActive(now) || !token.isActive(now)) {
+            throw new CurrentSessionUnavailableException();
+        }
+
+        IssuedSession rotated = rotateToken(session, token, now);
+        sessions.revokeOtherActiveByUserId(userId, currentSessionId, now, reason);
+        return rotated;
+    }
+
+    @Transactional
+    public void revokeOwned(UUID userId, UUID sessionId, SessionRevocationReason reason) {
+        if (userId == null || sessionId == null || reason == null) {
+            throw new IllegalArgumentException("User, session, and reason are required");
+        }
+
+        AuthSession session = sessions.findOwnedForUpdate(sessionId, userId)
+                .orElseThrow(SessionNotFoundException::new);
+        session.revoke(Instant.now(clock), reason);
     }
 
     @Transactional
@@ -123,5 +169,26 @@ public class SessionService {
     private Instant nextRefreshTokenExpiry(Instant issuedAt, Instant sessionExpiresAt) {
         Instant inactivityExpiry = issuedAt.plus(properties.getInactivityTimeoutDays(), ChronoUnit.DAYS);
         return inactivityExpiry.isBefore(sessionExpiresAt) ? inactivityExpiry : sessionExpiresAt;
+    }
+
+    private IssuedSession rotateToken(
+            AuthSession session,
+            SessionRefreshToken currentToken,
+            Instant now
+    ) {
+        currentToken.markUsed(now);
+        refreshTokens.flush();
+        session.recordUse(now);
+
+        String rawToken = tokenGenerator.generate();
+        Instant refreshTokenExpiresAt = nextRefreshTokenExpiry(now, session.getExpiresAt());
+        refreshTokens.save(new SessionRefreshToken(
+                session,
+                tokenHasher.hash(rawToken),
+                now,
+                refreshTokenExpiresAt
+        ));
+
+        return new IssuedSession(session.getId(), rawToken, refreshTokenExpiresAt);
     }
 }
