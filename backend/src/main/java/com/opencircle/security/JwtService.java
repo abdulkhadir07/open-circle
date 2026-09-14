@@ -31,22 +31,29 @@ public class JwtService {
     }
 
     public String generateToken(AppUser user) {
+        return generateToken(user, null);
+    }
+
+    public String generateToken(AppUser user, UUID sessionId) {
         Instant now = Instant.now();
 
-        JwtClaimsSet claims = JwtClaimsSet.builder()
+        JwtClaimsSet.Builder claims = JwtClaimsSet.builder()
                 .id(UUID.randomUUID().toString())
                 .subject(user.getId().toString())
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(jwtProperties.getExpirationMinutes() * 60))
                 .claim("email", user.getEmail())
                 .claim("username", user.getUsername())
-                .claim("role", user.getRole().name())
-                .build();
+                .claim("role", user.getRole().name());
+
+        if (sessionId != null) {
+            claims.claim("sid", sessionId.toString());
+        }
 
         return jwtEncoder.encode(
                 JwtEncoderParameters.from(
                         JwsHeader.with(MacAlgorithm.HS256).build(),
-                        claims
+                        claims.build()
                 )
         ).getTokenValue();
     }

@@ -19,14 +19,14 @@ public class CurrentUserProvider {
     }
 
     public AppUser getCurrentUser(Jwt jwt) {
-        UUID userId = authenticatedUserId(jwt);
+        UUID userId = getCurrentUserId(jwt);
 
         // Loads the database user represented by the validated JWT subject.
         return userService.findById(userId)
                 .orElseThrow(CurrentUserNotFoundException::new);
     }
 
-    private UUID authenticatedUserId(Jwt jwt) {
+    public UUID getCurrentUserId(Jwt jwt) {
         String subject = jwt == null ? null : jwt.getSubject();
 
         if (subject == null || subject.isBlank()) {
