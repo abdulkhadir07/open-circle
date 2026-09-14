@@ -152,6 +152,29 @@ class ChatRoomRepositoryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void chatActivityRecipientsIncludeOnlyOtherActiveVisibleParticipants() {
+        AppUser sender = verifiedUser("activity.sender@example.com");
+        AppUser eligible = verifiedUser("activity.eligible@example.com");
+        AppUser hidden = verifiedUser("activity.hidden@example.com");
+        AppUser left = verifiedUser("activity.left@example.com");
+        AppUser removed = verifiedUser("activity.removed@example.com");
+        ChatRoom room = rooms.save(new ChatRoom(posts.save(invitePost(sender)), NOW));
+
+        room.addParticipant(sender, NOW);
+        room.addParticipant(eligible, NOW);
+        room.addParticipant(hidden, NOW);
+        room.addParticipant(left, NOW);
+        room.addParticipant(removed, NOW);
+        room.hideFor(hidden, NOW.plusSeconds(10));
+        room.leave(left, NOW.plusSeconds(20));
+        room.removeParticipant(removed, sender, NOW.plusSeconds(30));
+        rooms.saveAndFlush(room);
+
+        assertThat(participants.findChatActivityRecipientIds(room, sender.getId()))
+                .containsExactly(eligible.getId());
+    }
+
+    @Test
     void findRoomsReadyToAutoCloseReturnsOnlyActiveUnsavedRoomsPastDeadline() {
         AppUser poster = verifiedUser("poster.autoclose@example.com");
         AppUser requester = verifiedUser("requester.autoclose@example.com");
