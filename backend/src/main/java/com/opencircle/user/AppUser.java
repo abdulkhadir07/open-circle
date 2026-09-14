@@ -186,6 +186,19 @@ public class AppUser {
         this.passwordHash = passwordHash;
     }
 
+    public void changeVerifiedEmail(String email, Instant verifiedAt) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+        if (verifiedAt == null) {
+            throw new IllegalArgumentException("Email verification time is required");
+        }
+
+        this.email = email.trim().toLowerCase();
+        this.emailVerified = true;
+        this.emailVerifiedAt = verifiedAt;
+    }
+
     // Stores the location resolved from the user's device coordinates.
     public void verifyLocation(
             String verifiedCity,

@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record RefreshedSession(
         UUID userId,
+        UUID sessionId,
         String refreshToken,
         Instant refreshTokenExpiresAt
 ) {
