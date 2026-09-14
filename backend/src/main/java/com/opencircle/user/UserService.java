@@ -61,6 +61,12 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
+    @Transactional
+    public AppUser getByIdForUpdate(UUID id) {
+        return users.findByIdForUpdate(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
     @Transactional(readOnly = true)
     public AppUser getByEmail(String email) {
         return users.findByEmailIgnoreCase(email)
@@ -71,6 +77,11 @@ public class UserService {
     public AppUser save(AppUser user) {
         // Persists changes made to an already-loaded user entity.
         return users.save(user);
+    }
+
+    @Transactional
+    public AppUser saveAndFlush(AppUser user) {
+        return users.saveAndFlush(user);
     }
 
     @Transactional(readOnly = true)

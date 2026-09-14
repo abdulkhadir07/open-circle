@@ -42,7 +42,8 @@ class JwtServiceIntegrationTest {
 
         setId(user);
 
-        String token = jwtService.generateToken(user);
+        UUID sessionId = UUID.randomUUID();
+        String token = jwtService.generateToken(user, sessionId);
         Jwt jwt = jwtService.validateToken(token);
 
         assertThat(jwt.getSubject()).isEqualTo(user.getId().toString());
@@ -50,6 +51,7 @@ class JwtServiceIntegrationTest {
         assertThat(jwt.getClaimAsString("email")).isEqualTo("jane@example.com");
         assertThat(jwt.getClaimAsString("username")).isEqualTo("bright_river_1234");
         assertThat(jwt.getClaimAsString("role")).isEqualTo("USER");
+        assertThat(jwt.getClaimAsString("sid")).isEqualTo(sessionId.toString());
         assertThat(Duration.between(jwt.getIssuedAt(), jwt.getExpiresAt()))
                 .isEqualTo(Duration.ofMinutes(15));
     }
