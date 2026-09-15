@@ -19,18 +19,21 @@ public class RatingLifecycleService {
 
     private final RatingLifecycleQueryRepository lifecycleQueries;
     private final RatingObligationRepository obligations;
-    private final RatingRepository ratings;
+    private final RatingRevealService ratingRevealService;
+    private final RatingNotificationService ratingNotifications;
     private final Clock clock;
 
     RatingLifecycleService(
             RatingLifecycleQueryRepository lifecycleQueries,
             RatingObligationRepository obligations,
-            RatingRepository ratings,
+            RatingRevealService ratingRevealService,
+            RatingNotificationService ratingNotifications,
             Clock clock
     ) {
         this.lifecycleQueries = lifecycleQueries;
         this.obligations = obligations;
-        this.ratings = ratings;
+        this.ratingRevealService = ratingRevealService;
+        this.ratingNotifications = ratingNotifications;
         this.clock = clock;
     }
 
@@ -63,13 +66,13 @@ public class RatingLifecycleService {
         lifecycleQueries.findReadyForUser(userId, now)
                 .forEach(snapshot -> activateIfReady(snapshot, now, null));
         obligations.markExpiredAsMissedForParticipant(userId, now);
-        ratings.revealResolvedRatings(now);
+        ratingRevealService.revealResolvedRatings(now);
     }
 
     @Transactional
     void finalizeEngagement(UUID engagementId, Instant now) {
         obligations.markExpiredAsMissedForEngagement(engagementId, now);
-        ratings.revealResolvedRatings(now);
+        ratingRevealService.revealResolvedRatings(now);
     }
 
     @Transactional
@@ -84,7 +87,7 @@ public class RatingLifecycleService {
         }
 
         int missed = obligations.markAllExpiredAsMissed(now);
-        int revealed = ratings.revealResolvedRatings(now);
+        int revealed = ratingRevealService.revealResolvedRatings(now);
 
         return new RatingLifecycleResult(activated, missed, revealed);
     }
@@ -106,6 +109,7 @@ public class RatingLifecycleService {
 
         pair.forEach(obligation -> obligation.require(requirement.trigger(), requirement.requiredAt()));
         obligations.saveAll(pair);
+        ratingNotifications.notifyRequired(snapshot, pair, now);
         return true;
     }
 
