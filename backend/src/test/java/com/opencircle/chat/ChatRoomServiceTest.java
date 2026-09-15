@@ -32,12 +32,15 @@ class ChatRoomServiceTest {
     private final ChatRoomParticipantRepository participants = mock(ChatRoomParticipantRepository.class);
     private final ChatMessageRepository messages = mock(ChatMessageRepository.class);
     private final RatingLifecycleService ratingLifecycleService = mock(RatingLifecycleService.class);
+    private final ChatActivityNotificationService chatActivityNotifications =
+            mock(ChatActivityNotificationService.class);
 
     private final ChatRoomService service = new ChatRoomService(
             rooms,
             participants,
             messages,
             ratingLifecycleService,
+            chatActivityNotifications,
             CLOCK
     );
 
@@ -145,6 +148,7 @@ class ChatRoomServiceTest {
         verify(rooms).save(room);
         verify(messages).save(message);
         verify(ratingLifecycleService, times(2)).reconcileInvitePost(room.getInvitePost().getId(), NOW);
+        verify(chatActivityNotifications).notifyAwayParticipants(message);
     }
 
     @Test
