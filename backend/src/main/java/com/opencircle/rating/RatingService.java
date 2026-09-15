@@ -20,6 +20,7 @@ class RatingService {
     private final RatingObligationRepository obligations;
     private final RatingRepository ratings;
     private final RatingLifecycleService lifecycleService;
+    private final RatingRevealService ratingRevealService;
     private final EntityManager entityManager;
     private final Clock clock;
 
@@ -28,6 +29,7 @@ class RatingService {
             RatingObligationRepository obligations,
             RatingRepository ratings,
             RatingLifecycleService lifecycleService,
+            RatingRevealService ratingRevealService,
             EntityManager entityManager,
             Clock clock
     ) {
@@ -35,6 +37,7 @@ class RatingService {
         this.obligations = obligations;
         this.ratings = ratings;
         this.lifecycleService = lifecycleService;
+        this.ratingRevealService = ratingRevealService;
         this.entityManager = entityManager;
         this.clock = clock;
     }
@@ -73,7 +76,7 @@ class RatingService {
         ));
         UUID ratingId = rating.getId();
 
-        ratings.revealResolvedRatings(now);
+        ratingRevealService.revealResolvedRatings(now);
 
         return ratings.findDetailedById(ratingId).orElseThrow();
     }
