@@ -46,7 +46,11 @@ class PersistentNotificationPublisher implements NotificationPublisher {
         );
 
         if (inserted == 1) {
-            events.publishEvent(new NotificationCreatedEvent(notificationId, command.recipientUserId()));
+            requestDelivery(notificationId, command.recipientUserId());
         }
+    }
+
+    private void requestDelivery(UUID notificationId, UUID recipientUserId) {
+        events.publishEvent(new NotificationDeliveryRequestedEvent(notificationId, recipientUserId));
     }
 }
