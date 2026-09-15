@@ -78,6 +78,56 @@ class NotificationQueryServiceTest {
     }
 
     @Test
+    void inboxMapsRatingNotificationsWithOneBatchedActorImageLookup() {
+        UUID recipientUserId = UUID.randomUUID();
+        UUID requiredActorId = UUID.randomUUID();
+        UUID revealedActorId = UUID.randomUUID();
+        UUID requiredEngagementId = UUID.randomUUID();
+        UUID revealedEngagementId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        NotificationRow required = row(
+                UUID.randomUUID(),
+                requiredActorId,
+                requiredEngagementId,
+                postId,
+                null,
+                NotificationType.RATING_REQUIRED
+        );
+        NotificationRow revealed = row(
+                UUID.randomUUID(),
+                revealedActorId,
+                revealedEngagementId,
+                postId,
+                null,
+                NotificationType.RATING_REVEALED
+        );
+
+        when(notifications.findInbox(recipientUserId, PageRequest.of(0, 20)))
+                .thenReturn(new PageImpl<>(List.of(required, revealed), PageRequest.of(0, 20), 2));
+        when(profileImages.getProfileImagesByUserIds(Set.of(requiredActorId, revealedActorId)))
+                .thenReturn(Map.of());
+
+        NotificationInboxResponse response = service.getInbox(recipientUserId, 0, 20);
+
+        assertThat(response.notifications())
+                .extracting(NotificationResponse::type)
+                .containsExactly(NotificationType.RATING_REQUIRED, NotificationType.RATING_REVEALED);
+        assertThat(response.notifications())
+                .extracting(notification -> notification.resource().id())
+                .containsExactly(requiredEngagementId, revealedEngagementId);
+        assertThat(response.notifications())
+                .allSatisfy(notification -> {
+                    assertThat(notification.resource().type())
+                            .isEqualTo(NotificationResourceType.ENGAGEMENT_REQUEST);
+                    assertThat(notification.context()).isEqualTo(new NotificationResourceResponse(
+                            NotificationResourceType.INVITE_POST,
+                            postId
+                    ));
+                });
+        verify(profileImages).getProfileImagesByUserIds(Set.of(requiredActorId, revealedActorId));
+    }
+
+    @Test
     void rejectsInvalidPaginationBeforeQuerying() {
         UUID recipientUserId = UUID.randomUUID();
 
@@ -122,11 +172,29 @@ class NotificationQueryServiceTest {
             UUID postId,
             Instant readAt
     ) {
+        return row(
+                notificationId,
+                actorUserId,
+                engagementId,
+                postId,
+                readAt,
+                NotificationType.ENGAGEMENT_REQUESTED
+        );
+    }
+
+    private NotificationRow row(
+            UUID notificationId,
+            UUID actorUserId,
+            UUID engagementId,
+            UUID postId,
+            Instant readAt,
+            NotificationType type
+    ) {
         NotificationRow row = mock(NotificationRow.class);
         when(row.getId()).thenReturn(notificationId);
         when(row.getActorUserId()).thenReturn(actorUserId);
         when(row.getActorUsername()).thenReturn("actor_user");
-        when(row.getType()).thenReturn(NotificationType.ENGAGEMENT_REQUESTED.name());
+        when(row.getType()).thenReturn(type.name());
         when(row.getResourceType()).thenReturn(NotificationResourceType.ENGAGEMENT_REQUEST.name());
         when(row.getResourceId()).thenReturn(engagementId);
         when(row.getContextType()).thenReturn(NotificationResourceType.INVITE_POST.name());
