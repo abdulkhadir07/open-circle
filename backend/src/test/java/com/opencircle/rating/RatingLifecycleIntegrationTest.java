@@ -7,6 +7,7 @@ import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.invitepost.InviteType;
 import com.opencircle.invitepost.LocationScope;
+import com.opencircle.notification.NotificationType;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
 import jakarta.persistence.EntityManager;
@@ -25,6 +26,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -82,6 +84,48 @@ class RatingLifecycleIntegrationTest extends AbstractIntegrationTest {
         });
         assertThat(firstRun.activatedEngagements()).isEqualTo(1);
         assertThat(secondRun.activatedEngagements()).isZero();
+        assertNotification(
+                interaction.poster(),
+                interaction.requester(),
+                NotificationType.RATING_REQUIRED,
+                interaction,
+                NOW
+        );
+        assertNotification(
+                interaction.requester(),
+                interaction.poster(),
+                NotificationType.RATING_REQUIRED,
+                interaction,
+                NOW
+        );
+        assertThat(notificationCount(NotificationType.RATING_REQUIRED, interaction)).isEqualTo(2);
+    }
+
+    @Test
+    void lazyReconciliationCreatesTheSameRequiredNotificationsOnlyOnce() {
+        Interaction interaction = interaction("lazy-notification", NOW.minusSeconds(days(5)));
+        addMessage(interaction, interaction.poster(), "Poster starts", NOW.minusSeconds(days(3) + 120));
+        addMessage(interaction, interaction.requester(), "Requester replies", NOW.minusSeconds(days(3) + 60));
+        addMessage(interaction, interaction.poster(), "Poster follows up", NOW.minusSeconds(days(3)));
+
+        assertThat(ratingService.getDueRatings(interaction.poster())).hasSize(1);
+        assertThat(ratingService.getDueRatings(interaction.requester())).hasSize(1);
+
+        assertThat(notificationCount(NotificationType.RATING_REQUIRED, interaction)).isEqualTo(2);
+        assertNotification(
+                interaction.poster(),
+                interaction.requester(),
+                NotificationType.RATING_REQUIRED,
+                interaction,
+                NOW
+        );
+        assertNotification(
+                interaction.requester(),
+                interaction.poster(),
+                NotificationType.RATING_REQUIRED,
+                interaction,
+                NOW
+        );
     }
 
     @Test
@@ -138,6 +182,8 @@ class RatingLifecycleIntegrationTest extends AbstractIntegrationTest {
                 });
         assertThat(firstRun.missedObligations()).isEqualTo(2);
         assertThat(retry.missedObligations()).isZero();
+        assertThat(notificationCount(NotificationType.RATING_REQUIRED, interaction)).isZero();
+        assertThat(notificationCount(NotificationType.RATING_REVEALED, interaction)).isZero();
     }
 
     @Test
@@ -188,6 +234,7 @@ class RatingLifecycleIntegrationTest extends AbstractIntegrationTest {
 
         Rating submitted = ratingService.submitRating(interaction.poster(), interaction.engagementId(), 5);
         assertThat(submitted.getRevealedAt()).isNull();
+        assertThat(notificationCount(NotificationType.RATING_REVEALED, interaction)).isZero();
 
         when(clock.instant()).thenReturn(NOW.plusSeconds(days(1)));
         RatingLifecycleResult deadlineRun = lifecycleService.runLifecycle();
@@ -202,6 +249,93 @@ class RatingLifecycleIntegrationTest extends AbstractIntegrationTest {
                         RatingObligationStatus.SUBMITTED,
                         RatingObligationStatus.MISSED
                 );
+        assertThat(notificationCount(NotificationType.RATING_REVEALED, interaction)).isEqualTo(1);
+        assertNotification(
+                interaction.requester(),
+                interaction.poster(),
+                NotificationType.RATING_REVEALED,
+                interaction,
+                NOW.plusSeconds(days(1))
+        );
+    }
+
+    @Test
+    void sealedRatingsNotifyBothRecipientsOnlyAfterBothSubmit() {
+        Interaction interaction = interaction("sealed-notifications", NOW.minusSeconds(days(5)));
+        addMessage(interaction, interaction.poster(), "Poster starts", NOW.minusSeconds(days(3) + 120));
+        addMessage(interaction, interaction.requester(), "Requester replies", NOW.minusSeconds(days(3) + 60));
+        addMessage(interaction, interaction.poster(), "Poster follows up", NOW.minusSeconds(days(3)));
+        lifecycleService.runLifecycle();
+
+        ratingService.submitRating(interaction.poster(), interaction.engagementId(), 5);
+
+        assertThat(notificationCount(NotificationType.RATING_REVEALED, interaction)).isZero();
+
+        ratingService.submitRating(interaction.requester(), interaction.engagementId(), 4);
+        lifecycleService.runLifecycle();
+
+        assertThat(notificationCount(NotificationType.RATING_REVEALED, interaction)).isEqualTo(2);
+        assertNotification(
+                interaction.poster(),
+                interaction.requester(),
+                NotificationType.RATING_REVEALED,
+                interaction,
+                NOW
+        );
+        assertNotification(
+                interaction.requester(),
+                interaction.poster(),
+                NotificationType.RATING_REVEALED,
+                interaction,
+                NOW
+        );
+    }
+
+    private void assertNotification(
+            AppUser recipient,
+            AppUser actor,
+            NotificationType type,
+            Interaction interaction,
+            Instant occurredAt
+    ) {
+        Map<String, Object> notification = jdbc.queryForMap(
+                """
+                SELECT actor_user_id, resource_type, resource_id, context_type,
+                       context_id, occurrence_count, occurred_at
+                FROM notifications
+                WHERE recipient_user_id = ?
+                  AND type = ?
+                  AND resource_type = 'ENGAGEMENT_REQUEST'
+                  AND resource_id = ?
+                """,
+                recipient.getId(),
+                type.name(),
+                interaction.engagementId()
+        );
+
+        assertThat(notification)
+                .containsEntry("actor_user_id", actor.getId())
+                .containsEntry("resource_type", "ENGAGEMENT_REQUEST")
+                .containsEntry("resource_id", interaction.engagementId())
+                .containsEntry("context_type", "INVITE_POST")
+                .containsEntry("context_id", interaction.postId())
+                .containsEntry("occurrence_count", 1);
+        assertThat(((Timestamp) notification.get("occurred_at")).toInstant()).isEqualTo(occurredAt);
+    }
+
+    private int notificationCount(NotificationType type, Interaction interaction) {
+        return jdbc.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM notifications
+                WHERE type = ?
+                  AND resource_type = 'ENGAGEMENT_REQUEST'
+                  AND resource_id = ?
+                """,
+                Integer.class,
+                type.name(),
+                interaction.engagementId()
+        );
     }
 
     private Interaction interaction(String key, Instant acceptedAt) {
