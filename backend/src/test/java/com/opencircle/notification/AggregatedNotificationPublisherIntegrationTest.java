@@ -30,6 +30,8 @@ import static org.mockito.Mockito.reset;
 @ActiveProfiles("test")
 class AggregatedNotificationPublisherIntegrationTest extends AbstractIntegrationTest {
 
+    private static final Instant BASE_TIME = Instant.parse("2026-09-14T12:00:00Z");
+
     @Autowired private AggregatedNotificationPublisher publisher;
     @Autowired private NotificationRepository notifications;
     @Autowired private UserService users;
@@ -51,7 +53,7 @@ class AggregatedNotificationPublisherIntegrationTest extends AbstractIntegration
         AppUser latestActor = user("aggregate-latest-actor");
         UUID roomId = UUID.randomUUID();
         UUID postId = UUID.randomUUID();
-        Instant firstOccurredAt = Instant.now().minusSeconds(60);
+        Instant firstOccurredAt = BASE_TIME.minusSeconds(60);
         Instant latestOccurredAt = firstOccurredAt.plusSeconds(30);
 
         publish(command(recipient, firstActor, roomId, postId, firstOccurredAt));
@@ -74,7 +76,7 @@ class AggregatedNotificationPublisherIntegrationTest extends AbstractIntegration
         AppUser olderActor = user("ordered-older-actor");
         UUID roomId = UUID.randomUUID();
         UUID postId = UUID.randomUUID();
-        Instant latestOccurredAt = Instant.now().minusSeconds(10);
+        Instant latestOccurredAt = BASE_TIME.minusSeconds(10);
 
         publish(command(recipient, latestActor, roomId, postId, latestOccurredAt));
         publish(command(recipient, olderActor, roomId, postId, latestOccurredAt.minusSeconds(30)));

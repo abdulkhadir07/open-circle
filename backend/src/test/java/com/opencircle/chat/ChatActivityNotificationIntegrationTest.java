@@ -10,6 +10,7 @@ import com.opencircle.storage.StorageService;
 import com.opencircle.storage.StoredFile;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.io.ByteArrayInputStream;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -49,11 +52,24 @@ class ChatActivityNotificationIntegrationTest extends AbstractIntegrationTest {
     @MockitoBean private NotificationBroadcaster broadcaster;
     @MockitoBean private StorageService storage;
 
+    private final List<Fixture> createdFixtures = new ArrayList<>();
+
     @BeforeEach
     void defaultToAwayRecipientsAndStoredAttachments() {
         when(presence.isPresent(any(), any())).thenReturn(false);
         when(storage.upload(anyString(), any(), anyLong(), anyString()))
                 .thenReturn(new StoredFile("chat-bucket", "chat-key", "image/png", 7L));
+    }
+
+    @AfterEach
+    void cleanupCommittedFixtures() {
+        for (Fixture fixture : createdFixtures) {
+            jdbc.update("DELETE FROM notifications WHERE resource_type = 'CHAT_ROOM' AND resource_id = ?", fixture.roomId());
+            jdbc.update("DELETE FROM chat_rooms WHERE id = ?", fixture.roomId());
+            jdbc.update("DELETE FROM invite_posts WHERE id = ?", fixture.postId());
+            jdbc.update("DELETE FROM users WHERE id IN (?, ?)", fixture.sender().getId(), fixture.recipient().getId());
+        }
+        createdFixtures.clear();
     }
 
     @Test
@@ -111,7 +127,7 @@ class ChatActivityNotificationIntegrationTest extends AbstractIntegrationTest {
     }
 
     private Fixture fixture() {
-        return transactions.execute(status -> {
+        Fixture fixture = transactions.execute(status -> {
             AppUser sender = user("activity-integration-sender");
             AppUser recipient = user("activity-integration-recipient");
             Instant createdAt = Instant.now().minusSeconds(60);
@@ -132,6 +148,8 @@ class ChatActivityNotificationIntegrationTest extends AbstractIntegrationTest {
             room = rooms.save(room);
             return new Fixture(sender, recipient, room.getId(), post.getId());
         });
+        createdFixtures.add(fixture);
+        return fixture;
     }
 
     private Map<String, Object> notification(UUID recipientUserId, UUID roomId) {
