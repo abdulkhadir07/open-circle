@@ -18,6 +18,7 @@ public class ChatRoomService {
     private final ChatRoomParticipantRepository participants;
     private final ChatMessageRepository messages;
     private final RatingLifecycleService ratingLifecycleService;
+    private final ChatActivityNotificationService chatActivityNotifications;
     private final Clock clock;
 
     ChatRoomService(
@@ -25,12 +26,14 @@ public class ChatRoomService {
             ChatRoomParticipantRepository participants,
             ChatMessageRepository messages,
             RatingLifecycleService ratingLifecycleService,
+            ChatActivityNotificationService chatActivityNotifications,
             Clock clock
     ) {
         this.rooms = rooms;
         this.participants = participants;
         this.messages = messages;
         this.ratingLifecycleService = ratingLifecycleService;
+        this.chatActivityNotifications = chatActivityNotifications;
         this.clock = clock;
     }
 
@@ -228,6 +231,7 @@ public class ChatRoomService {
 
         // A post-write pass catches the third qualifying message after the 14-day limit.
         ratingLifecycleService.reconcileInvitePost(room.getInvitePost().getId(), sentAt);
+        chatActivityNotifications.notifyAwayParticipants(savedMessage);
 
         return savedMessage;
     }
