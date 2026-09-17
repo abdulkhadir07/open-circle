@@ -90,7 +90,6 @@ export function VerifyEmailPage() {
     <AuthLayout
       title="Verify your email"
       description="Enter the 6-digit code we sent you. Codes expire after 15 minutes."
-  
     >
       <form noValidate onSubmit={onSubmit} className="space-y-5">
         <AuthFormError message={errors.root?.server?.message} />
