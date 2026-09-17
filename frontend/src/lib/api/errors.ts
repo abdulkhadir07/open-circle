@@ -1,4 +1,4 @@
-import type { AxiosError } from 'axios';
+import axios from 'axios';
 
 /**
  * Mirrors the backend's ApiError response shape exactly
@@ -36,7 +36,18 @@ function isApiErrorResponse(data: unknown): data is ApiErrorResponse {
 }
 
 /** Normalizes any Axios failure into a consistent ApiError, even if the backend never responded. */
-export function normalizeApiError(error: AxiosError): ApiError {
+export function normalizeApiError(error: unknown): ApiError {
+  if (!axios.isAxiosError(error)) {
+    return new ApiError({
+      timestamp: new Date().toISOString(),
+      status: 0,
+      error: 'CLIENT_ERROR',
+      message: error instanceof Error ? error.message : 'An unexpected error occurred',
+      path: '',
+      fieldErrors: {},
+    });
+  }
+
   if (isApiErrorResponse(error.response?.data)) {
     return new ApiError(error.response.data);
   }
