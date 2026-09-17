@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { App } from './App';
 
 describe('App', () => {
-  it('renders the home route inside the app shell', () => {
+  it('bootstraps the session and renders the protected home route', async () => {
     render(<App />);
-    expect(screen.getByRole('heading', { name: /opencircle/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /welcome back, maya/i })).toBeInTheDocument();
   });
 });

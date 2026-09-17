@@ -1,20 +1,42 @@
+import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { NotFoundPage } from '@/components/layout/NotFoundPage';
-import { HomePage } from './HomePage';
+import { AuthLoadingScreen } from '@/features/auth/components/AuthLoadingScreen';
+import { PublicOnlyRoute } from '@/features/auth/components/PublicOnlyRoute';
 
-/**
- * Declarative route tree (React Router v7 Declarative Mode — TanStack Query
- * owns data loading, not router loaders). Public/protected route boundaries
- * are added in feature/frontend-auth once the auth store exists.
- */
+const RootPage = lazy(() => import('./RootPage').then((module) => ({ default: module.RootPage })));
+const LoginPage = lazy(() =>
+  import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })),
+);
+const SignupPage = lazy(() =>
+  import('@/features/auth/pages/SignupPage').then((module) => ({ default: module.SignupPage })),
+);
+const VerifyEmailPage = lazy(() =>
+  import('@/features/auth/pages/VerifyEmailPage').then((module) => ({
+    default: module.VerifyEmailPage,
+  })),
+);
+
 export function AppRoutes() {
   return (
-    <AppLayout>
+    <Suspense fallback={<AuthLoadingScreen />}>
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route element={<PublicOnlyRoute />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+        </Route>
+        <Route path="/" element={<RootPage />} />
+        <Route
+          path="*"
+          element={
+            <AppLayout>
+              <NotFoundPage />
+            </AppLayout>
+          }
+        />
       </Routes>
-    </AppLayout>
+    </Suspense>
   );
 }
