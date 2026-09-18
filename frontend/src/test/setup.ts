@@ -35,3 +35,9 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 document.elementFromPoint = () => null;
+
+// jsdom doesn't implement these, but Radix's Select relies on them for its
+// pointer-driven open/scroll behaviour.
+window.HTMLElement.prototype.hasPointerCapture ??= () => false;
+window.HTMLElement.prototype.releasePointerCapture ??= () => undefined;
+window.HTMLElement.prototype.scrollIntoView ??= () => undefined;

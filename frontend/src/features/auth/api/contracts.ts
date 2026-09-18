@@ -1,5 +1,8 @@
 import { z } from 'zod';
+import { parseWithContract } from '@/lib/api/contracts';
 import type { ApiSchemas } from '@/types/api-types';
+
+export { ApiContractError } from '@/lib/api/contracts';
 
 export type AuthUser = ApiSchemas['UserResponse'] & {
   id: string;
@@ -33,21 +36,6 @@ const authResponseSchema = z.object({
 
 const signupResponseSchema = z.object({ user: userSchema });
 const accessTokenResponseSchema = z.object({ token: z.string().min(1) });
-
-export class ApiContractError extends Error {
-  constructor() {
-    super('The server returned an unexpected response. Please try again.');
-    this.name = 'ApiContractError';
-  }
-}
-
-function parseWithContract<T>(schema: z.ZodType<T>, value: unknown): T {
-  const result = schema.safeParse(value);
-  if (!result.success) {
-    throw new ApiContractError();
-  }
-  return result.data;
-}
 
 export function parseAuthResponse(value: unknown): { token: string; user: AuthUser } {
   return parseWithContract(authResponseSchema, value) as { token: string; user: AuthUser };
