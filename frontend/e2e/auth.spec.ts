@@ -88,13 +88,19 @@ test('signup and email verification complete the browser auth journey', async ({
   await page.getByLabel('Verification code').fill('123456');
   await page.getByRole('button', { name: 'Verify email' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Welcome back, Maya' })).toBeVisible();
+  // The mocked user has no locationVerifiedAt — matching a real fresh
+  // signup, where location verification is a separate, later action — so
+  // the authenticated landing state is this prompt, not the feed itself.
+  await expect(page.getByRole('heading', { name: 'Verify your location' })).toBeVisible();
   const widths = await page.evaluate(() => ({
     scroll: document.documentElement.scrollWidth,
     client: document.documentElement.clientWidth,
   }));
   expect(widths.scroll).toBeLessThanOrEqual(widths.client);
-  await page.screenshot({ path: testInfo.outputPath('authenticated-home.png'), fullPage: true });
+  await page.screenshot({
+    path: testInfo.outputPath('authenticated-location-prompt.png'),
+    fullPage: true,
+  });
 });
 
 test('login remains usable without horizontal overflow', async ({ page }, testInfo) => {
