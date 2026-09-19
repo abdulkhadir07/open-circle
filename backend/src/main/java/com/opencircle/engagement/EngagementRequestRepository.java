@@ -17,13 +17,14 @@ interface EngagementRequestRepository extends JpaRepository<EngagementRequest, U
 
     // Loads requester details so the API can return requesterUsername after the service transaction closes.
     @Query("""
-            select request
-            from EngagementRequest request
-            join fetch request.invitePost
-            join fetch request.requester
-            where request.invitePost = :invitePost
-            order by request.createdAt desc
-            """)
+        select request
+        from EngagementRequest request
+        join fetch request.invitePost post
+        join fetch post.poster
+        join fetch request.requester
+        where request.invitePost = :invitePost
+        order by request.createdAt desc
+        """)
     List<EngagementRequest> findByInvitePostOrderByCreatedAtDesc(InvitePost invitePost);
 
     // Loads the request, invite post, poster, and requester together for ownership checks.
@@ -38,14 +39,27 @@ interface EngagementRequestRepository extends JpaRepository<EngagementRequest, U
     Optional<EngagementRequest> findDetailedById(UUID id);
 
     // Loads the current user's own outgoing requests, with the invite post so the
-// frontend can map status by post id without a separate lookup per post.
+    // frontend can map status by post id without a separate lookup per post.
     @Query("""
         select request
         from EngagementRequest request
-        join fetch request.invitePost
+        join fetch request.invitePost post
+        join fetch post.poster
         join fetch request.requester
         where request.requester = :requester
         order by request.createdAt desc
         """)
     List<EngagementRequest> findByRequesterOrderByCreatedAtDesc(AppUser requester);
+
+    // Loads every request made on any of this user's own posts, across all posts.
+    @Query("""
+        select request
+        from EngagementRequest request
+        join fetch request.invitePost post
+        join fetch post.poster
+        join fetch request.requester
+        where post.poster = :poster
+        order by request.createdAt desc
+        """)
+    List<EngagementRequest> findByInvitePostPosterOrderByCreatedAtDesc(AppUser poster);
 }

@@ -49,7 +49,7 @@ class EngagementRequestService {
     EngagementRequest createRequest(AppUser requester, UUID invitePostId) {
         requireVerifiedLocation(requester);
 
-        InvitePost post = posts.findById(invitePostId)
+        InvitePost post = posts.findByIdWithPoster(invitePostId)
                 .orElseThrow(() -> new EngagementRequestNotActionableException("Invite post is not available"));
 
         Instant now = Instant.now(clock);
@@ -214,6 +214,12 @@ class EngagementRequestService {
                 request.getInvitePost().getId(),
                 occurredAt
         ));
+    }
+
+    // Returns every engagement request made on any of the current user's own posts.
+    @Transactional(readOnly = true)
+    List<EngagementRequest> getReceivedRequests(AppUser poster) {
+        return requests.findByInvitePostPosterOrderByCreatedAtDesc(poster);
     }
 
     private EngagementRequest detailedRequest(UUID requestId) {
