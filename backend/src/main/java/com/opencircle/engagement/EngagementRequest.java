@@ -129,6 +129,7 @@ public class EngagementRequest {
         }
 
         status = EngagementRequestStatus.WITHDRAWN;
+        this.respondedAt = null;
         this.withdrawnAt = withdrawnAt;
     }
 

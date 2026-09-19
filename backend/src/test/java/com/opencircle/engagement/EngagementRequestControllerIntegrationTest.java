@@ -170,6 +170,33 @@ class EngagementRequestControllerIntegrationTest extends AbstractIntegrationTest
     }
 
     @Test
+    void posterCanListRequestsReceivedAcrossAllTheirPosts() throws Exception {
+        AppUser poster = verifiedUser("poster.received@example.com", "San Francisco", "California", "USA");
+        AppUser requester = verifiedUser("requester.received@example.com", "San Francisco", "California", "USA");
+        AppUser otherPoster = verifiedUser("other.received@example.com", "San Francisco", "California", "USA");
+        InvitePost firstPost = posts.save(invitePost(poster, "First post needing help", InviteType.GROUP, 3));
+        InvitePost secondPost = posts.save(invitePost(poster, "Second post needing help", InviteType.GROUP, 3));
+        InvitePost othersPost = posts.save(invitePost(otherPoster, "Not my post", InviteType.GROUP, 3));
+
+        Instant now = Instant.now();
+        requests.save(new EngagementRequest(firstPost, requester, now));
+        requests.save(new EngagementRequest(secondPost, requester, now.plusSeconds(1)));
+        requests.save(new EngagementRequest(othersPost, requester, now.plusSeconds(2)));
+
+        String token = loginToken("poster.received@example.com");
+        when(profileImageQueryService.getProfileImagesByUserIds(Set.of(requester.getId())))
+                .thenReturn(Map.of());
+
+        mockMvc.perform(get("/api/engagements/received")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].invitePost.content").value("Second post needing help"))
+                .andExpect(jsonPath("$[0].invitePost.posterUsername").value(poster.getUsername()))
+                .andExpect(jsonPath("$[1].invitePost.content").value("First post needing help"));
+    }
+
+    @Test
     void posterCanAcceptRequestCapacityDecreasesAndChatRoomOpens() throws Exception {
         AppUser poster = verifiedUser("poster.accept.controller@example.com", "San Francisco", "California", "USA");
         AppUser requester = verifiedUser("requester.accept.controller@example.com", "San Francisco", "California", "USA");

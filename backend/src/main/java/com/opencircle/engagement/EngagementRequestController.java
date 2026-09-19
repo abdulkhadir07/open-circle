@@ -106,6 +106,13 @@ public class EngagementRequestController {
         return responsesFor(engagementRequestService.getMyRequests(currentUser));
     }
 
+    @GetMapping("/api/engagements/received")
+    public List<EngagementRequestResponse> getReceivedRequests(@AuthenticationPrincipal Jwt jwt) {
+        AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+
+        return responsesFor(engagementRequestService.getReceivedRequests(currentUser));
+    }
+
     private EngagementRequestResponse responseFor(EngagementRequest request) {
         return EngagementRequestResponse.from(
                 request,

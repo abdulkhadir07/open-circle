@@ -8,6 +8,7 @@ import java.util.UUID;
 record EngagementRequestResponse(
         UUID id,
         UUID invitePostId,
+        EngagementInvitePostSummary invitePost,
         UUID requesterId,
         String requesterUsername,
         ProfileImageResponse requesterProfileImage,
@@ -30,6 +31,7 @@ record EngagementRequestResponse(
         return new EngagementRequestResponse(
                 request.getId(),
                 request.getInvitePost().getId(),
+                EngagementInvitePostSummary.from(request.getInvitePost()),
                 request.getRequester().getId(),
                 request.getRequester().getUsername(),
                 requesterProfileImage,
