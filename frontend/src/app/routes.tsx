@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { NotFoundPage } from '@/components/layout/NotFoundPage';
 import { AuthLoadingScreen } from '@/features/auth/components/AuthLoadingScreen';
+import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import { PublicOnlyRoute } from '@/features/auth/components/PublicOnlyRoute';
 
 const RootPage = lazy(() => import('./RootPage').then((module) => ({ default: module.RootPage })));
@@ -17,6 +18,11 @@ const VerifyEmailPage = lazy(() =>
     default: module.VerifyEmailPage,
   })),
 );
+const EngagementRequestsPage = lazy(() =>
+  import('@/features/engagement-requests/pages/EngagementRequestsPage').then((module) => ({
+    default: module.EngagementRequestsPage,
+  })),
+);
 
 export function AppRoutes() {
   return (
@@ -28,6 +34,16 @@ export function AppRoutes() {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
         </Route>
         <Route path="/" element={<RootPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route
+            path="/requests"
+            element={
+              <AppLayout>
+                <EngagementRequestsPage />
+              </AppLayout>
+            }
+          />
+        </Route>
         <Route
           path="*"
           element={
