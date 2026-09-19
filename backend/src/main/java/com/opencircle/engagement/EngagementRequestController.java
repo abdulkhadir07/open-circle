@@ -99,6 +99,13 @@ public class EngagementRequestController {
         return responseFor(request);
     }
 
+    @GetMapping("/api/engagements/mine")
+    public List<EngagementRequestResponse> getMyRequests(@AuthenticationPrincipal Jwt jwt) {
+        AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+
+        return responsesFor(engagementRequestService.getMyRequests(currentUser));
+    }
+
     private EngagementRequestResponse responseFor(EngagementRequest request) {
         return EngagementRequestResponse.from(
                 request,

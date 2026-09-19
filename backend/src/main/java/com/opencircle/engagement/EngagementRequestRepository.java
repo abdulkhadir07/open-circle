@@ -36,4 +36,16 @@ interface EngagementRequestRepository extends JpaRepository<EngagementRequest, U
             where request.id = :id
             """)
     Optional<EngagementRequest> findDetailedById(UUID id);
+
+    // Loads the current user's own outgoing requests, with the invite post so the
+// frontend can map status by post id without a separate lookup per post.
+    @Query("""
+        select request
+        from EngagementRequest request
+        join fetch request.invitePost
+        join fetch request.requester
+        where request.requester = :requester
+        order by request.createdAt desc
+        """)
+    List<EngagementRequest> findByRequesterOrderByCreatedAtDesc(AppUser requester);
 }

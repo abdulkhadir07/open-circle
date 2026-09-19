@@ -142,6 +142,34 @@ class EngagementRequestControllerIntegrationTest extends AbstractIntegrationTest
     }
 
     @Test
+    void requesterCanListTheirOwnEngagementRequests() throws Exception {
+        AppUser poster = verifiedUser("poster.mine@example.com", "San Francisco", "California", "USA");
+        AppUser requester = verifiedUser("requester.mine@example.com", "San Francisco", "California", "USA");
+        AppUser otherRequester = verifiedUser("other.mine@example.com", "San Francisco", "California", "USA");
+        InvitePost post = posts.save(invitePost(poster, "List my own requests", InviteType.GROUP, 3));
+        requests.save(new EngagementRequest(post, requester, Instant.now()));
+        requests.save(new EngagementRequest(post, otherRequester, Instant.now()));
+
+        String token = loginToken("requester.mine@example.com");
+        Set<UUID> requesterIds = Set.of(requester.getId());
+        when(profileImageQueryService.getProfileImagesByUserIds(requesterIds))
+                .thenReturn(Map.of(
+                        requester.getId(),
+                        profileImage("https://example.com/mine-requester.png")
+                ));
+
+        mockMvc.perform(get("/api/engagements/mine")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].requesterId").value(requester.getId().toString()))
+                .andExpect(jsonPath("$[0].invitePostId").value(post.getId().toString()))
+                .andExpect(jsonPath("$[0].requesterProfileImage.url")
+                        .value("https://example.com/mine-requester.png"))
+                .andExpect(jsonPath("$[0].status").value("PENDING"));
+    }
+
+    @Test
     void posterCanAcceptRequestCapacityDecreasesAndChatRoomOpens() throws Exception {
         AppUser poster = verifiedUser("poster.accept.controller@example.com", "San Francisco", "California", "USA");
         AppUser requester = verifiedUser("requester.accept.controller@example.com", "San Francisco", "California", "USA");

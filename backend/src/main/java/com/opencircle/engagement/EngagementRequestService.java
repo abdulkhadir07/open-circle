@@ -191,6 +191,12 @@ class EngagementRequestService {
         return request;
     }
 
+    // Returns all of the current user's own outgoing engagement requests, across all posts.
+    @Transactional(readOnly = true)
+    List<EngagementRequest> getMyRequests(AppUser requester) {
+        return requests.findByRequesterOrderByCreatedAtDesc(requester);
+    }
+
     private void publishNotification(
             EngagementRequest request,
             AppUser recipient,
