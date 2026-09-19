@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw';
-import { authUser, invitePost } from './fixtures';
+import { authUser, engagementRequest, invitePost } from './fixtures';
 
 export const handlers = [
   http.post('*/api/auth/refresh', () => HttpResponse.json({ token: 'refreshed-token' })),
@@ -15,4 +15,21 @@ export const handlers = [
   http.post('*/api/invite-posts', () => HttpResponse.json(invitePost, { status: 201 })),
   http.get('*/api/invite-posts/local', () => HttpResponse.json([invitePost])),
   http.get('*/api/invite-posts/global', () => HttpResponse.json([])),
+  http.post('*/api/invite-posts/:postId/engagements', () =>
+    HttpResponse.json(engagementRequest, { status: 201 }),
+  ),
+  http.get('*/api/engagements/mine', () => HttpResponse.json([])),
+  http.get('*/api/engagements/received', () => HttpResponse.json([])),
+  http.patch('*/api/engagements/:requestId/accept', () =>
+    HttpResponse.json({ ...engagementRequest, status: 'ACCEPTED' }),
+  ),
+  http.patch('*/api/engagements/:requestId/decline', () =>
+    HttpResponse.json({ ...engagementRequest, status: 'DECLINED' }),
+  ),
+  http.patch('*/api/engagements/:requestId/hold', () =>
+    HttpResponse.json({ ...engagementRequest, status: 'HELD' }),
+  ),
+  http.patch('*/api/engagements/:requestId/withdraw', () =>
+    HttpResponse.json({ ...engagementRequest, status: 'WITHDRAWN' }),
+  ),
 ];
