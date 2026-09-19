@@ -53,7 +53,7 @@ class EngagementRequestServiceTest {
         AppUser requester = verifiedUser("requester@example.com");
         InvitePost post = invitePost(poster);
 
-        when(posts.findById(post.getId())).thenReturn(Optional.of(post));
+        when(posts.findByIdWithPoster(post.getId())).thenReturn(Optional.of(post));
         when(requests.existsByInvitePostAndRequester(post, requester)).thenReturn(false);
         when(requests.save(any(EngagementRequest.class))).thenAnswer(invocation -> {
             EngagementRequest request = invocation.getArgument(0);
@@ -119,7 +119,7 @@ class EngagementRequestServiceTest {
         assertThatThrownBy(() -> service.createRequest(requester, UUID.randomUUID()))
                 .isInstanceOf(LocationNotVerifiedException.class);
 
-        verify(posts, never()).findById(any());
+        verify(posts, never()).findByIdWithPoster(any());
         verify(requests, never()).save(any());
     }
 
@@ -128,7 +128,7 @@ class EngagementRequestServiceTest {
         AppUser poster = verifiedUser("poster.own@example.com");
         InvitePost post = invitePost(poster);
 
-        when(posts.findById(post.getId())).thenReturn(Optional.of(post));
+        when(posts.findByIdWithPoster(post.getId())).thenReturn(Optional.of(post));
 
         assertThatThrownBy(() -> service.createRequest(poster, post.getId()))
                 .isInstanceOf(CannotEngageOwnPostException.class)
@@ -143,7 +143,7 @@ class EngagementRequestServiceTest {
         AppUser requester = verifiedUser("requester.duplicate@example.com");
         InvitePost post = invitePost(poster);
 
-        when(posts.findById(post.getId())).thenReturn(Optional.of(post));
+        when(posts.findByIdWithPoster(post.getId())).thenReturn(Optional.of(post));
         when(requests.existsByInvitePostAndRequester(post, requester)).thenReturn(true);
 
         assertThatThrownBy(() -> service.createRequest(requester, post.getId()))
@@ -160,7 +160,7 @@ class EngagementRequestServiceTest {
         InvitePost post = invitePost(poster);
         post.close();
 
-        when(posts.findById(post.getId())).thenReturn(Optional.of(post));
+        when(posts.findByIdWithPoster(post.getId())).thenReturn(Optional.of(post));
 
         assertThatThrownBy(() -> service.createRequest(requester, post.getId()))
                 .isInstanceOf(EngagementRequestNotActionableException.class)

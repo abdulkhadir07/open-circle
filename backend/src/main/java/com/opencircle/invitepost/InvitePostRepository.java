@@ -88,4 +88,8 @@ public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
             Instant now,
             LocationScope locationScope
     );
+
+    @EntityGraph(attributePaths = "poster")
+    @Query("select post from InvitePost post where post.id = :postId")
+    Optional<InvitePost> findByIdWithPoster(UUID postId);
 }
