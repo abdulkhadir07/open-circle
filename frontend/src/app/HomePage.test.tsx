@@ -1,4 +1,5 @@
 import { screen, waitFor } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { authQueryKeys } from '@/features/auth/api/queryKeys';
@@ -82,6 +83,45 @@ describe('HomePage location gating', () => {
     });
 
     server.events.removeListener('request:start', onRequestStart);
+  });
+});
+
+describe('HomePage engagement requests', () => {
+  it('links to the dedicated Requests page', async () => {
+    renderHomePage();
+    await screen.findByText(invitePost.content);
+
+    expect(screen.getAllByRole('link', { name: 'Requests' })[0]).toHaveAttribute(
+      'href',
+      '/requests',
+    );
+  });
+
+  it("shows no inline request management on the current user's own post", async () => {
+    renderHomePage();
+    await screen.findByText(invitePost.content);
+
+    expect(screen.queryByRole('button', { name: 'Engage' })).not.toBeInTheDocument();
+  });
+
+  it("shows an Engage control for another user's post", async () => {
+    server.use(
+      http.get('*/api/invite-posts/local', () =>
+        HttpResponse.json([
+          {
+            ...invitePost,
+            id: 'someone-elses-post',
+            posterId: 'someone-else',
+            posterUsername: 'sam.rivera',
+          },
+        ]),
+      ),
+    );
+    renderHomePage();
+
+    await screen.findByText(invitePost.content);
+
+    expect(screen.getByRole('button', { name: 'Engage' })).toBeInTheDocument();
   });
 });
 
