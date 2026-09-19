@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { LoaderCircle, LogOut, MapPin, Sparkles } from 'lucide-react';
+import { LoaderCircle, LogOut, MapPin, Sparkles, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
@@ -12,6 +12,7 @@ import { InvitePostCard } from '@/features/invite-posts/components/InvitePostCar
 import { useGlobalFeed } from '@/features/invite-posts/hooks/useGlobalFeed';
 import { useLocalFeed } from '@/features/invite-posts/hooks/useLocalFeed';
 import { SCOPE_LABELS, type LocalFeedScope } from '@/features/invite-posts/api/contracts';
+import { useMyEngagementRequests } from '@/features/engagement-requests/hooks/useMyEngagementRequests';
 
 const FEED_MODE_OPTIONS = [
   { value: 'local', label: 'Local' },
@@ -75,6 +76,11 @@ export function HomePage() {
   });
   const globalFeed = useGlobalFeed({ enabled: locationVerified });
   const activeFeed = feedMode === 'local' ? localFeed : globalFeed;
+  const myRequests = useMyEngagementRequests({ enabled: locationVerified });
+  const myRequestsByPostId = useMemo(
+    () => new Map(myRequests.data?.map((request) => [request.invitePostId, request])),
+    [myRequests.data],
+  );
 
   async function handleLogout() {
     await logout.mutateAsync().catch(() => undefined);
@@ -105,14 +111,21 @@ export function HomePage() {
             {user.firstName?.[0]?.toUpperCase()}
           </span>
           <div className="min-w-0">
-            <p className="text-foreground truncate text-sm font-semibold">
+            <p className="text-foreground truncate text-base font-semibold">
               {user.firstName} {user.lastName}
             </p>
-            <p className="text-muted-foreground truncate text-xs">{user.email}</p>
+            <p className="text-muted-foreground truncate text-sm">{user.email}</p>
           </div>
         </div>
 
         <CreatePostDialog triggerClassName="mt-6 w-full justify-center" />
+
+        <Button asChild variant="outline" className="mt-3 w-full justify-center">
+          <Link to="/requests">
+            <Users aria-hidden="true" />
+            Requests
+          </Link>
+        </Button>
 
         <div className="border-border mt-auto border-t pt-4">
           <SignOutButton
@@ -139,6 +152,13 @@ export function HomePage() {
         </div>
 
         <CreatePostDialog triggerClassName="w-full justify-center lg:hidden" />
+
+        <Button asChild variant="outline" className="w-full justify-center lg:hidden">
+          <Link to="/requests">
+            <Users aria-hidden="true" />
+            Requests
+          </Link>
+        </Button>
 
         <div>
           <div
@@ -209,7 +229,7 @@ export function HomePage() {
                           aria-checked={selected}
                           onClick={() => setLocalScope(option.value)}
                           className={cn(
-                            'text-sm font-medium transition-colors',
+                            'text-base font-medium transition-colors',
                             selected
                               ? 'text-primary'
                               : 'text-muted-foreground hover:text-foreground',
@@ -243,7 +263,7 @@ export function HomePage() {
               key="error"
               role="alert"
               exit={reduceMotion ? undefined : { opacity: 0 }}
-              className="text-destructive text-sm"
+              className="text-destructive text-base"
             >
               {activeFeed.error instanceof Error
                 ? activeFeed.error.message
@@ -266,7 +286,11 @@ export function HomePage() {
                     ease: 'easeOut',
                   }}
                 >
-                  <InvitePostCard post={post} />
+                  <InvitePostCard
+                    post={post}
+                    isOwnPost={post.posterId === user.id}
+                    myRequest={myRequestsByPostId.get(post.id)}
+                  />
                 </motion.div>
               ))}
             </motion.div>
@@ -277,7 +301,7 @@ export function HomePage() {
               className="border-border flex flex-col items-center gap-2 rounded-2xl border border-dashed py-12 text-center"
             >
               <Sparkles aria-hidden="true" className="text-muted-foreground size-5" />
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-base">
                 No invite posts here yet. Be the first to post one.
               </p>
             </motion.div>
@@ -291,12 +315,12 @@ export function HomePage() {
         <div className="border-border bg-card rounded-2xl border p-5">
           <div className="flex items-center gap-2">
             <MapPin aria-hidden="true" className="text-primary size-4" />
-            <span className="text-foreground text-sm font-semibold">Your location</span>
+            <span className="text-foreground text-base font-semibold">Your location</span>
           </div>
-          <p className="text-foreground mt-2 text-sm">
+          <p className="text-foreground mt-2 text-base">
             {user.verifiedCity}, {user.verifiedCountry}
           </p>
-          <p className="text-muted-foreground mt-3 text-xs leading-5">
+          <p className="text-muted-foreground mt-3 text-sm leading-5">
             Your feed and posts are matched to this location.
           </p>
         </div>

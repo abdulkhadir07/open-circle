@@ -1,4 +1,5 @@
 import type { AuthUser } from '@/features/auth/api/contracts';
+import type { EngagementRequest } from '@/features/engagement-requests/api/contracts';
 import type { InvitePost } from '@/features/invite-posts/api/contracts';
 
 export const authUser: AuthUser = {
@@ -41,6 +42,27 @@ export const invitePost: InvitePost = {
   // card is computed live from this — a hardcoded past date would render
   // as "Expired" no matter when the tests happen to run.
   expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
+export const engagementRequest: EngagementRequest = {
+  id: '33333333-3333-4333-8333-333333333333',
+  invitePostId: invitePost.id,
+  invitePost: {
+    id: invitePost.id,
+    content: invitePost.content,
+    posterUsername: invitePost.posterUsername,
+    city: invitePost.city,
+    stateRegion: invitePost.stateRegion,
+    country: invitePost.country,
+  },
+  requesterId: '44444444-4444-4444-8444-444444444444',
+  requesterUsername: 'sam.rivera',
+  status: 'PENDING',
+  expiresAt: invitePost.expiresAt,
+  respondedAt: null,
+  withdrawnAt: null,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };

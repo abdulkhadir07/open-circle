@@ -1,11 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { invitePost } from '@/test/mocks/fixtures';
+import { renderWithProviders } from '@/test/render';
 import { InvitePostCard } from './InvitePostCard';
 
 describe('InvitePostCard', () => {
   it('shows the poster, content, and scope for a single invite', () => {
-    render(<InvitePostCard post={invitePost} />);
+    renderWithProviders(<InvitePostCard post={invitePost} />);
 
     expect(screen.getByText(invitePost.posterUsername)).toBeInTheDocument();
     expect(screen.getByText(invitePost.content)).toBeInTheDocument();
@@ -15,7 +16,7 @@ describe('InvitePostCard', () => {
   });
 
   it('shows capacity dots and the remaining count for a small group invite', () => {
-    render(
+    renderWithProviders(
       <InvitePostCard
         post={{
           ...invitePost,
@@ -31,7 +32,7 @@ describe('InvitePostCard', () => {
   });
 
   it('falls back to plain text once capacity is too large to show as dots', () => {
-    render(
+    renderWithProviders(
       <InvitePostCard
         post={{
           ...invitePost,

@@ -1,6 +1,8 @@
 import { MapPin } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import type { EngagementRequest } from '@/features/engagement-requests/api/contracts';
+import { EngageControl } from '@/features/engagement-requests/components/EngageControl';
 import { SCOPE_LABELS, type InvitePost } from '../api/contracts';
 import { formatTimeRemaining } from '../lib/formatTimeRemaining';
 
@@ -12,6 +14,10 @@ const cardShape = 'rounded-tl-3xl rounded-tr-lg rounded-br-3xl rounded-bl-lg';
 
 type InvitePostCardProps = {
   post: InvitePost;
+  /** Whether the current viewer is this post's own poster. Defaults to false. */
+  isOwnPost?: boolean;
+  /** The current viewer's own engagement request for this post, if they've made one. */
+  myRequest?: EngagementRequest;
 };
 
 /** A small ring around the avatar that visibly drains as the post's 24h window runs out. */
@@ -75,7 +81,7 @@ function CapacityDots({
   );
 }
 
-export function InvitePostCard({ post }: InvitePostCardProps) {
+export function InvitePostCard({ post, isOwnPost = false, myRequest }: InvitePostCardProps) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -87,6 +93,7 @@ export function InvitePostCard({ post }: InvitePostCardProps) {
   const fraction = Math.min(1, Math.max(0, msRemaining / TOTAL_WINDOW_MS));
   const timeRemaining = formatTimeRemaining(msRemaining);
   const showCapacityDots = post.totalCapacity <= MAX_VISIBLE_CAPACITY_DOTS;
+  const postOpen = post.status === 'ACTIVE' && msRemaining > 0 && post.invitesLeft > 0;
 
   return (
     <article
@@ -103,35 +110,41 @@ export function InvitePostCard({ post }: InvitePostCardProps) {
             </span>
           </ExpiryRing>
           <div>
-            <p className="text-foreground text-sm font-semibold">{post.posterUsername}</p>
-            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+            <p className="text-foreground text-base font-semibold">{post.posterUsername}</p>
+            <p className="text-muted-foreground flex items-center gap-1 text-sm">
               <MapPin aria-hidden="true" className="size-3" />
               {post.city}, {post.country}
             </p>
           </div>
         </div>
-        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{timeRemaining}</span>
+        <span className="text-muted-foreground shrink-0 text-sm tabular-nums">{timeRemaining}</span>
       </div>
 
       <p className="text-foreground mt-4 leading-6 whitespace-pre-wrap">{post.content}</p>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-        <span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-xs font-medium">
+        <span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-sm font-medium">
           {SCOPE_LABELS[post.locationScope]}
         </span>
         {post.inviteType === 'GROUP' ? (
           showCapacityDots ? (
             <div className="flex items-center gap-2">
               <CapacityDots totalCapacity={post.totalCapacity} acceptedCount={post.acceptedCount} />
-              <span className="text-muted-foreground text-xs">{post.invitesLeft} left</span>
+              <span className="text-muted-foreground text-sm">{post.invitesLeft} left</span>
             </div>
           ) : (
-            <span className="bg-primary/10 text-primary rounded-full px-2.5 py-1 text-xs font-medium">
+            <span className="bg-primary/10 text-primary rounded-full px-2.5 py-1 text-sm font-medium">
               {post.invitesLeft} {post.invitesLeft === 1 ? 'invite' : 'invites'} left
             </span>
           )
         ) : null}
       </div>
+
+      {!isOwnPost ? (
+        <div className="mt-3">
+          <EngageControl invitePostId={post.id} myRequest={myRequest} postOpen={postOpen} />
+        </div>
+      ) : null}
     </article>
   );
 }

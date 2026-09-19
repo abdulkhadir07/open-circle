@@ -127,13 +127,13 @@ export function CreatePostDialog({ triggerClassName }: { triggerClassName?: stri
 
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           {errors.root?.message ? (
-            <p role="alert" className="text-destructive text-sm">
+            <p role="alert" className="text-destructive text-base">
               {errors.root.message}
             </p>
           ) : null}
 
           <div className="space-y-1.5">
-            <label htmlFor="post-content" className="text-foreground text-sm font-medium">
+            <label htmlFor="post-content" className="text-foreground text-base font-medium">
               What's the invite?
             </label>
             <Textarea
@@ -145,20 +145,20 @@ export function CreatePostDialog({ triggerClassName }: { triggerClassName?: stri
             />
             <div className="flex items-center justify-between">
               {errors.content ? (
-                <p role="alert" className="text-destructive text-sm">
+                <p role="alert" className="text-destructive text-base">
                   {errors.content.message}
                 </p>
               ) : (
                 <span />
               )}
-              <span id="post-content-count" className="text-muted-foreground text-xs">
+              <span id="post-content-count" className="text-muted-foreground text-sm">
                 {content.length}/{CONTENT_MAX_LENGTH}
               </span>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-foreground block text-sm font-medium">Invite type</span>
+            <span className="text-foreground block text-base font-medium">Invite type</span>
             <Controller
               name="inviteType"
               control={control}
@@ -175,7 +175,7 @@ export function CreatePostDialog({ triggerClassName }: { triggerClassName?: stri
 
           {inviteType === 'GROUP' ? (
             <div className="space-y-1.5">
-              <label htmlFor="post-capacity" className="text-foreground text-sm font-medium">
+              <label htmlFor="post-capacity" className="text-foreground text-base font-medium">
                 How many people can join?
               </label>
               <Controller
@@ -238,7 +238,7 @@ export function CreatePostDialog({ triggerClassName }: { triggerClassName?: stri
                 }
               />
               {errors.totalCapacity ? (
-                <p role="alert" className="text-destructive text-sm">
+                <p role="alert" className="text-destructive text-base">
                   {errors.totalCapacity.message}
                 </p>
               ) : null}
@@ -246,7 +246,7 @@ export function CreatePostDialog({ triggerClassName }: { triggerClassName?: stri
           ) : null}
 
           <div className="space-y-1.5">
-            <label htmlFor="post-location-scope" className="text-foreground text-sm font-medium">
+            <label htmlFor="post-location-scope" className="text-foreground text-base font-medium">
               Who can see it
             </label>
             <Controller
@@ -271,7 +271,7 @@ export function CreatePostDialog({ triggerClassName }: { triggerClassName?: stri
               )}
             />
             {errors.locationScope ? (
-              <p role="alert" className="text-destructive text-sm">
+              <p role="alert" className="text-destructive text-base">
                 {errors.locationScope.message}
               </p>
             ) : null}
