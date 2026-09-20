@@ -52,7 +52,7 @@ describe('useChatRoomRealtime', () => {
 
   it('appends an incoming message into the query cache', () => {
     const { queryClient } = renderWithQueryClient(chatMessage.roomId);
-    const deliver = subscribeMock.mock.calls[0][1] as (message: { body: string }) => void;
+    const deliver = subscribeMock.mock.calls[0]![1] as (message: { body: string }) => void;
 
     deliver({ body: JSON.stringify(chatMessage) });
 
@@ -63,7 +63,7 @@ describe('useChatRoomRealtime', () => {
 
   it('does not duplicate a message delivered twice', () => {
     const { queryClient } = renderWithQueryClient(chatMessage.roomId);
-    const deliver = subscribeMock.mock.calls[0][1] as (message: { body: string }) => void;
+    const deliver = subscribeMock.mock.calls[0]![1] as (message: { body: string }) => void;
 
     deliver({ body: JSON.stringify(chatMessage) });
     deliver({ body: JSON.stringify(chatMessage) });
@@ -76,7 +76,7 @@ describe('useChatRoomRealtime', () => {
   it('invalidates the message list on reconnect', () => {
     const { queryClient } = renderWithQueryClient(chatMessage.roomId);
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
-    const reconnectListener = onReconnectMock.mock.calls[0][0] as () => void;
+    const reconnectListener = onReconnectMock.mock.calls[0]![0] as () => void;
 
     reconnectListener();
 
