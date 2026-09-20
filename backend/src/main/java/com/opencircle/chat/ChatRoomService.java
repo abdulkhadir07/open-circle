@@ -96,7 +96,7 @@ public class ChatRoomService {
     }
 
     @Transactional
-    public ChatRoom leaveRoom(AppUser user, UUID roomId) {
+    public RoomLeaveResult leaveRoom(AppUser user, UUID roomId) {
         ChatRoom room = getActiveParticipantRoom(user, roomId);
         Instant now = Instant.now(clock);
 
@@ -107,9 +107,13 @@ public class ChatRoomService {
         }
 
         ChatRoom updatedRoom = saveAfterAction(room, () -> room.leave(user, now));
+        ChatMessage leftMessage = messages.save(ChatMessage.participantLeft(room, user, now));
         ratingLifecycleService.handleParticipantExit(room.getInvitePost().getId(), user.getId(), now);
 
-        return updatedRoom;
+        return new RoomLeaveResult(updatedRoom, leftMessage);
+    }
+
+    public record RoomLeaveResult(ChatRoom room, ChatMessage leftMessage) {
     }
 
     @Transactional
