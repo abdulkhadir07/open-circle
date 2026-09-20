@@ -121,10 +121,13 @@ public class ChatRoomController {
     ) {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
 
-        // Creates a text message as the authenticated active participant.
+        // Creates a text message as the authenticated active participant, then broadcasts it
+        // so every subscribed participant (including the sender's other sessions) sees it live.
         ChatMessage message = chatRoomService.sendMessage(currentUser, roomId, request.body());
+        ChatMessageResponse response = responseFor(message);
+        messageBroadcaster.broadcast(response);
 
-        return responseFor(message);
+        return response;
     }
 
     @PostMapping(value = "/{roomId}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
