@@ -233,17 +233,48 @@ class AccountSettingsControllerIntegrationTest extends AbstractIntegrationTest {
         );
         assertThat(storedHash).isNotEqualTo("4321");
         assertThat(passwordEncoder.matches("4321", storedHash)).isTrue();
+
+        mockMvc.perform(get("/api/users/me")
+                        .header(HttpHeaders.AUTHORIZATION, account.authorization()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hasHiddenChatsPin").value(true));
     }
 
     @Test
-    void setHiddenChatsPinRejectsIncorrectCurrentPassword() throws Exception {
+    void setHiddenChatsPinSucceedsWithoutACurrentPasswordOnFirstSetup() throws Exception {
+        TestAccount account = createAccount("pin-first-setup", "Current Browser");
+
+        mockMvc.perform(put("/api/users/me/hidden-chats-pin")
+                        .header(HttpHeaders.AUTHORIZATION, account.authorization())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"pin":"4321"}
+                                """))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/users/me")
+                        .header(HttpHeaders.AUTHORIZATION, account.authorization()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hasHiddenChatsPin").value(true));
+    }
+
+    @Test
+    void setHiddenChatsPinRejectsIncorrectCurrentPasswordWhenChangingAnExistingPin() throws Exception {
         TestAccount account = createAccount("pin-wrong-password", "Current Browser");
 
         mockMvc.perform(put("/api/users/me/hidden-chats-pin")
                         .header(HttpHeaders.AUTHORIZATION, account.authorization())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"currentPassword":"WrongPassword!","pin":"4321"}
+                                {"currentPassword":"%s","pin":"4321"}
+                                """.formatted(PASSWORD)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(put("/api/users/me/hidden-chats-pin")
+                        .header(HttpHeaders.AUTHORIZATION, account.authorization())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"WrongPassword!","pin":"8765"}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Current password is incorrect"));

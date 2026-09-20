@@ -290,6 +290,15 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(participant.isActive()).isFalse();
         assertThat(participant.getLeftAt()).isNotNull();
         assertThat(updatedRoom.getAutoCloseAt()).isNotNull();
+
+        String posterToken = loginToken(poster.getEmail());
+        mockMvc.perform(get("/api/chat-rooms/{roomId}/messages", room.getId())
+                        .header("Authorization", "Bearer " + posterToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].type").value("PARTICIPANT_LEFT"))
+                .andExpect(jsonPath("$[0].senderId").value(requester.getId().toString()))
+                .andExpect(jsonPath("$[0].senderUsername").value(requester.getUsername()))
+                .andExpect(jsonPath("$[0].body").doesNotExist());
     }
 
     @Test

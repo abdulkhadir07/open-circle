@@ -69,6 +69,31 @@ describe('auth interceptors', () => {
     expect(refreshCalls).toBe(0);
   });
 
+  it('still attaches the access token, but does not refresh or log out, for a 401 marked skipUnauthorizedRetry', async () => {
+    let refreshCalls = 0;
+    let authorization: string | null = null;
+    server.use(
+      http.get('*/api/chat-rooms/hidden', ({ request }) => {
+        authorization = request.headers.get('authorization');
+        return new HttpResponse(null, { status: 401 });
+      }),
+      http.post('*/api/auth/refresh', () => {
+        refreshCalls += 1;
+        return HttpResponse.json({ token: 'unexpected' });
+      }),
+    );
+    useAuthStore.getState().setAuthenticated('current-token');
+    cleanup = setupAuthInterceptors();
+
+    await expect(
+      apiClient.get('/chat-rooms/hidden', { skipUnauthorizedRetry: true }),
+    ).rejects.toBeDefined();
+
+    expect(authorization).toBe('Bearer current-token');
+    expect(refreshCalls).toBe(0);
+    expect(useAuthStore.getState().authStatus).toBe('authenticated');
+  });
+
   it('does not loop or replay the request when refresh fails', async () => {
     let protectedCalls = 0;
     let refreshCalls = 0;

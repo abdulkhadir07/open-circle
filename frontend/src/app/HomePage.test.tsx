@@ -97,6 +97,13 @@ describe('HomePage engagement requests', () => {
     );
   });
 
+  it('links to the dedicated Chats page', async () => {
+    renderHomePage();
+    await screen.findByText(invitePost.content);
+
+    expect(screen.getAllByRole('link', { name: 'Chats' })[0]).toHaveAttribute('href', '/chats');
+  });
+
   it("shows no inline request management on the current user's own post", async () => {
     renderHomePage();
     await screen.findByText(invitePost.content);

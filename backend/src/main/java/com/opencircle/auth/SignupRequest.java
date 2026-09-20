@@ -38,7 +38,6 @@ record SignupRequest(
         @Size(max = 80)
         String city,
 
-        @NotBlank
         @Size(max = 80)
         String stateRegion,
 

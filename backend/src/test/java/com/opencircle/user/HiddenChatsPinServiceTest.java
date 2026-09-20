@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -30,29 +31,57 @@ class HiddenChatsPinServiceTest {
             new HiddenChatsPinService(userService, passwordEncoder, properties, CLOCK);
 
     @Test
-    void setPinEncodesAndStoresPinWhenCurrentPasswordMatches() {
+    void setPinSucceedsWithoutCurrentPasswordWhenNoPinExistsYet() {
         AppUser user = user();
         UUID userId = UUID.randomUUID();
         when(userService.getByIdForUpdate(userId)).thenReturn(user);
-        when(passwordEncoder.matches("correct-password", user.getPasswordHash())).thenReturn(true);
         when(passwordEncoder.encode("1234")).thenReturn("hashed-1234");
 
-        service.setPin(userId, "correct-password", "1234");
+        service.setPin(userId, null, "1234");
+
+        assertThat(user.getHiddenChatsPinHash()).isEqualTo("hashed-1234");
+        verify(passwordEncoder, never()).matches(any(), any());
+    }
+
+    @Test
+    void setPinChangesAnExistingPinWhenCurrentPasswordMatches() {
+        AppUser user = user();
+        user.setHiddenChatsPin("hashed-1234");
+        UUID userId = UUID.randomUUID();
+        when(userService.getByIdForUpdate(userId)).thenReturn(user);
+        when(passwordEncoder.matches("correct-password", user.getPasswordHash())).thenReturn(true);
+        when(passwordEncoder.encode("5678")).thenReturn("hashed-5678");
+
+        service.setPin(userId, "correct-password", "5678");
+
+        assertThat(user.getHiddenChatsPinHash()).isEqualTo("hashed-5678");
+    }
+
+    @Test
+    void setPinRejectsIncorrectCurrentPasswordWhenChangingAnExistingPin() {
+        AppUser user = user();
+        user.setHiddenChatsPin("hashed-1234");
+        UUID userId = UUID.randomUUID();
+        when(userService.getByIdForUpdate(userId)).thenReturn(user);
+        when(passwordEncoder.matches("wrong-password", user.getPasswordHash())).thenReturn(false);
+
+        assertThatThrownBy(() -> service.setPin(userId, "wrong-password", "5678"))
+                .isInstanceOf(HiddenChatsPinConfirmationException.class);
 
         assertThat(user.getHiddenChatsPinHash()).isEqualTo("hashed-1234");
     }
 
     @Test
-    void setPinRejectsIncorrectCurrentPassword() {
+    void setPinRejectsAMissingCurrentPasswordWhenChangingAnExistingPin() {
         AppUser user = user();
+        user.setHiddenChatsPin("hashed-1234");
         UUID userId = UUID.randomUUID();
         when(userService.getByIdForUpdate(userId)).thenReturn(user);
-        when(passwordEncoder.matches("wrong-password", user.getPasswordHash())).thenReturn(false);
 
-        assertThatThrownBy(() -> service.setPin(userId, "wrong-password", "1234"))
+        assertThatThrownBy(() -> service.setPin(userId, null, "5678"))
                 .isInstanceOf(HiddenChatsPinConfirmationException.class);
 
-        assertThat(user.hasHiddenChatsPin()).isFalse();
+        assertThat(user.getHiddenChatsPinHash()).isEqualTo("hashed-1234");
     }
 
     @Test

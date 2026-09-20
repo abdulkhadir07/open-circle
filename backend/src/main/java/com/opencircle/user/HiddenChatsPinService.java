@@ -28,13 +28,19 @@ public class HiddenChatsPinService {
         this.clock = clock;
     }
 
-    // Setting/changing the PIN requires the account password, same rigor as changing the
-    // password itself. Bean Validation on the request already confirms the PIN is 4-6 digits.
+    // Changing an existing PIN requires the account password, same rigor as changing the
+    // password itself - it overwrites something already protecting hidden content. The very
+    // first PIN a user sets needs no such confirmation: nothing is protected yet, so a hijacked
+    // session couldn't do meaningful damage by setting one. Bean Validation on the request
+    // already confirms the PIN is 4-6 digits.
     @Transactional
     public void setPin(UUID userId, String currentPassword, String rawPin) {
         AppUser user = userService.getByIdForUpdate(userId);
 
-        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+        boolean confirmationRequired = user.hasHiddenChatsPin();
+        boolean confirmationFailed = currentPassword == null
+                || !passwordEncoder.matches(currentPassword, user.getPasswordHash());
+        if (confirmationRequired && confirmationFailed) {
             throw new HiddenChatsPinConfirmationException();
         }
 

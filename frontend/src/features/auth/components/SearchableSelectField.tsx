@@ -1,5 +1,6 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { AnimatedError } from './AnimatedError';
@@ -14,6 +15,11 @@ type SearchableSelectFieldProps = {
   disabled?: boolean;
   hint?: string;
   autoComplete?: string;
+  loading?: boolean;
+  loadingMessage?: string;
+  loadError?: string;
+  onRetry?: () => void;
+  emptyMessage?: string;
 };
 
 // A select-only combobox: typing filters the list, but the committed value
@@ -30,6 +36,11 @@ export function SearchableSelectField({
   disabled,
   hint,
   autoComplete,
+  loading = false,
+  loadingMessage = 'Loading options',
+  loadError,
+  onRetry,
+  emptyMessage = 'No options available',
 }: SearchableSelectFieldProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -38,6 +49,8 @@ export function SearchableSelectField({
   const listboxId = `${id}-listbox`;
   const errorId = error ? `${id}-error` : undefined;
   const hintId = hint ? `${id}-hint` : undefined;
+  const statusId = loading || loadError ? `${id}-status` : undefined;
+  const unavailable = disabled || loading || Boolean(loadError);
 
   // While closed, the field just shows the committed value; `query` only
   // exists to hold what's being typed while the list is open.
@@ -97,10 +110,11 @@ export function SearchableSelectField({
             open && filtered[highlighted] ? `${id}-option-${highlighted}` : undefined
           }
           aria-autocomplete="list"
+          aria-busy={loading}
           aria-invalid={Boolean(error)}
-          aria-describedby={[errorId, hintId].filter(Boolean).join(' ') || undefined}
+          aria-describedby={[errorId, hintId, statusId].filter(Boolean).join(' ') || undefined}
           autoComplete={autoComplete}
-          disabled={disabled}
+          disabled={unavailable}
           placeholder=" "
           value={displayValue}
           onFocus={() => {
@@ -135,7 +149,7 @@ export function SearchableSelectField({
             open && 'rotate-180',
           )}
         />
-        {open && !disabled ? (
+        {open && !unavailable ? (
           <div
             id={listboxId}
             role="listbox"
@@ -168,11 +182,33 @@ export function SearchableSelectField({
                 </div>
               ))
             ) : (
-              <p className="text-muted-foreground px-3 py-2 text-sm">No matches</p>
+              <output className="text-muted-foreground block px-3 py-2 text-sm">
+                {query.trim() ? 'No matches' : emptyMessage}
+              </output>
             )}
           </div>
         ) : null}
       </div>
+      {loading ? (
+        <output id={statusId} className="text-muted-foreground block text-xs leading-5">
+          {loadingMessage}
+        </output>
+      ) : null}
+      {loadError ? (
+        <div
+          id={statusId}
+          role="alert"
+          className="text-destructive flex items-center justify-between gap-3 text-xs leading-5"
+        >
+          <span>{loadError}</span>
+          {onRetry ? (
+            <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
+              <RefreshCw aria-hidden="true" />
+              Retry
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       {hint ? (
         <p id={hintId} className="text-muted-foreground text-xs leading-5">
           {hint}

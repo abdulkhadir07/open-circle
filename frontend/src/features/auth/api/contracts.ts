@@ -11,6 +11,7 @@ export type AuthUser = ApiSchemas['UserResponse'] & {
   lastName: string;
   email: string;
   emailVerified: boolean;
+  hasHiddenChatsPin: boolean;
 };
 
 export type SignupRequest = ApiSchemas['SignupRequest'];
@@ -26,6 +27,7 @@ const userSchema = z
     lastName: z.string().min(1),
     email: z.string().email(),
     emailVerified: z.boolean(),
+    hasHiddenChatsPin: z.boolean(),
   })
   .passthrough();
 
