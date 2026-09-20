@@ -10,7 +10,11 @@ function canRefresh(
 ): error is AxiosError & { config: InternalAxiosRequestConfig } {
   const request = error.config;
   return Boolean(
-    error.response?.status === 401 && request && !request.skipAuthRefresh && !request._retry,
+    error.response?.status === 401 &&
+    request &&
+    !request.skipAuthRefresh &&
+    !request.skipUnauthorizedRetry &&
+    !request._retry,
   );
 }
 
