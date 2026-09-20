@@ -20,6 +20,7 @@ import {
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { MessageComposer } from '../components/MessageComposer';
 import { MessageList } from '../components/MessageList';
+import { useChatRoomRealtime } from '../hooks/useChatRoomRealtime';
 import { useChatRooms } from '../hooks/useChatRooms';
 import { useLeaveChatRoom } from '../hooks/useLeaveChatRoom';
 import { useSaveChatRoom } from '../hooks/useSaveChatRoom';
@@ -32,6 +33,7 @@ export function ChatRoomPage() {
   const saveRoom = useSaveChatRoom();
   const leaveRoom = useLeaveChatRoom();
   const [confirmingLeave, setConfirmingLeave] = useState(false);
+  useChatRoomRealtime(roomId);
 
   if (rooms.isLoading) {
     return (
