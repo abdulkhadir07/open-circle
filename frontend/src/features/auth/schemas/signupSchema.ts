@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { countryNames, regionsForCountry } from '../data/countries';
 
 const requiredText = (label: string, maximum: number) =>
   z.string().trim().min(1, `${label} is required`).max(maximum, `${label} is too long`);
@@ -50,11 +49,8 @@ export const signupSchema = z
       .refine((value) => value < todayAsLocalDate(), 'Date of birth must be in the past'),
     email: z.string().trim().min(1, 'Email is required').max(160).email('Enter a valid email'),
     phoneNumber,
-    country: requiredText('Country', 80).refine(
-      (value) => countryNames.includes(value),
-      'Select a country from the list',
-    ),
-    stateRegion: requiredText('State or region', 80),
+    country: requiredText('Country', 80),
+    stateRegion: z.string().trim().max(80, 'State or region is too long'),
     city: requiredText('City', 80),
     password: z
       .string()
@@ -65,10 +61,6 @@ export const signupSchema = z
   .refine((values) => values.password === values.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword'],
-  })
-  .refine((values) => regionsForCountry(values.country).includes(values.stateRegion), {
-    message: 'Select a state or region from the list',
-    path: ['stateRegion'],
   });
 
 export type SignupFormValues = z.infer<typeof signupSchema>;

@@ -48,6 +48,10 @@ describe('auth schemas', () => {
     expect(signupSchema.safeParse({ ...validSignup, phoneNumber: '12345' }).success).toBe(false);
   });
 
+  it('allows state or region to be blank for countries without subdivisions', () => {
+    expect(signupSchema.safeParse({ ...validSignup, stateRegion: '' }).success).toBe(true);
+  });
+
   it('matches login and verification boundaries', () => {
     expect(loginSchema.safeParse({ email: 'bad', password: 'short' }).success).toBe(false);
     expect(

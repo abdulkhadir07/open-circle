@@ -1,18 +1,31 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { authUser } from '@/test/mocks/fixtures';
 import { server } from '@/test/mocks/server';
 import { renderWithProviders } from '@/test/render';
 import { SignupPage } from './SignupPage';
+
+const locationDataMocks = vi.hoisted(() => ({
+  loadCountries: vi.fn<() => Promise<Array<{ code: string; name: string }>>>(),
+  loadRegions: vi.fn<(countryCode: string) => Promise<Array<{ code: string; name: string }>>>(),
+  loadCities:
+    vi.fn<
+      (countryCode: string, regionCode: string) => Promise<Array<{ id: number; name: string }>>
+    >(),
+}));
+
+vi.mock('../data/locationData', () => locationDataMocks);
 
 async function selectFromCombobox(
   user: ReturnType<typeof renderWithProviders>['user'],
   label: string,
   query: string,
 ) {
-  await user.type(screen.getByLabelText(label), query);
+  const input = await screen.findByLabelText(label);
+  await waitFor(() => expect(input).toBeEnabled());
+  await user.type(input, query);
   await user.click(await screen.findByRole('option', { name: query }));
 }
 
@@ -30,7 +43,7 @@ async function fillThroughFinalStep(user: ReturnType<typeof renderWithProviders>
 
   await selectFromCombobox(user, 'Country', 'United States');
   await selectFromCombobox(user, 'State or region', 'California');
-  await user.type(screen.getByLabelText('City'), 'San Francisco');
+  await selectFromCombobox(user, 'City', 'San Francisco');
   await user.click(screen.getByRole('button', { name: 'Continue' }));
 
   await user.type(screen.getByLabelText('Password'), 'open-circle-strong');
@@ -48,6 +61,38 @@ function renderSignup() {
 }
 
 describe('SignupPage', () => {
+  beforeEach(() => {
+    locationDataMocks.loadCountries.mockReset().mockResolvedValue([
+      { code: 'CA', name: 'Canada' },
+      { code: 'US', name: 'United States' },
+      { code: 'VA', name: 'Vatican City State (Holy See)' },
+    ]);
+    locationDataMocks.loadRegions.mockReset().mockImplementation((countryCode: string) => {
+      if (countryCode === 'CA') return Promise.resolve([{ code: 'ON', name: 'Ontario' }]);
+      if (countryCode === 'US') {
+        return Promise.resolve([
+          { code: 'CA', name: 'California' },
+          { code: 'NY', name: 'New York' },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+    locationDataMocks.loadCities
+      .mockReset()
+      .mockImplementation((countryCode: string, regionCode: string) => {
+        if (countryCode === 'CA' && regionCode === 'ON') {
+          return Promise.resolve([{ id: 3, name: 'Toronto' }]);
+        }
+        if (countryCode === 'US' && regionCode === 'CA') {
+          return Promise.resolve([
+            { id: 1, name: 'Los Angeles' },
+            { id: 2, name: 'San Francisco' },
+          ]);
+        }
+        return Promise.resolve([{ id: 4, name: 'New York City' }]);
+      });
+  });
+
   it('validates each step, preserves back-navigation values, and submits only on step four', async () => {
     let signupCalls = 0;
     let signupBody: unknown;
@@ -83,7 +128,7 @@ describe('SignupPage', () => {
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await selectFromCombobox(user, 'Country', 'United States');
     await selectFromCombobox(user, 'State or region', 'California');
-    await user.type(screen.getByLabelText('City'), 'San Francisco');
+    await selectFromCombobox(user, 'City', 'San Francisco');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.type(screen.getByLabelText('Password'), 'open-circle-strong');
     await user.type(screen.getByLabelText('Confirm password'), 'open-circle-strong');
@@ -182,19 +227,55 @@ describe('SignupPage', () => {
     expect(await screen.findByText('Country is required')).toBeInTheDocument();
   });
 
-  it('resets the state or region field, and its options, when the country changes', async () => {
+  it('resets state or region and city, and their options, when the country changes', async () => {
     const { user } = renderSignup();
     await reachLocationStep(user);
 
     await selectFromCombobox(user, 'Country', 'Canada');
     await selectFromCombobox(user, 'State or region', 'Ontario');
+    await selectFromCombobox(user, 'City', 'Toronto');
     expect(screen.getByLabelText('State or region')).toHaveValue('Ontario');
+    expect(screen.getByLabelText('City')).toHaveValue('Toronto');
 
     await selectFromCombobox(user, 'Country', 'United States');
     expect(screen.getByLabelText('State or region')).toHaveValue('');
+    expect(screen.getByLabelText('City')).toHaveValue('');
 
     await user.type(screen.getByLabelText('State or region'), 'Ontario');
     expect(screen.queryByRole('option', { name: 'Ontario' })).not.toBeInTheDocument();
+  });
+
+  it('allows signup to continue without a state for a country with no subdivisions', async () => {
+    const { user } = renderSignup();
+    await reachLocationStep(user);
+
+    await selectFromCombobox(user, 'Country', 'Vatican City State (Holy See)');
+    expect(
+      await screen.findByText('No state or region is required for this country'),
+    ).toBeVisible();
+    expect(screen.getByLabelText('State or region')).toBeDisabled();
+    await user.type(screen.getByLabelText('City'), 'Vatican City');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(await screen.findByText('Step 4 of 4')).toBeInTheDocument();
+  });
+
+  it('offers manual city entry and retry when the city list fails to load', async () => {
+    locationDataMocks.loadCities
+      .mockRejectedValueOnce(new Error('network unavailable'))
+      .mockResolvedValueOnce([{ id: 2, name: 'San Francisco' }]);
+    const { user } = renderSignup();
+    await reachLocationStep(user);
+
+    await selectFromCombobox(user, 'Country', 'United States');
+    await selectFromCombobox(user, 'State or region', 'California');
+    expect(
+      await screen.findByText('The city list could not load. You can enter your city manually.'),
+    ).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    await selectFromCombobox(user, 'City', 'San Francisco');
+    expect(screen.getByLabelText('City')).toHaveValue('San Francisco');
   });
 
   it('blocks letters in a phone number before leaving the contact step', async () => {
