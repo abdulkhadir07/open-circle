@@ -97,6 +97,16 @@ class ChatRoomServiceTest {
     }
 
     @Test
+    void getHiddenRoomsForReturnsHiddenRoomsForParticipant() {
+        AppUser user = user("member@example.com");
+        List<ChatRoom> expectedRooms = List.of(new ChatRoom(invitePost(user("poster@example.com")), NOW));
+
+        when(rooms.findHiddenRoomsFor(user)).thenReturn(expectedRooms);
+
+        assertThat(service.getHiddenRoomsFor(user)).isEqualTo(expectedRooms);
+    }
+
+    @Test
     void getMessagesReturnsMessagesForActiveParticipant() {
         AppUser poster = user("poster@example.com");
         AppUser requester = user("requester@example.com");
@@ -338,6 +348,27 @@ class ChatRoomServiceTest {
 
         assertThat(updatedRoom.hasActiveParticipant(requester)).isTrue();
         assertThat(requesterParticipant.getHiddenAt()).isEqualTo(NOW);
+
+        verify(rooms).save(room);
+    }
+
+    @Test
+    void unhideRoomClearsHiddenState() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = roomWithParticipants(poster, requester);
+        UUID roomId = UUID.randomUUID();
+        ChatRoomParticipant requesterParticipant = participantFor(room, requester);
+        room.hideFor(requester, NOW.minusSeconds(60));
+
+        when(rooms.findById(roomId)).thenReturn(Optional.of(room));
+        when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, requester)).thenReturn(true);
+        when(rooms.save(room)).thenReturn(room);
+
+        ChatRoom updatedRoom = service.unhideRoom(requester, roomId);
+
+        assertThat(updatedRoom.hasActiveParticipant(requester)).isTrue();
+        assertThat(requesterParticipant.getHiddenAt()).isNull();
 
         verify(rooms).save(room);
     }

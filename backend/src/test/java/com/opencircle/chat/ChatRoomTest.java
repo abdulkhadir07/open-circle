@@ -225,6 +225,21 @@ class ChatRoomTest {
     }
 
     @Test
+    void unhideForClearsParticipantHiddenTime() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = new ChatRoom(invitePost(poster), NOW);
+        room.addParticipant(poster, NOW);
+        room.addParticipant(requester, NOW.plusSeconds(60));
+        room.hideFor(requester, NOW.plusSeconds(120));
+
+        room.unhideFor(requester);
+
+        ChatRoomParticipant participant = onlyParticipantFor(room, requester);
+        assertThat(participant.getHiddenAt()).isNull();
+    }
+
+    @Test
     void closeArchivesRoomAndClearsAutoCloseDeadline() {
         AppUser poster = user("poster@example.com");
         AppUser requester = user("requester@example.com");
