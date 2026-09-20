@@ -118,6 +118,35 @@ class ChatRoomRepositoryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void findHiddenRoomsForReturnsOnlyHiddenRooms() {
+        AppUser poster = verifiedUser("poster.hidden@example.com");
+        AppUser requester = verifiedUser("requester.hidden@example.com");
+
+        ChatRoom visibleRoom = rooms.save(new ChatRoom(posts.save(invitePost(poster, "Visible room")), NOW.minusSeconds(120)));
+        visibleRoom.addParticipant(poster, NOW.minusSeconds(120));
+        visibleRoom.addParticipant(requester, NOW.minusSeconds(120));
+
+        ChatRoom hiddenRoom = rooms.save(new ChatRoom(posts.save(invitePost(poster, "Hidden room")), NOW.minusSeconds(60)));
+        hiddenRoom.addParticipant(poster, NOW.minusSeconds(60));
+        hiddenRoom.addParticipant(requester, NOW.minusSeconds(60));
+        hiddenRoom.hideFor(requester, NOW.minusSeconds(50));
+
+        ChatRoom leftRoom = rooms.save(new ChatRoom(posts.save(invitePost(poster, "Left room")), NOW.minusSeconds(30)));
+        leftRoom.addParticipant(poster, NOW.minusSeconds(30));
+        leftRoom.addParticipant(requester, NOW.minusSeconds(30));
+        leftRoom.hideFor(requester, NOW.minusSeconds(25));
+        leftRoom.leave(requester, NOW.minusSeconds(20));
+
+        rooms.save(visibleRoom);
+        rooms.save(hiddenRoom);
+        rooms.save(leftRoom);
+
+        assertThat(rooms.findHiddenRoomsFor(requester))
+                .extracting(ChatRoom::getId)
+                .containsExactly(hiddenRoom.getId());
+    }
+
+    @Test
     void participantRepositoryDetectsActiveMembershipWithoutTreatingHiddenAsInactive() {
         AppUser poster = verifiedUser("poster.participant@example.com");
         AppUser requester = verifiedUser("requester.participant@example.com");

@@ -57,6 +57,11 @@ public class ChatRoomService {
     }
 
     @Transactional(readOnly = true)
+    public List<ChatRoom> getHiddenRoomsFor(AppUser user) {
+        return rooms.findHiddenRoomsFor(user);
+    }
+
+    @Transactional(readOnly = true)
     public List<ChatMessage> getMessages(AppUser viewer, UUID roomId) {
         ChatRoom room = getActiveParticipantRoom(viewer, roomId);
 
@@ -142,6 +147,13 @@ public class ChatRoomService {
         Instant now = Instant.now(clock);
 
         return saveAfterAction(room, () -> room.hideFor(user, now));
+    }
+
+    @Transactional
+    public ChatRoom unhideRoom(AppUser user, UUID roomId) {
+        ChatRoom room = getActiveParticipantRoom(user, roomId);
+
+        return saveAfterAction(room, () -> room.unhideFor(user));
     }
 
     @Transactional

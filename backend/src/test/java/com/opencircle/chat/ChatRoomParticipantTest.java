@@ -105,6 +105,25 @@ class ChatRoomParticipantTest {
     }
 
     @Test
+    void unhideClearsHiddenTime() {
+        ChatRoomParticipant participant = new ChatRoomParticipant(room(), user("participant@example.com"), NOW);
+        participant.hide(NOW.plusSeconds(60));
+
+        participant.unhide();
+
+        assertThat(participant.getHiddenAt()).isNull();
+    }
+
+    @Test
+    void unhideIsANoOpWhenNotHidden() {
+        ChatRoomParticipant participant = new ChatRoomParticipant(room(), user("participant@example.com"), NOW);
+
+        participant.unhide();
+
+        assertThat(participant.getHiddenAt()).isNull();
+    }
+
+    @Test
     void constructorRejectsMissingChatRoom() {
         assertThatThrownBy(() -> new ChatRoomParticipant(null, user("participant@example.com"), NOW))
                 .isInstanceOf(IllegalArgumentException.class)

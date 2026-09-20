@@ -65,6 +65,19 @@ public class ChatRoomController {
                 .toList();
     }
 
+    @GetMapping("/hidden")
+    public List<ChatRoomResponse> getHiddenRooms(@AuthenticationPrincipal Jwt jwt) {
+        AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+
+        // Returns rooms the authenticated participant has previously hidden, so they can unhide one.
+        List<ChatRoom> rooms = chatRoomService.getHiddenRoomsFor(currentUser);
+        Map<UUID, ProfileImageResponse> profileImagesByUser = profileImagesForRooms(rooms);
+
+        return rooms.stream()
+                .map(room -> ChatRoomResponse.from(room, currentUser, profileImagesByUser))
+                .toList();
+    }
+
     @GetMapping("/{roomId}/messages")
     public List<ChatMessageResponse> getMessages(
             @AuthenticationPrincipal Jwt jwt,
@@ -164,6 +177,17 @@ public class ChatRoomController {
 
         // Hides the room only from the authenticated user's room list.
         return responseFor(chatRoomService.hideRoom(currentUser, roomId), currentUser);
+    }
+
+    @PatchMapping("/{roomId}/unhide")
+    public ChatRoomResponse unhideRoom(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID roomId
+    ) {
+        AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+
+        // Restores a previously hidden room to the authenticated user's room list.
+        return responseFor(chatRoomService.unhideRoom(currentUser, roomId), currentUser);
     }
 
     @PatchMapping("/{roomId}/participants/{userId}/remove")
