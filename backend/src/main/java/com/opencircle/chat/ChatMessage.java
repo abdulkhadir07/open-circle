@@ -41,7 +41,15 @@ public class ChatMessage {
     }
 
     static ChatMessage text(ChatRoom chatRoom, AppUser sender, String body, Instant createdAt) {
-        return new ChatMessage(chatRoom, sender, ChatMessageType.TEXT, requiredBody(body), createdAt);
+        String normalizedBody = requiredBody(body);
+        requireRoomReadyForNewMessage(chatRoom, sender);
+        return new ChatMessage(chatRoom, sender, ChatMessageType.TEXT, normalizedBody, createdAt);
+    }
+
+    // Records that a participant left the room. Created at the moment they leave, so the sender
+    // is by definition no longer an active participant - the usual sending rules don't apply.
+    static ChatMessage participantLeft(ChatRoom chatRoom, AppUser participant, Instant leftAt) {
+        return new ChatMessage(chatRoom, participant, ChatMessageType.PARTICIPANT_LEFT, null, leftAt);
     }
 
     // Attachment messages store the optional caption in body and the file metadata in chat_attachments.
@@ -56,6 +64,8 @@ public class ChatMessage {
             String s3ObjectKey,
             Instant createdAt
     ) {
+        requireRoomReadyForNewMessage(chatRoom, sender);
+
         ChatMessage message = new ChatMessage(
                 chatRoom,
                 sender,
@@ -94,6 +104,16 @@ public class ChatMessage {
             throw new IllegalArgumentException("Created time is required");
         }
 
+        this.chatRoom = chatRoom;
+        this.sender = sender;
+        this.type = type;
+        this.body = body;
+        this.createdAt = createdAt;
+    }
+
+    // Sending rules that only apply to messages a participant actively composes (text, attachments) -
+    // not to system-generated records like a participant-left notice.
+    private static void requireRoomReadyForNewMessage(ChatRoom chatRoom, AppUser sender) {
         if (chatRoom.isClosed()) {
             throw new IllegalArgumentException("Closed chat rooms cannot receive new messages");
         }
@@ -105,12 +125,6 @@ public class ChatMessage {
         if (chatRoom.activeParticipantCount() < 2) {
             throw new IllegalArgumentException("At least two active participants are required to send messages");
         }
-
-        this.chatRoom = chatRoom;
-        this.sender = sender;
-        this.type = type;
-        this.body = body;
-        this.createdAt = createdAt;
     }
 
     private static String requiredBody(String body) {

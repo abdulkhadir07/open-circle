@@ -95,6 +95,24 @@ class ChatMessageTest {
                 .hasMessage("At least two active participants are required to send messages");
     }
 
+    @Test
+    void participantLeftCreatesASystemMessageEvenThoughTheSenderJustLeft() {
+        AppUser poster = user("poster@example.com");
+        AppUser requester = user("requester@example.com");
+        ChatRoom room = new ChatRoom(invitePost(poster), NOW);
+        room.addParticipant(poster, NOW);
+        room.addParticipant(requester, NOW.plusSeconds(30));
+        room.leave(requester, NOW.plusSeconds(60));
+
+        ChatMessage message = ChatMessage.participantLeft(room, requester, NOW.plusSeconds(60));
+
+        assertThat(message.getChatRoom()).isEqualTo(room);
+        assertThat(message.getSender()).isEqualTo(requester);
+        assertThat(message.getType()).isEqualTo(ChatMessageType.PARTICIPANT_LEFT);
+        assertThat(message.getBody()).isNull();
+        assertThat(message.getCreatedAt()).isEqualTo(NOW.plusSeconds(60));
+    }
+
     private InvitePost invitePost(AppUser poster) {
         poster.markEmailVerified(NOW);
         poster.verifyLocation("San Francisco", "California", "USA", NOW);

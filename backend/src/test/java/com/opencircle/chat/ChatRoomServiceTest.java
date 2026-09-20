@@ -284,11 +284,14 @@ class ChatRoomServiceTest {
         when(rooms.findById(roomId)).thenReturn(Optional.of(room));
         when(participants.existsByChatRoomAndUserAndLeftAtIsNullAndRemovedAtIsNull(room, requester)).thenReturn(true);
         when(rooms.save(room)).thenReturn(room);
+        when(messages.save(any(ChatMessage.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ChatRoom updatedRoom = service.leaveRoom(requester, roomId);
+        ChatRoomService.RoomLeaveResult result = service.leaveRoom(requester, roomId);
 
-        assertThat(updatedRoom.hasActiveParticipant(requester)).isFalse();
-        assertThat(updatedRoom.getAutoCloseAt()).isEqualTo(NOW.plusSeconds(24 * 60 * 60));
+        assertThat(result.room().hasActiveParticipant(requester)).isFalse();
+        assertThat(result.room().getAutoCloseAt()).isEqualTo(NOW.plusSeconds(24 * 60 * 60));
+        assertThat(result.leftMessage().getType()).isEqualTo(ChatMessageType.PARTICIPANT_LEFT);
+        assertThat(result.leftMessage().getSender()).isEqualTo(requester);
 
         verify(rooms).save(room);
         verify(ratingLifecycleService).handleParticipantExit(room.getInvitePost().getId(), requester.getId(), NOW);

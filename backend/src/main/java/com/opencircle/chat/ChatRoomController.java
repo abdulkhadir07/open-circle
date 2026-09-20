@@ -176,7 +176,12 @@ public class ChatRoomController {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
 
         // Marks the authenticated user inactive in the room and refreshes auto-close state.
-        return responseFor(chatRoomService.leaveRoom(currentUser, roomId), currentUser);
+        ChatRoomService.RoomLeaveResult result = chatRoomService.leaveRoom(currentUser, roomId);
+
+        // Lets both ends see a "left the chat" notice in the message history in real time.
+        messageBroadcaster.broadcast(responseFor(result.leftMessage()));
+
+        return responseFor(result.room(), currentUser);
     }
 
     @PatchMapping("/{roomId}/hide")
