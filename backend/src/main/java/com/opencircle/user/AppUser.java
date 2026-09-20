@@ -46,7 +46,7 @@ public class AppUser {
     @Column(nullable = false, length = 80)
     private String city;
 
-    @Column(name = "state_region", nullable = false, length = 80)
+    @Column(name = "state_region", length = 80)
     private String stateRegion;
 
     @Column(nullable = false, length = 80)
