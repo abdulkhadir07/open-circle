@@ -1,4 +1,5 @@
 import type { AuthUser } from '@/features/auth/api/contracts';
+import type { ChatMessage, ChatRoom } from '@/features/chat/api/contracts';
 import type { EngagementRequest } from '@/features/engagement-requests/api/contracts';
 import type { InvitePost } from '@/features/invite-posts/api/contracts';
 
@@ -20,6 +21,7 @@ export const authUser: AuthUser = {
   locationSource: 'DEVICE',
   role: 'USER',
   emailVerified: true,
+  hasHiddenChatsPin: false,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
 };
@@ -65,4 +67,64 @@ export const engagementRequest: EngagementRequest = {
   withdrawnAt: null,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
+};
+
+export const chatRoom: ChatRoom = {
+  id: '55555555-5555-4555-8555-555555555555',
+  invitePostId: invitePost.id,
+  invitePostContent: invitePost.content,
+  status: 'ACTIVE',
+  saved: false,
+  savedAt: null,
+  savedByUserId: null,
+  savedByUsername: null,
+  savedByProfileImage: null,
+  autoCloseAt: null,
+  closed: false,
+  closedAt: null,
+  hiddenForCurrentUser: false,
+  participants: [
+    {
+      userId: authUser.id,
+      username: authUser.username,
+      profileImage: null,
+      active: true,
+      joinedAt: new Date().toISOString(),
+      left: false,
+      leftAt: null,
+      removed: false,
+      removedAt: null,
+      removedByUserId: null,
+      removedByUsername: null,
+      removedByProfileImage: null,
+    },
+    {
+      userId: '66666666-6666-4666-8666-666666666666',
+      username: 'jordan.lee',
+      profileImage: null,
+      active: true,
+      joinedAt: new Date().toISOString(),
+      left: false,
+      leftAt: null,
+      removed: false,
+      removedAt: null,
+      removedByUserId: null,
+      removedByUsername: null,
+      removedByProfileImage: null,
+    },
+  ],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
+export const chatMessage: ChatMessage = {
+  id: '77777777-7777-4777-8777-777777777777',
+  roomId: chatRoom.id,
+  senderId: '66666666-6666-4666-8666-666666666666',
+  senderUsername: 'jordan.lee',
+  senderProfileImage: null,
+  type: 'TEXT',
+  body: 'See you at 3pm!',
+  attachment: null,
+  createdAt: new Date().toISOString(),
 };
