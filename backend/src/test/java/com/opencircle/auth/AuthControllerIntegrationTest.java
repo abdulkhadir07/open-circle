@@ -63,6 +63,26 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void signupAllowsCountryWithoutStateOrRegion() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "firstName": "Paolo",
+                                  "lastName": "Rossi",
+                                  "email": "paolo.controller@example.com",
+                                  "password": "Password123!",
+                                  "phoneNumber": "+390669812345",
+                                  "dateOfBirth": "2000-01-01",
+                                  "city": "Vatican City",
+                                  "country": "Vatican City State (Holy See)"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.user.stateRegion").doesNotExist());
+    }
+
+    @Test
     void loginRejectsUnverifiedUser() throws Exception {
         mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)

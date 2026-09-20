@@ -34,6 +34,24 @@ class AppUserTest {
     }
 
     @Test
+    void constructorTreatsBlankStateRegionAsMissing() {
+        AppUser user = new AppUser(
+                "bright_river_1234",
+                "Jane",
+                "Doe",
+                "jane@example.com",
+                "hashed-password",
+                "+14155550123",
+                LocalDate.of(2000, 1, 1),
+                "Vatican City",
+                "  ",
+                "Vatican City State (Holy See)"
+        );
+
+        assertThat(user.getStateRegion()).isNull();
+    }
+
+    @Test
     void onCreateSetsCreatedAndUpdatedTimestamps() {
         AppUser user = newUser();
 
