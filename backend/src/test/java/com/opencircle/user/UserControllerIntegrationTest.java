@@ -82,7 +82,8 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.stateRegion").value("California"))
                 .andExpect(jsonPath("$.country").value("USA"))
                 .andExpect(jsonPath("$.role").value("USER"))
-                .andExpect(jsonPath("$.emailVerified").value(false));
+                .andExpect(jsonPath("$.emailVerified").value(false))
+                .andExpect(jsonPath("$.hasHiddenChatsPin").value(false));
     }
 
     @Test

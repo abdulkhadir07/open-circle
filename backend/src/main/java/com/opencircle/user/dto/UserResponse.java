@@ -27,6 +27,7 @@ public record UserResponse(
         String locationSource,
         Role role,
         boolean emailVerified,
+        boolean hasHiddenChatsPin,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -55,6 +56,7 @@ public record UserResponse(
                 user.getLocationSource() == null ? null : user.getLocationSource().name(),
                 user.getRole(),
                 user.isEmailVerified(),
+                user.hasHiddenChatsPin(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );
