@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
@@ -28,6 +29,10 @@ record SignupRequest(
 
         @NotBlank(message = "Phone Number is required")
         @Size(max = 30)
+        @Pattern(
+                regexp = "^(?=(?:\\D*\\d){7,15}\\D*$)\\+?\\d(?:[\\d\\s()-]*\\d)?$",
+                message = "Enter a valid phone number"
+        )
         String phoneNumber,
 
         @Past

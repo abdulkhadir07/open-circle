@@ -140,6 +140,28 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void signupRejectsPhoneNumberContainingLetters() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "firstName": "Jane",
+                                  "lastName": "Doe",
+                                  "email": "invalid.phone@example.com",
+                                  "password": "Password123!",
+                                  "phoneNumber": "call-me-maybe",
+                                  "dateOfBirth": "1995-06-15",
+                                  "city": "San Francisco",
+                                  "stateRegion": "California",
+                                  "country": "USA"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.fieldErrors.phoneNumber").value("Enter a valid phone number"));
+    }
+
+    @Test
     void loginRejectsInvalidCredentials() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
