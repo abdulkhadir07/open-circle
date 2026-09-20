@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
 record SetHiddenChatsPinRequest(
-        @NotBlank(message = "Current password is required")
+        // Only required when changing an already-set PIN; the service enforces that condition.
         String currentPassword,
 
         @NotBlank(message = "PIN is required")
