@@ -11,6 +11,7 @@ import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -73,6 +74,9 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
 
     @MockitoBean
     private ProfileImageQueryService profileImageQueryService;
+
+    @MockitoBean
+    private ChatMessageBroadcaster messageBroadcaster;
 
     @BeforeEach
     void defaultMissingProfileImages() {
@@ -178,6 +182,36 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
 
             return null;
         });
+    }
+
+    @Test
+    void sendMessageBroadcastsToTheRoomTopic() throws Exception {
+        AppUser poster = verifiedUser("poster.broadcast@example.com");
+        AppUser requester = verifiedUser("requester.broadcast@example.com");
+        ChatRoom room = chatRoom(poster, requester, "Broadcast chat");
+
+        String token = loginToken(requester.getEmail());
+
+        mockMvc.perform(post("/api/chat-rooms/{roomId}/messages", room.getId())
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "body": "Hello from requester"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<ChatMessageResponse> broadcastedMessageCaptor =
+                ArgumentCaptor.forClass(ChatMessageResponse.class);
+        verify(messageBroadcaster).broadcast(broadcastedMessageCaptor.capture());
+
+        ChatMessageResponse broadcastedResponse = broadcastedMessageCaptor.getValue();
+
+        assertThat(broadcastedResponse.roomId()).isEqualTo(room.getId());
+        assertThat(broadcastedResponse.senderId()).isEqualTo(requester.getId());
+        assertThat(broadcastedResponse.type()).isEqualTo(ChatMessageType.TEXT);
+        assertThat(broadcastedResponse.body()).isEqualTo("Hello from requester");
     }
 
     @Test
