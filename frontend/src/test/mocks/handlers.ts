@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw';
-import { authUser, engagementRequest, invitePost } from './fixtures';
+import { authUser, chatMessage, chatRoom, engagementRequest, invitePost } from './fixtures';
 
 export const handlers = [
   http.post('*/api/auth/refresh', () => HttpResponse.json({ token: 'refreshed-token' })),
@@ -32,4 +32,17 @@ export const handlers = [
   http.patch('*/api/engagements/:requestId/withdraw', () =>
     HttpResponse.json({ ...engagementRequest, status: 'WITHDRAWN' }),
   ),
+  http.get('*/api/chat-rooms', () => HttpResponse.json([])),
+  http.get('*/api/chat-rooms/hidden', () => HttpResponse.json([])),
+  http.get('*/api/chat-rooms/:roomId/messages', () => HttpResponse.json([])),
+  http.post('*/api/chat-rooms/:roomId/messages', () =>
+    HttpResponse.json(chatMessage, { status: 201 }),
+  ),
+  http.patch('*/api/chat-rooms/:roomId/save', () =>
+    HttpResponse.json({ ...chatRoom, saved: true }),
+  ),
+  http.patch('*/api/chat-rooms/:roomId/leave', () => HttpResponse.json(chatRoom)),
+  http.patch('*/api/chat-rooms/:roomId/hide', () => HttpResponse.json(chatRoom)),
+  http.patch('*/api/chat-rooms/:roomId/unhide', () => HttpResponse.json(chatRoom)),
+  http.put('*/api/users/me/hidden-chats-pin', () => new HttpResponse(null, { status: 204 })),
 ];

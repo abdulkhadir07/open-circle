@@ -23,6 +23,19 @@ const EngagementRequestsPage = lazy(() =>
     default: module.EngagementRequestsPage,
   })),
 );
+const ChatRoomsPage = lazy(() =>
+  import('@/features/chat/pages/ChatRoomsPage').then((module) => ({
+    default: module.ChatRoomsPage,
+  })),
+);
+const ChatRoomsEmptyState = lazy(() =>
+  import('@/features/chat/pages/ChatRoomsPage').then((module) => ({
+    default: module.ChatRoomsEmptyState,
+  })),
+);
+const ChatRoomPage = lazy(() =>
+  import('@/features/chat/pages/ChatRoomPage').then((module) => ({ default: module.ChatRoomPage })),
+);
 
 export function AppRoutes() {
   return (
@@ -43,6 +56,17 @@ export function AppRoutes() {
               </AppLayout>
             }
           />
+          <Route
+            path="/chats"
+            element={
+              <AppLayout>
+                <ChatRoomsPage />
+              </AppLayout>
+            }
+          >
+            <Route index element={<ChatRoomsEmptyState />} />
+            <Route path=":roomId" element={<ChatRoomPage />} />
+          </Route>
         </Route>
         <Route
           path="*"
