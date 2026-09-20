@@ -99,6 +99,11 @@ class ChatRoomParticipant {
         this.hiddenAt = hiddenAt;
     }
 
+    // Reverses hide(), restoring the chat to this user's own room list.
+    void unhide() {
+        this.hiddenAt = null;
+    }
+
     boolean belongsTo(AppUser user) {
         if (this.user == user) {
             return true;

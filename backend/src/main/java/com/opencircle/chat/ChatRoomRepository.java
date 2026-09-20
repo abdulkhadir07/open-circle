@@ -50,6 +50,26 @@ interface ChatRoomRepository extends JpaRepository<ChatRoom, UUID> {
             """)
     List<ChatRoom> findVisibleRoomsFor(@Param("user") AppUser user);
 
+    @EntityGraph(attributePaths = {
+            "invitePost",
+            "invitePost.poster",
+            "savedBy",
+            "participants",
+            "participants.user",
+            "participants.removedBy"
+    })
+    @Query("""
+            SELECT DISTINCT room
+            FROM ChatRoom room
+            JOIN room.participants participant
+            WHERE participant.user = :user
+              AND participant.leftAt IS NULL
+              AND participant.removedAt IS NULL
+              AND participant.hiddenAt IS NOT NULL
+            ORDER BY room.updatedAt DESC
+            """)
+    List<ChatRoom> findHiddenRoomsFor(@Param("user") AppUser user);
+
     @Query("""
             SELECT room
             FROM ChatRoom room

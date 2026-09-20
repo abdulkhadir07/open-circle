@@ -130,6 +130,11 @@ class ChatRoom {
         participantFor(user).hide(hiddenAt);
     }
 
+    // Reverses hideFor, restoring the room to one participant's own room list.
+    void unhideFor(AppUser user) {
+        participantFor(user).unhide();
+    }
+
     // Archives the room as read-only and clears any pending auto-close deadline.
     void close(Instant closedAt) {
         if (isClosed()) {
