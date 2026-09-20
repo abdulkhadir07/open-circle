@@ -77,6 +77,7 @@ test('signup and email verification complete the browser auth journey', async ({
   await page.getByLabel('State or region').fill('California');
   await page.getByRole('option', { name: 'California', exact: true }).click();
   await page.getByLabel('City').fill('San Francisco');
+  await page.getByRole('option', { name: 'San Francisco', exact: true }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await page.getByLabel('Password', { exact: true }).fill('open-circle-strong');
