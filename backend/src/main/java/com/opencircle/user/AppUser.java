@@ -2,6 +2,7 @@ package com.opencircle.user;
 
 import jakarta.persistence.*;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -76,6 +77,15 @@ public class AppUser {
     @Enumerated(EnumType.STRING)
     @Column(name = "location_source", length = 30)
     private LocationSource locationSource;
+
+    @Column(name = "hidden_chats_pin_hash")
+    private String hiddenChatsPinHash;
+
+    @Column(name = "hidden_chats_pin_failed_attempts", nullable = false)
+    private int hiddenChatsPinFailedAttempts;
+
+    @Column(name = "hidden_chats_pin_locked_until")
+    private Instant hiddenChatsPinLockedUntil;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -233,5 +243,42 @@ public class AppUser {
                 && verifiedCountry != null
                 && locationVerifiedAt != null
                 && locationSource != null;
+    }
+
+    public boolean hasHiddenChatsPin() {
+        return hiddenChatsPinHash != null;
+    }
+
+    public void setHiddenChatsPin(String pinHash) {
+        if (pinHash == null || pinHash.isBlank()) {
+            throw new IllegalArgumentException("PIN hash is required");
+        }
+
+        this.hiddenChatsPinHash = pinHash;
+        this.hiddenChatsPinFailedAttempts = 0;
+        this.hiddenChatsPinLockedUntil = null;
+    }
+
+    public String getHiddenChatsPinHash() {
+        return hiddenChatsPinHash;
+    }
+
+    public boolean isHiddenChatsPinLocked(Instant now) {
+        return hiddenChatsPinLockedUntil != null && hiddenChatsPinLockedUntil.isAfter(now);
+    }
+
+    // Locks the PIN out for lockoutDuration once maxAttempts consecutive failures are
+    // reached, then resets the counter so the next window starts clean once it expires.
+    public void recordHiddenChatsPinFailure(Instant now, int maxAttempts, Duration lockoutDuration) {
+        hiddenChatsPinFailedAttempts++;
+        if (hiddenChatsPinFailedAttempts >= maxAttempts) {
+            hiddenChatsPinLockedUntil = now.plus(lockoutDuration);
+            hiddenChatsPinFailedAttempts = 0;
+        }
+    }
+
+    public void recordHiddenChatsPinSuccess() {
+        hiddenChatsPinFailedAttempts = 0;
+        hiddenChatsPinLockedUntil = null;
     }
 }

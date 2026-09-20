@@ -2,6 +2,7 @@ package com.opencircle.user;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -182,5 +183,59 @@ class AppUserTest {
         );
 
         assertThat(user.hasVerifiedLocation()).isTrue();
+    }
+
+    @Test
+    void hasHiddenChatsPinReturnsFalseUntilOneIsSet() {
+        AppUser user = newUser();
+
+        assertThat(user.hasHiddenChatsPin()).isFalse();
+
+        user.setHiddenChatsPin("hashed-pin");
+
+        assertThat(user.hasHiddenChatsPin()).isTrue();
+        assertThat(user.getHiddenChatsPinHash()).isEqualTo("hashed-pin");
+    }
+
+    @Test
+    void setHiddenChatsPinResetsFailedAttemptsAndLockout() {
+        AppUser user = newUser();
+        Instant now = Instant.parse("2026-09-19T12:00:00Z");
+        user.recordHiddenChatsPinFailure(now, 1, Duration.ofMinutes(15));
+        assertThat(user.isHiddenChatsPinLocked(now)).isTrue();
+
+        user.setHiddenChatsPin("new-hash");
+
+        assertThat(user.isHiddenChatsPinLocked(now)).isFalse();
+    }
+
+    @Test
+    void recordHiddenChatsPinFailureLocksOutAfterMaxAttempts() {
+        AppUser user = newUser();
+        user.setHiddenChatsPin("hashed-pin");
+        Instant now = Instant.parse("2026-09-19T12:00:00Z");
+
+        user.recordHiddenChatsPinFailure(now, 3, Duration.ofMinutes(15));
+        assertThat(user.isHiddenChatsPinLocked(now)).isFalse();
+
+        user.recordHiddenChatsPinFailure(now, 3, Duration.ofMinutes(15));
+        assertThat(user.isHiddenChatsPinLocked(now)).isFalse();
+
+        user.recordHiddenChatsPinFailure(now, 3, Duration.ofMinutes(15));
+        assertThat(user.isHiddenChatsPinLocked(now)).isTrue();
+        assertThat(user.isHiddenChatsPinLocked(now.plus(Duration.ofMinutes(16)))).isFalse();
+    }
+
+    @Test
+    void recordHiddenChatsPinSuccessClearsFailuresAndLockout() {
+        AppUser user = newUser();
+        user.setHiddenChatsPin("hashed-pin");
+        Instant now = Instant.parse("2026-09-19T12:00:00Z");
+        user.recordHiddenChatsPinFailure(now, 1, Duration.ofMinutes(15));
+        assertThat(user.isHiddenChatsPinLocked(now)).isTrue();
+
+        user.recordHiddenChatsPinSuccess();
+
+        assertThat(user.isHiddenChatsPinLocked(now)).isFalse();
     }
 }

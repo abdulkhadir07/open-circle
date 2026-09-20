@@ -322,19 +322,22 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
         AppUser requester = verifiedUser("requester.unhide@example.com");
         ChatRoom room = chatRoom(poster, requester, "Unhide this room");
         String requesterToken = loginToken(requester.getEmail());
+        setHiddenChatsPin(requester, "1234");
 
         mockMvc.perform(patch("/api/chat-rooms/{roomId}/hide", room.getId())
                         .header("Authorization", "Bearer " + requesterToken))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/chat-rooms/hidden")
-                        .header("Authorization", "Bearer " + requesterToken))
+                        .header("Authorization", "Bearer " + requesterToken)
+                        .header("X-Hidden-Chats-Pin", "1234"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(room.getId().toString()))
                 .andExpect(jsonPath("$[0].hiddenForCurrentUser").value(true));
 
         mockMvc.perform(patch("/api/chat-rooms/{roomId}/unhide", room.getId())
-                        .header("Authorization", "Bearer " + requesterToken))
+                        .header("Authorization", "Bearer " + requesterToken)
+                        .header("X-Hidden-Chats-Pin", "1234"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.hiddenForCurrentUser").value(false));
 
@@ -344,9 +347,42 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$[0].id").value(room.getId().toString()));
 
         mockMvc.perform(get("/api/chat-rooms/hidden")
-                        .header("Authorization", "Bearer " + requesterToken))
+                        .header("Authorization", "Bearer " + requesterToken)
+                        .header("X-Hidden-Chats-Pin", "1234"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void hiddenRoomEndpointsRejectMissingOrIncorrectPin() throws Exception {
+        AppUser poster = verifiedUser("poster.pin@example.com");
+        AppUser requester = verifiedUser("requester.pin@example.com");
+        ChatRoom room = chatRoom(poster, requester, "PIN-protected room");
+        String requesterToken = loginToken(requester.getEmail());
+        setHiddenChatsPin(requester, "1234");
+
+        mockMvc.perform(patch("/api/chat-rooms/{roomId}/hide", room.getId())
+                        .header("Authorization", "Bearer " + requesterToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/chat-rooms/hidden")
+                        .header("Authorization", "Bearer " + requesterToken)
+                        .header("X-Hidden-Chats-Pin", "0000"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(patch("/api/chat-rooms/{roomId}/unhide", room.getId())
+                        .header("Authorization", "Bearer " + requesterToken)
+                        .header("X-Hidden-Chats-Pin", "0000"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private void setHiddenChatsPin(AppUser user, String pin) {
+        inTransaction(() -> {
+            AppUser managed = users.findById(user.getId()).orElseThrow();
+            managed.setHiddenChatsPin(passwordEncoder.encode(pin));
+            users.save(managed);
+            return null;
+        });
     }
 
     @Test
