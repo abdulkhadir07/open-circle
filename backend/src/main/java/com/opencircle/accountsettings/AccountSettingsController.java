@@ -6,6 +6,7 @@ import com.opencircle.session.RefreshTokenCookieService;
 import com.opencircle.session.SessionDetails;
 import com.opencircle.session.SessionRevocationReason;
 import com.opencircle.session.SessionService;
+import com.opencircle.user.HiddenChatsPinService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -32,19 +33,22 @@ class AccountSettingsController {
     private final CurrentUserProvider currentUserProvider;
     private final CurrentSessionProvider currentSessionProvider;
     private final RefreshTokenCookieService refreshTokenCookies;
+    private final HiddenChatsPinService hiddenChatsPinService;
 
     AccountSettingsController(
             AccountSettingsService accountSettingsService,
             SessionService sessionService,
             CurrentUserProvider currentUserProvider,
             CurrentSessionProvider currentSessionProvider,
-            RefreshTokenCookieService refreshTokenCookies
+            RefreshTokenCookieService refreshTokenCookies,
+            HiddenChatsPinService hiddenChatsPinService
     ) {
         this.accountSettingsService = accountSettingsService;
         this.sessionService = sessionService;
         this.currentUserProvider = currentUserProvider;
         this.currentSessionProvider = currentSessionProvider;
         this.refreshTokenCookies = refreshTokenCookies;
+        this.hiddenChatsPinService = hiddenChatsPinService;
     }
 
     @PutMapping("/password")
@@ -59,6 +63,19 @@ class AccountSettingsController {
                 request.newPassword()
         );
         return securityUpdateResponse(update);
+    }
+
+    @PutMapping("/hidden-chats-pin")
+    ResponseEntity<Void> setHiddenChatsPin(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody SetHiddenChatsPinRequest request
+    ) {
+        hiddenChatsPinService.setPin(
+                currentUserProvider.getCurrentUserId(jwt),
+                request.currentPassword(),
+                request.pin()
+        );
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/email-change")

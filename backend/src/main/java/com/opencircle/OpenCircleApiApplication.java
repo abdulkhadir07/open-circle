@@ -7,6 +7,7 @@ import com.opencircle.notification.NotificationProperties;
 import com.opencircle.passwordreset.PasswordResetProperties;
 import com.opencircle.security.CorsProperties;
 import com.opencircle.session.SessionProperties;
+import com.opencircle.user.HiddenChatsPinProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -25,7 +26,8 @@ import com.opencircle.storage.StorageProperties;
         InvitePostImageProperties.class,
         NotificationProperties.class,
         SessionProperties.class,
-        StorageProperties.class})
+        StorageProperties.class,
+        HiddenChatsPinProperties.class})
 @EnableScheduling
 public class OpenCircleApiApplication {
 

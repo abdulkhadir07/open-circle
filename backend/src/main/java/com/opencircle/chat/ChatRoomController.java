@@ -4,6 +4,7 @@ import com.opencircle.profileimage.ProfileImageQueryService;
 import com.opencircle.profileimage.ProfileImageResponse;
 import com.opencircle.security.CurrentUserProvider;
 import com.opencircle.user.AppUser;
+import com.opencircle.user.HiddenChatsPinService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -37,19 +39,22 @@ public class ChatRoomController {
     private final ChatAttachmentService chatAttachmentService;
     private final ChatMessageBroadcaster messageBroadcaster;
     private final ProfileImageQueryService profileImageQueryService;
+    private final HiddenChatsPinService hiddenChatsPinService;
 
     ChatRoomController(
             CurrentUserProvider currentUserProvider,
             ChatRoomService chatRoomService,
             ChatAttachmentService chatAttachmentService,
             ChatMessageBroadcaster messageBroadcaster,
-            ProfileImageQueryService profileImageQueryService
+            ProfileImageQueryService profileImageQueryService,
+            HiddenChatsPinService hiddenChatsPinService
     ) {
         this.currentUserProvider = currentUserProvider;
         this.chatRoomService = chatRoomService;
         this.chatAttachmentService = chatAttachmentService;
         this.messageBroadcaster = messageBroadcaster;
         this.profileImageQueryService = profileImageQueryService;
+        this.hiddenChatsPinService = hiddenChatsPinService;
     }
 
     @GetMapping
@@ -66,8 +71,14 @@ public class ChatRoomController {
     }
 
     @GetMapping("/hidden")
-    public List<ChatRoomResponse> getHiddenRooms(@AuthenticationPrincipal Jwt jwt) {
+    public List<ChatRoomResponse> getHiddenRooms(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestHeader("X-Hidden-Chats-Pin") String pin
+    ) {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+
+        // Every read of hidden rooms re-checks the PIN; there is no unlocked window to hold open.
+        hiddenChatsPinService.verifyPin(currentUser, pin);
 
         // Returns rooms the authenticated participant has previously hidden, so they can unhide one.
         List<ChatRoom> rooms = chatRoomService.getHiddenRoomsFor(currentUser);
@@ -182,9 +193,13 @@ public class ChatRoomController {
     @PatchMapping("/{roomId}/unhide")
     public ChatRoomResponse unhideRoom(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID roomId
+            @PathVariable UUID roomId,
+            @RequestHeader("X-Hidden-Chats-Pin") String pin
     ) {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+
+        // Unhiding also touches hidden-room data, so it re-checks the PIN just like the list read.
+        hiddenChatsPinService.verifyPin(currentUser, pin);
 
         // Restores a previously hidden room to the authenticated user's room list.
         return responseFor(chatRoomService.unhideRoom(currentUser, roomId), currentUser);
