@@ -215,6 +215,62 @@ class AccountSettingsControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void setHiddenChatsPinStoresOnlyHashedPin() throws Exception {
+        TestAccount account = createAccount("pin-set", "Current Browser");
+
+        mockMvc.perform(put("/api/users/me/hidden-chats-pin")
+                        .header(HttpHeaders.AUTHORIZATION, account.authorization())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"%s","pin":"4321"}
+                                """.formatted(PASSWORD)))
+                .andExpect(status().isNoContent());
+
+        String storedHash = jdbcTemplate.queryForObject(
+                "SELECT hidden_chats_pin_hash FROM users WHERE id = ?",
+                String.class,
+                account.user().getId()
+        );
+        assertThat(storedHash).isNotEqualTo("4321");
+        assertThat(passwordEncoder.matches("4321", storedHash)).isTrue();
+    }
+
+    @Test
+    void setHiddenChatsPinRejectsIncorrectCurrentPassword() throws Exception {
+        TestAccount account = createAccount("pin-wrong-password", "Current Browser");
+
+        mockMvc.perform(put("/api/users/me/hidden-chats-pin")
+                        .header(HttpHeaders.AUTHORIZATION, account.authorization())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"WrongPassword!","pin":"4321"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Current password is incorrect"));
+    }
+
+    @Test
+    void setHiddenChatsPinRejectsNonNumericOrWrongLengthPins() throws Exception {
+        TestAccount account = createAccount("pin-invalid-format", "Current Browser");
+
+        mockMvc.perform(put("/api/users/me/hidden-chats-pin")
+                        .header(HttpHeaders.AUTHORIZATION, account.authorization())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"%s","pin":"12"}
+                                """.formatted(PASSWORD)))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(put("/api/users/me/hidden-chats-pin")
+                        .header(HttpHeaders.AUTHORIZATION, account.authorization())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"%s","pin":"abcd"}
+                                """.formatted(PASSWORD)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void emailChangeRequiresPasswordAndStoresOnlyHashedCode() throws Exception {
         TestAccount account = createAccount("email-request", "Current Browser");
 
