@@ -105,7 +105,7 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function S
       <div
         ref={setRefs}
         onScroll={handleScroll}
-        className={cn('scrollbar-none h-full overflow-y-auto', className)}
+        className={cn('h-full scrollbar-none overflow-y-auto', className)}
       >
         {children}
       </div>
