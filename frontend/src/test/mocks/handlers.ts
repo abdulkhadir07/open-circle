@@ -45,4 +45,13 @@ export const handlers = [
   http.patch('*/api/chat-rooms/:roomId/hide', () => HttpResponse.json(chatRoom)),
   http.patch('*/api/chat-rooms/:roomId/unhide', () => HttpResponse.json(chatRoom)),
   http.put('*/api/users/me/hidden-chats-pin', () => new HttpResponse(null, { status: 204 })),
+  http.get('*/api/notifications', () =>
+    HttpResponse.json({ notifications: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }),
+  ),
+  http.get('*/api/notifications/unread-count', () => HttpResponse.json({ unreadCount: 0 })),
+  http.patch(
+    '*/api/notifications/:notificationId/read',
+    () => new HttpResponse(null, { status: 204 }),
+  ),
+  http.patch('*/api/notifications/read-all', () => new HttpResponse(null, { status: 204 })),
 ];
