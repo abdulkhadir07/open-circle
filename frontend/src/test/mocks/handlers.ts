@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { authUser, chatMessage, chatRoom, engagementRequest, invitePost } from './fixtures';
+import type { Reputation } from '@/features/ratings/api/contracts';
 
 export const handlers = [
   http.post('*/api/auth/refresh', () => HttpResponse.json({ token: 'refreshed-token' })),
@@ -54,4 +55,31 @@ export const handlers = [
     () => new HttpResponse(null, { status: 204 }),
   ),
   http.patch('*/api/notifications/read-all', () => new HttpResponse(null, { status: 204 })),
+  http.get('*/api/users/me/ratings/due', () => HttpResponse.json([])),
+  http.post('*/api/engagements/:engagementId/ratings', ({ params }) =>
+    HttpResponse.json(
+      {
+        id: 'rating-id',
+        engagementId: params.engagementId as string,
+        ratedUserId: engagementRequest.requesterId,
+        score: 5,
+        submittedAt: new Date().toISOString(),
+        revealed: false,
+      },
+      { status: 201 },
+    ),
+  ),
+  http.get('*/api/users/me/ratings/received', () =>
+    HttpResponse.json({ ratings: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }),
+  ),
+  http.get('*/api/users/:userId/reputation', ({ params }) =>
+    HttpResponse.json({
+      userId: params.userId as string,
+      username: 'user',
+      profileImage: null,
+      averageRating: null,
+      totalRatingsReceived: 0,
+      distinctRaterCount: 0,
+    } satisfies Reputation),
+  ),
 ];

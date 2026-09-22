@@ -3,6 +3,7 @@ import type { ChatMessage, ChatRoom } from '@/features/chat/api/contracts';
 import type { EngagementRequest } from '@/features/engagement-requests/api/contracts';
 import type { InvitePost } from '@/features/invite-posts/api/contracts';
 import type { Notification } from '@/features/notifications/api/contracts';
+import type { DueRating, ReceivedRating, Reputation } from '@/features/ratings/api/contracts';
 
 export const authUser: AuthUser = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -144,4 +145,34 @@ export const notification: Notification = {
   occurredAt: new Date().toISOString(),
   read: false,
   readAt: null,
+};
+
+export const dueRating: DueRating = {
+  obligationId: '99999999-9999-4999-8999-999999999999',
+  engagementId: engagementRequest.id,
+  otherUserId: engagementRequest.requesterId,
+  otherUsername: engagementRequest.requesterUsername,
+  otherUserProfileImage: null,
+  trigger: 'PARTICIPANT_EXIT',
+  requiredAt: new Date().toISOString(),
+  dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+};
+
+export const receivedRating: ReceivedRating = {
+  id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  engagementId: engagementRequest.id,
+  raterUserId: engagementRequest.requesterId,
+  raterUsername: engagementRequest.requesterUsername,
+  raterProfileImage: null,
+  score: 5,
+  revealedAt: new Date().toISOString(),
+};
+
+export const reputation: Reputation = {
+  userId: authUser.id,
+  username: authUser.username,
+  profileImage: null,
+  averageRating: 4.8,
+  totalRatingsReceived: 12,
+  distinctRaterCount: 10,
 };
