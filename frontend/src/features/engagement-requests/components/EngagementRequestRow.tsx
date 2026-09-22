@@ -1,5 +1,6 @@
 import { Check, Clock, MapPin, Undo2, X } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { ReputationBadge } from '@/features/ratings/components/ReputationBadge';
 import { cn } from '@/lib/utils';
 import type { EngagementRequest } from '../api/contracts';
 
@@ -28,11 +29,22 @@ type EngagementRequestRowProps = {
   request: EngagementRequest;
   /** The other party's name — the poster for a sent row, the requester for a received row. */
   personName: string;
+  /**
+   * The other party's userId, for a reputation badge — omitted on the Sent
+   * tab, since `request.invitePost` only carries the poster's username, not
+   * their id.
+   */
+  reputationUserId?: string;
   /** Actionable buttons for this row (Withdraw, or Accept/Decline/Hold) — omitted once the request is final. */
   actions?: ReactNode;
 };
 
-export function EngagementRequestRow({ request, personName, actions }: EngagementRequestRowProps) {
+export function EngagementRequestRow({
+  request,
+  personName,
+  reputationUserId,
+  actions,
+}: EngagementRequestRowProps) {
   const { label, icon: Icon, tone } = STATUS_PRESENTATION[request.status];
 
   return (
@@ -42,7 +54,10 @@ export function EngagementRequestRow({ request, personName, actions }: Engagemen
           {personName[0]?.toUpperCase()}
         </span>
         <div className="min-w-0">
-          <p className="text-foreground text-base font-semibold">{personName}</p>
+          <p className="text-foreground flex items-center gap-2 text-base font-semibold">
+            {personName}
+            <ReputationBadge userId={reputationUserId} />
+          </p>
           <p className="text-foreground mt-0.5 line-clamp-2 text-base">
             {request.invitePost.content}
           </p>

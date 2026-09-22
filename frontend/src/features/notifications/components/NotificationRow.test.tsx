@@ -66,11 +66,27 @@ describe('NotificationRow', () => {
 
   it('renders as a plain button for a notification with nowhere to navigate', () => {
     renderWithProviders(
-      <NotificationRow notification={{ ...notification, type: 'RATING_REQUIRED' }} />,
+      <NotificationRow notification={{ ...notification, type: 'INVITE_POST_EXPIRED' }} />,
     );
 
     expect(screen.getByRole('button')).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('renders as a link to the ratings due tab for a RATING_REQUIRED notification', () => {
+    renderWithProviders(
+      <NotificationRow notification={{ ...notification, type: 'RATING_REQUIRED' }} />,
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/ratings');
+  });
+
+  it('renders as a link to the ratings received tab for a RATING_REVEALED notification', () => {
+    renderWithProviders(
+      <NotificationRow notification={{ ...notification, type: 'RATING_REVEALED' }} />,
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/ratings?tab=received');
   });
 
   it('marks an unread notification as read on click', async () => {
