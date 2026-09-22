@@ -2,6 +2,7 @@ import type { AuthUser } from '@/features/auth/api/contracts';
 import type { ChatMessage, ChatRoom } from '@/features/chat/api/contracts';
 import type { EngagementRequest } from '@/features/engagement-requests/api/contracts';
 import type { InvitePost } from '@/features/invite-posts/api/contracts';
+import type { Notification } from '@/features/notifications/api/contracts';
 
 export const authUser: AuthUser = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -127,4 +128,20 @@ export const chatMessage: ChatMessage = {
   body: 'See you at 3pm!',
   attachment: null,
   createdAt: new Date().toISOString(),
+};
+
+export const notification: Notification = {
+  id: '88888888-8888-4888-8888-888888888888',
+  type: 'ENGAGEMENT_REQUESTED',
+  actor: {
+    userId: engagementRequest.requesterId,
+    username: engagementRequest.requesterUsername,
+    profileImage: null,
+  },
+  resource: { type: 'ENGAGEMENT_REQUEST', id: engagementRequest.id },
+  context: { type: 'INVITE_POST', id: invitePost.id },
+  occurrenceCount: 1,
+  occurredAt: new Date().toISOString(),
+  read: false,
+  readAt: null,
 };
