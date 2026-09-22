@@ -48,6 +48,7 @@ export function ReceivedRequestsList() {
               key={request.id}
               request={request}
               personName={request.requesterUsername}
+              reputationUserId={request.requesterId}
               actions={
                 actionable ? (
                   <div className="flex items-center gap-1.5">

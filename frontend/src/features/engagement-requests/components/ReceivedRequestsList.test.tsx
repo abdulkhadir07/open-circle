@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { engagementRequest } from '@/test/mocks/fixtures';
+import { engagementRequest, reputation } from '@/test/mocks/fixtures';
 import { server } from '@/test/mocks/server';
 import { renderWithProviders } from '@/test/render';
 import { ReceivedRequestsList } from './ReceivedRequestsList';
@@ -86,5 +86,17 @@ describe('ReceivedRequestsList', () => {
     await user.click(await screen.findByRole('button', { name: 'Accept' }));
 
     expect(await screen.findByText('Engagement request is not actionable')).toBeInTheDocument();
+  });
+
+  it("shows the requester's reputation badge once loaded", async () => {
+    server.use(
+      http.get('*/api/engagements/received', () => HttpResponse.json([engagementRequest])),
+      http.get('*/api/users/:userId/reputation', () =>
+        HttpResponse.json({ ...reputation, userId: engagementRequest.requesterId }),
+      ),
+    );
+    renderWithProviders(<ReceivedRequestsList />);
+
+    expect(await screen.findByText('4.8/5')).toBeInTheDocument();
   });
 });
