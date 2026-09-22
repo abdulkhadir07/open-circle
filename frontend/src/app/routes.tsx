@@ -36,6 +36,11 @@ const ChatRoomsEmptyState = lazy(() =>
 const ChatRoomPage = lazy(() =>
   import('@/features/chat/pages/ChatRoomPage').then((module) => ({ default: module.ChatRoomPage })),
 );
+const NotificationsPage = lazy(() =>
+  import('@/features/notifications/pages/NotificationsPage').then((module) => ({
+    default: module.NotificationsPage,
+  })),
+);
 
 export function AppRoutes() {
   return (
@@ -67,6 +72,14 @@ export function AppRoutes() {
             <Route index element={<ChatRoomsEmptyState />} />
             <Route path=":roomId" element={<ChatRoomPage />} />
           </Route>
+          <Route
+            path="/notifications"
+            element={
+              <AppLayout>
+                <NotificationsPage />
+              </AppLayout>
+            }
+          />
         </Route>
         <Route
           path="*"
