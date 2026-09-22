@@ -13,6 +13,7 @@ import { useGlobalFeed } from '@/features/invite-posts/hooks/useGlobalFeed';
 import { useLocalFeed } from '@/features/invite-posts/hooks/useLocalFeed';
 import { SCOPE_LABELS, type LocalFeedScope } from '@/features/invite-posts/api/contracts';
 import { useMyEngagementRequests } from '@/features/engagement-requests/hooks/useMyEngagementRequests';
+import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 
 const FEED_MODE_OPTIONS = [
   { value: 'local', label: 'Local' },
@@ -134,6 +135,8 @@ export function HomePage() {
           </Link>
         </Button>
 
+        <NotificationBell triggerClassName="mt-3 w-full justify-center" />
+
         <div className="border-border mt-auto border-t pt-4">
           <SignOutButton
             pending={logout.isPending}
@@ -173,6 +176,8 @@ export function HomePage() {
             Chats
           </Link>
         </Button>
+
+        <NotificationBell triggerClassName="w-full justify-center lg:hidden" />
 
         <div>
           <div
