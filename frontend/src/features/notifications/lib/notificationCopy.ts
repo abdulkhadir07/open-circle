@@ -7,9 +7,11 @@ function actorPhrase(notification: Notification, withActor: string, withoutActor
 
 /**
  * There's no per-item detail page for a single engagement request or invite
- * post yet, and no ratings UI at all — so only CHAT_ACTIVITY (a real chat
- * room) gets precise navigation. Engagement types go to the requests list;
- * rating and expiration types have nowhere to send the user yet.
+ * post yet — so only CHAT_ACTIVITY (a real chat room) gets precise
+ * navigation. Engagement types go to the requests list; expiration types
+ * have nowhere to send the user yet. Rating notifications never carry a
+ * rating/obligation id (only the engagement id), so they can only land on
+ * the right ratings tab, not a specific row.
  */
 const ROUTE_BUILDERS: Record<NotificationType, (notification: Notification) => string | null> = {
   ENGAGEMENT_REQUESTED: () => '/requests',
@@ -20,8 +22,8 @@ const ROUTE_BUILDERS: Record<NotificationType, (notification: Notification) => s
   INVITE_POST_EXPIRED: () => null,
   ENGAGEMENT_REQUEST_EXPIRED: () => null,
   CHAT_ACTIVITY: (notification) => `/chats/${notification.resource.id}`,
-  RATING_REQUIRED: () => null,
-  RATING_REVEALED: () => null,
+  RATING_REQUIRED: () => '/ratings',
+  RATING_REVEALED: () => '/ratings?tab=received',
 };
 
 const MESSAGE_BUILDERS: Record<NotificationType, (notification: Notification) => string> = {
@@ -43,7 +45,10 @@ const MESSAGE_BUILDERS: Record<NotificationType, (notification: Notification) =>
     }
     return actor ? `${actor} sent a new message` : 'New message';
   },
-  RATING_REQUIRED: () => 'Rate your recent hangout',
+  RATING_REQUIRED: (n) => {
+    const actor = n.actor?.username;
+    return actor ? `Rate your recent interaction with ${actor}` : 'Rate your recent interaction';
+  },
   RATING_REVEALED: () => 'A rating about you was revealed',
 };
 

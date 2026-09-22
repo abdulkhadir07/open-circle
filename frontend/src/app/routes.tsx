@@ -41,6 +41,11 @@ const NotificationsPage = lazy(() =>
     default: module.NotificationsPage,
   })),
 );
+const RatingsPage = lazy(() =>
+  import('@/features/ratings/pages/RatingsPage').then((module) => ({
+    default: module.RatingsPage,
+  })),
+);
 
 export function AppRoutes() {
   return (
@@ -77,6 +82,14 @@ export function AppRoutes() {
             element={
               <AppLayout>
                 <NotificationsPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/ratings"
+            element={
+              <AppLayout>
+                <RatingsPage />
               </AppLayout>
             }
           />
