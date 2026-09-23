@@ -1,5 +1,14 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { LoaderCircle, LogOut, MapPin, MessageCircle, Sparkles, Star, Users } from 'lucide-react';
+import {
+  LoaderCircle,
+  LogOut,
+  MapPin,
+  MessageCircle,
+  Sparkles,
+  Star,
+  Trophy,
+  Users,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -144,6 +153,13 @@ export function HomePage() {
           </Link>
         </Button>
 
+        <Button asChild variant="outline" className="mt-3 w-full justify-center">
+          <Link to="/scoreboard">
+            <Trophy aria-hidden="true" />
+            Scoreboard
+          </Link>
+        </Button>
+
         <div className="border-border mt-auto border-t pt-4">
           <SignOutButton
             pending={logout.isPending}
@@ -190,6 +206,13 @@ export function HomePage() {
           <Link to="/ratings">
             <Star aria-hidden="true" />
             Ratings
+          </Link>
+        </Button>
+
+        <Button asChild variant="outline" className="w-full justify-center lg:hidden">
+          <Link to="/scoreboard">
+            <Trophy aria-hidden="true" />
+            Scoreboard
           </Link>
         </Button>
 
