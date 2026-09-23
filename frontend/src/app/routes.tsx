@@ -46,6 +46,11 @@ const RatingsPage = lazy(() =>
     default: module.RatingsPage,
   })),
 );
+const ScoreboardPage = lazy(() =>
+  import('@/features/scoreboard/pages/ScoreboardPage').then((module) => ({
+    default: module.ScoreboardPage,
+  })),
+);
 
 export function AppRoutes() {
   return (
@@ -90,6 +95,14 @@ export function AppRoutes() {
             element={
               <AppLayout>
                 <RatingsPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/scoreboard"
+            element={
+              <AppLayout>
+                <ScoreboardPage />
               </AppLayout>
             }
           />
