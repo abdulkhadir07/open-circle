@@ -4,6 +4,7 @@ import type { EngagementRequest } from '@/features/engagement-requests/api/contr
 import type { InvitePost } from '@/features/invite-posts/api/contracts';
 import type { Notification } from '@/features/notifications/api/contracts';
 import type { DueRating, ReceivedRating, Reputation } from '@/features/ratings/api/contracts';
+import type { Scoreboard, ScoreSummary } from '@/features/scoreboard/api/contracts';
 
 export const authUser: AuthUser = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -175,4 +176,35 @@ export const reputation: Reputation = {
   averageRating: 4.8,
   totalRatingsReceived: 12,
   distinctRaterCount: 10,
+};
+
+export const scoreSummary: ScoreSummary = {
+  userId: authUser.id,
+  seasonYear: 2026,
+  annualScore: 42,
+  lifetimeScore: 128,
+};
+
+export const scoreboard: Scoreboard = {
+  seasonYear: 2026,
+  entries: [
+    {
+      rank: 1,
+      userId: authUser.id,
+      username: authUser.username,
+      profileImage: null,
+      annualScore: 42,
+      averageRating: 4.8,
+      currentYearDistinctRaterCount: 10,
+    },
+    {
+      rank: 2,
+      userId: engagementRequest.requesterId,
+      username: engagementRequest.requesterUsername,
+      profileImage: null,
+      annualScore: 30,
+      averageRating: null,
+      currentYearDistinctRaterCount: 3,
+    },
+  ],
 };

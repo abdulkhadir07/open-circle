@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { authUser, chatMessage, chatRoom, engagementRequest, invitePost } from './fixtures';
 import type { Reputation } from '@/features/ratings/api/contracts';
+import type { ScoreSummary } from '@/features/scoreboard/api/contracts';
 
 export const handlers = [
   http.post('*/api/auth/refresh', () => HttpResponse.json({ token: 'refreshed-token' })),
@@ -81,5 +82,16 @@ export const handlers = [
       totalRatingsReceived: 0,
       distinctRaterCount: 0,
     } satisfies Reputation),
+  ),
+  http.get('*/api/users/me/score', () =>
+    HttpResponse.json({
+      userId: authUser.id,
+      seasonYear: new Date().getUTCFullYear(),
+      annualScore: 0,
+      lifetimeScore: 0,
+    } satisfies ScoreSummary),
+  ),
+  http.get('*/api/scoreboard', () =>
+    HttpResponse.json({ seasonYear: new Date().getUTCFullYear(), entries: [] }),
   ),
 ];
