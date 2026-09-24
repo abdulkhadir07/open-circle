@@ -16,7 +16,6 @@ function renderHomePage() {
   return renderWithProviders(
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<p>Signed out</p>} />
     </Routes>,
     { queryClient },
   );
@@ -129,20 +128,5 @@ describe('HomePage engagement requests', () => {
     await screen.findByText(invitePost.content);
 
     expect(screen.getByRole('button', { name: 'Engage' })).toBeInTheDocument();
-  });
-});
-
-describe('HomePage logout', () => {
-  it('clears in-memory auth and cached user data after logout', async () => {
-    const { user, queryClient } = renderHomePage();
-    await screen.findByText(invitePost.content);
-
-    // Same as the "New post" button above — two Sign out triggers exist at
-    // once (desktop rail + mobile inline), both visible to jsdom's queries.
-    await user.click(screen.getAllByRole('button', { name: 'Sign out' })[0]!);
-    expect(await screen.findByText('Signed out')).toBeInTheDocument();
-    expect(useAuthStore.getState().authStatus).toBe('anonymous');
-    expect(useAuthStore.getState().accessToken).toBeNull();
-    expect(queryClient.getQueryData(authQueryKeys.currentUser)).toBeUndefined();
   });
 });

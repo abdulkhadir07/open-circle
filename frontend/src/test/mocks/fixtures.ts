@@ -1,3 +1,4 @@
+import type { Session } from '@/features/accountsettings/api/contracts';
 import type { AuthUser } from '@/features/auth/api/contracts';
 import type { ChatMessage, ChatRoom } from '@/features/chat/api/contracts';
 import type { EngagementRequest } from '@/features/engagement-requests/api/contracts';
@@ -232,3 +233,26 @@ export const userProfile: UserProfile = {
     },
   ],
 };
+
+export const accountSessions: Session[] = [
+  {
+    id: '55555555-5555-4555-8555-555555555555',
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+    current: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    lastUsedAt: '2026-01-05T12:00:00Z',
+    inactiveAt: '2026-01-19T12:00:00Z',
+    expiresAt: '2026-02-01T00:00:00Z',
+  },
+  {
+    id: '66666666-6666-4666-8666-666666666666',
+    userAgent:
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+    current: false,
+    createdAt: '2025-12-20T09:00:00Z',
+    lastUsedAt: '2026-01-03T08:30:00Z',
+    inactiveAt: '2026-01-17T08:30:00Z',
+    expiresAt: '2026-01-20T09:00:00Z',
+  },
+];

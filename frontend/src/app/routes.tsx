@@ -56,6 +56,36 @@ const ProfilePage = lazy(() =>
     default: module.ProfilePage,
   })),
 );
+const SettingsPage = lazy(() =>
+  import('@/features/accountsettings/pages/SettingsPage').then((module) => ({
+    default: module.SettingsPage,
+  })),
+);
+const PasswordSettingsPage = lazy(() =>
+  import('@/features/accountsettings/pages/PasswordSettingsPage').then((module) => ({
+    default: module.PasswordSettingsPage,
+  })),
+);
+const EmailSettingsPage = lazy(() =>
+  import('@/features/accountsettings/pages/EmailSettingsPage').then((module) => ({
+    default: module.EmailSettingsPage,
+  })),
+);
+const PinSettingsPage = lazy(() =>
+  import('@/features/accountsettings/pages/PinSettingsPage').then((module) => ({
+    default: module.PinSettingsPage,
+  })),
+);
+const SessionsSettingsPage = lazy(() =>
+  import('@/features/accountsettings/pages/SessionsSettingsPage').then((module) => ({
+    default: module.SessionsSettingsPage,
+  })),
+);
+const PersonalInfoSettingsPage = lazy(() =>
+  import('@/features/accountsettings/pages/PersonalInfoSettingsPage').then((module) => ({
+    default: module.PersonalInfoSettingsPage,
+  })),
+);
 
 export function AppRoutes() {
   return (
@@ -116,6 +146,54 @@ export function AppRoutes() {
             element={
               <AppLayout>
                 <ProfilePage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <AppLayout>
+                <SettingsPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/settings/password"
+            element={
+              <AppLayout>
+                <PasswordSettingsPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/settings/email"
+            element={
+              <AppLayout>
+                <EmailSettingsPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/settings/pin"
+            element={
+              <AppLayout>
+                <PinSettingsPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/settings/sessions"
+            element={
+              <AppLayout>
+                <SessionsSettingsPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/settings/personal-info"
+            element={
+              <AppLayout>
+                <PersonalInfoSettingsPage />
               </AppLayout>
             }
           />

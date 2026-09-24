@@ -1,9 +1,9 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   LoaderCircle,
-  LogOut,
   MapPin,
   MessageCircle,
+  Settings,
   Sparkles,
   Star,
   Trophy,
@@ -11,11 +11,10 @@ import {
   Users,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
-import { useLogout } from '@/features/auth/hooks/useLogout';
 import { LocationVerificationPrompt } from '@/features/location/components/LocationVerificationPrompt';
 import { CreatePostDialog } from '@/features/invite-posts/components/CreatePostDialog';
 import { InvitePostCard } from '@/features/invite-posts/components/InvitePostCard';
@@ -32,36 +31,9 @@ const FEED_MODE_OPTIONS = [
 
 type LocalScopeFilter = 'ALL' | LocalFeedScope;
 
-type SignOutButtonProps = {
-  pending: boolean;
-  onSignOut: () => void;
-  className?: string;
-};
-
-function SignOutButton({ pending, onSignOut, className }: SignOutButtonProps) {
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      className={className}
-      onClick={onSignOut}
-      disabled={pending}
-    >
-      {pending ? (
-        <LoaderCircle aria-hidden="true" className="animate-spin" />
-      ) : (
-        <LogOut aria-hidden="true" />
-      )}
-      {pending ? 'Signing out' : 'Sign out'}
-    </Button>
-  );
-}
-
 export function HomePage() {
   const reduceMotion = useReducedMotion();
-  const navigate = useNavigate();
   const currentUser = useCurrentUser();
-  const logout = useLogout();
   const [feedMode, setFeedMode] = useState<'local' | 'global'>('local');
   const [localScope, setLocalScope] = useState<LocalScopeFilter>('ALL');
 
@@ -93,11 +65,6 @@ export function HomePage() {
     [myRequests.data],
   );
 
-  async function handleLogout() {
-    await logout.mutateAsync().catch(() => undefined);
-    navigate('/login', { replace: true });
-  }
-
   if (currentUser.isLoading) {
     return (
       <div className="flex justify-center py-16">
@@ -125,7 +92,6 @@ export function HomePage() {
             <p className="text-foreground truncate text-base font-semibold">
               {user.firstName} {user.lastName}
             </p>
-            <p className="text-muted-foreground truncate text-sm">{user.email}</p>
           </div>
         </div>
 
@@ -168,28 +134,20 @@ export function HomePage() {
           </Link>
         </Button>
 
-        <div className="border-border mt-auto border-t pt-4">
-          <SignOutButton
-            pending={logout.isPending}
-            onSignOut={() => void handleLogout()}
-            className="w-full justify-center"
-          />
-        </div>
+        <Button asChild variant="outline" className="mt-3 w-full justify-center">
+          <Link to="/settings">
+            <Settings aria-hidden="true" />
+            Settings
+          </Link>
+        </Button>
       </aside>
 
       <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-2">
-            <p className="text-primary text-sm font-semibold">Your circle</p>
-            <h1 className="text-foreground text-3xl font-semibold">
-              Welcome back{user.firstName ? `, ${user.firstName}` : ''}
-            </h1>
-          </div>
-          <SignOutButton
-            pending={logout.isPending}
-            onSignOut={() => void handleLogout()}
-            className="h-10 px-4 lg:hidden"
-          />
+        <div className="space-y-2">
+          <p className="text-primary text-sm font-semibold">Your circle</p>
+          <h1 className="text-foreground text-3xl font-semibold">
+            Welcome back{user.firstName ? `, ${user.firstName}` : ''}
+          </h1>
         </div>
 
         <CreatePostDialog triggerClassName="w-full justify-center lg:hidden" />
@@ -228,6 +186,13 @@ export function HomePage() {
           <Link to={`/profile/${user.id}`}>
             <User aria-hidden="true" />
             Profile
+          </Link>
+        </Button>
+
+        <Button asChild variant="outline" className="w-full justify-center lg:hidden">
+          <Link to="/settings">
+            <Settings aria-hidden="true" />
+            Settings
           </Link>
         </Button>
 
