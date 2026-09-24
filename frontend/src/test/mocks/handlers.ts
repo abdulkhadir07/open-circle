@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { authUser, chatMessage, chatRoom, engagementRequest, invitePost } from './fixtures';
+import type { UserProfile } from '@/features/profile/api/contracts';
 import type { Reputation } from '@/features/ratings/api/contracts';
 import type { ScoreSummary } from '@/features/scoreboard/api/contracts';
 
@@ -93,5 +94,52 @@ export const handlers = [
   ),
   http.get('*/api/scoreboard', () =>
     HttpResponse.json({ seasonYear: new Date().getUTCFullYear(), entries: [] }),
+  ),
+  // Order matters: the specific "me/profile" routes must come before the
+  // generic ":userId/profile" one below, since ":userId" would otherwise
+  // also match the literal segment "me".
+  http.get('*/api/users/me/profile', () =>
+    HttpResponse.json({
+      userId: authUser.id,
+      username: authUser.username,
+      displayName: authUser.firstName,
+      profileImage: null,
+      bio: null,
+      interests: [],
+      memberSince: authUser.createdAt ?? new Date().toISOString(),
+      reputation: { averageRating: null, totalRatingsReceived: 0, distinctRaterCount: 0 },
+      awards: [],
+    } satisfies UserProfile),
+  ),
+  http.put('*/api/users/me/profile', async ({ request }) => {
+    const body = (await request.json()) as {
+      displayName: string;
+      bio: string | null;
+      interests: string[];
+    };
+    return HttpResponse.json({
+      userId: authUser.id,
+      username: authUser.username,
+      displayName: body.displayName,
+      profileImage: null,
+      bio: body.bio,
+      interests: body.interests,
+      memberSince: authUser.createdAt ?? new Date().toISOString(),
+      reputation: { averageRating: null, totalRatingsReceived: 0, distinctRaterCount: 0 },
+      awards: [],
+    } satisfies UserProfile);
+  }),
+  http.get('*/api/users/:userId/profile', ({ params }) =>
+    HttpResponse.json({
+      userId: params.userId as string,
+      username: 'user',
+      displayName: 'User',
+      profileImage: null,
+      bio: null,
+      interests: [],
+      memberSince: new Date().toISOString(),
+      reputation: { averageRating: null, totalRatingsReceived: 0, distinctRaterCount: 0 },
+      awards: [],
+    } satisfies UserProfile),
   ),
 ];
