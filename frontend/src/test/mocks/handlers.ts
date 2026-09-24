@@ -1,5 +1,12 @@
 import { http, HttpResponse } from 'msw';
-import { authUser, chatMessage, chatRoom, engagementRequest, invitePost } from './fixtures';
+import {
+  accountSessions,
+  authUser,
+  chatMessage,
+  chatRoom,
+  engagementRequest,
+  invitePost,
+} from './fixtures';
 import type { UserProfile } from '@/features/profile/api/contracts';
 import type { Reputation } from '@/features/ratings/api/contracts';
 import type { ScoreSummary } from '@/features/scoreboard/api/contracts';
@@ -142,4 +149,12 @@ export const handlers = [
       awards: [],
     } satisfies UserProfile),
   ),
+  http.put('*/api/users/me/password', () => HttpResponse.json({ token: 'rotated-token' })),
+  http.post('*/api/users/me/email-change', () => new HttpResponse(null, { status: 204 })),
+  http.post('*/api/users/me/email-change/verify', () =>
+    HttpResponse.json({ token: 'rotated-token' }),
+  ),
+  http.get('*/api/users/me/sessions', () => HttpResponse.json({ sessions: accountSessions })),
+  http.delete('*/api/users/me/sessions/:sessionId', () => new HttpResponse(null, { status: 204 })),
+  http.delete('*/api/users/me/sessions', () => new HttpResponse(null, { status: 204 })),
 ];
