@@ -51,6 +51,11 @@ const ScoreboardPage = lazy(() =>
     default: module.ScoreboardPage,
   })),
 );
+const ProfilePage = lazy(() =>
+  import('@/features/profile/pages/ProfilePage').then((module) => ({
+    default: module.ProfilePage,
+  })),
+);
 
 export function AppRoutes() {
   return (
@@ -103,6 +108,14 @@ export function AppRoutes() {
             element={
               <AppLayout>
                 <ScoreboardPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/profile/:userId"
+            element={
+              <AppLayout>
+                <ProfilePage />
               </AppLayout>
             }
           />

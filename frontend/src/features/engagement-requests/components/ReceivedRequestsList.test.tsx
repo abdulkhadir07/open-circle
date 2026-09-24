@@ -99,4 +99,15 @@ describe('ReceivedRequestsList', () => {
 
     expect(await screen.findByText('4.8/5')).toBeInTheDocument();
   });
+
+  it("links the requester's name to their profile", async () => {
+    server.use(
+      http.get('*/api/engagements/received', () => HttpResponse.json([engagementRequest])),
+    );
+    renderWithProviders(<ReceivedRequestsList />);
+
+    expect(
+      await screen.findByRole('link', { name: engagementRequest.requesterUsername }),
+    ).toHaveAttribute('href', `/profile/${engagementRequest.requesterId}`);
+  });
 });
