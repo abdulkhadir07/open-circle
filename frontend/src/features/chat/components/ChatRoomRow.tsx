@@ -1,4 +1,4 @@
-import { Pin } from 'lucide-react';
+import { Pin, User } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,9 @@ export function ChatRoomRow({
   actions,
 }: ChatRoomRowProps) {
   const names = otherParticipantNames(room, currentUserId);
+  const others = room.participants.filter((p) => p.userId !== currentUserId);
+  // A profile link naming one specific person only makes sense for a 1:1 chat.
+  const soleOtherParticipantId = others.length === 1 ? others[0]?.userId : undefined;
 
   return (
     <li
@@ -48,6 +51,15 @@ export function ChatRoomRow({
           {room.closed ? <p className="text-muted-foreground mt-0.5 text-sm">Closed</p> : null}
         </div>
       </Link>
+      {soleOtherParticipantId ? (
+        <Link
+          to={`/profile/${soleOtherParticipantId}`}
+          aria-label={`View ${names}'s profile`}
+          className="text-muted-foreground hover:bg-muted hover:text-foreground shrink-0 rounded-full p-1.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
+        >
+          <User aria-hidden="true" className="size-4" />
+        </Link>
+      ) : null}
       {actions ? (
         <span className="shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
           {actions}

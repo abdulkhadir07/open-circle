@@ -100,4 +100,17 @@ describe('ChatRoomList', () => {
     expect(screen.queryByText('Set up a Hidden chats PIN')).not.toBeInTheDocument();
     expect(screen.getByText('jordan.lee')).toBeInTheDocument();
   });
+
+  it("links to the other participant's profile for a 1:1 room", async () => {
+    const jordan = chatRoom.participants.find((p) => p.username === 'jordan.lee');
+    server.use(http.get('*/api/chat-rooms', () => HttpResponse.json([chatRoom])));
+    renderAsAuthUser();
+
+    await screen.findByText('jordan.lee');
+
+    expect(screen.getByRole('link', { name: "View jordan.lee's profile" })).toHaveAttribute(
+      'href',
+      `/profile/${jordan?.userId}`,
+    );
+  });
 });

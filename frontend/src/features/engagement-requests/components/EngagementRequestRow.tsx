@@ -1,5 +1,6 @@
 import { Check, Clock, MapPin, Undo2, X } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { ReputationBadge } from '@/features/ratings/components/ReputationBadge';
 import { cn } from '@/lib/utils';
 import type { EngagementRequest } from '../api/contracts';
@@ -30,11 +31,11 @@ type EngagementRequestRowProps = {
   /** The other party's name — the poster for a sent row, the requester for a received row. */
   personName: string;
   /**
-   * The other party's userId, for a reputation badge — omitted on the Sent
-   * tab, since `request.invitePost` only carries the poster's username, not
-   * their id.
+   * The other party's userId, for a profile link and reputation badge —
+   * omitted on the Sent tab, since `request.invitePost` only carries the
+   * poster's username, not their id.
    */
-  reputationUserId?: string;
+  otherUserId?: string;
   /** Actionable buttons for this row (Withdraw, or Accept/Decline/Hold) — omitted once the request is final. */
   actions?: ReactNode;
 };
@@ -42,7 +43,7 @@ type EngagementRequestRowProps = {
 export function EngagementRequestRow({
   request,
   personName,
-  reputationUserId,
+  otherUserId,
   actions,
 }: EngagementRequestRowProps) {
   const { label, icon: Icon, tone } = STATUS_PRESENTATION[request.status];
@@ -55,8 +56,14 @@ export function EngagementRequestRow({
         </span>
         <div className="min-w-0">
           <p className="text-foreground flex items-center gap-2 text-base font-semibold">
-            {personName}
-            <ReputationBadge userId={reputationUserId} />
+            {otherUserId ? (
+              <Link to={`/profile/${otherUserId}`} className="hover:underline">
+                {personName}
+              </Link>
+            ) : (
+              personName
+            )}
+            <ReputationBadge userId={otherUserId} />
           </p>
           <p className="text-foreground mt-0.5 line-clamp-2 text-base">
             {request.invitePost.content}
