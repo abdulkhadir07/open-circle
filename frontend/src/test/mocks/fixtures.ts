@@ -5,6 +5,7 @@ import type { InvitePost } from '@/features/invite-posts/api/contracts';
 import type { Notification } from '@/features/notifications/api/contracts';
 import type { DueRating, ReceivedRating, Reputation } from '@/features/ratings/api/contracts';
 import type { Scoreboard, ScoreSummary } from '@/features/scoreboard/api/contracts';
+import type { UserProfile } from '@/features/profile/api/contracts';
 
 export const authUser: AuthUser = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -205,6 +206,29 @@ export const scoreboard: Scoreboard = {
       annualScore: 30,
       averageRating: null,
       currentYearDistinctRaterCount: 3,
+    },
+  ],
+};
+
+export const userProfile: UserProfile = {
+  userId: authUser.id,
+  username: authUser.username,
+  displayName: authUser.firstName,
+  profileImage: null,
+  bio: 'Always up for coffee and a good conversation.',
+  interests: ['Hiking', 'Coffee', 'Live music'],
+  memberSince: '2026-01-01T00:00:00Z',
+  reputation: {
+    averageRating: 4.8,
+    totalRatingsReceived: 12,
+    distinctRaterCount: 10,
+  },
+  awards: [
+    {
+      seasonYear: 2025,
+      name: 'Circle Champion 2025',
+      finalScore: 210,
+      awardedAt: '2026-01-01T00:05:00Z',
     },
   ],
 };

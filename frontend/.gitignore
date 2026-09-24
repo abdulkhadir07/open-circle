@@ -15,6 +15,7 @@ playwright-report
 test-results
 *.local
 .env
+.vite/
 
 # Editor directories and files
 .vscode/*

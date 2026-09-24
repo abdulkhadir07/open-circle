@@ -1,3 +1,4 @@
+import { formatAverageRating } from '@/lib/formatRating';
 import { useReputation } from '../hooks/useReputation';
 
 export function ReputationBadge({ userId }: { userId: string | undefined }) {
@@ -6,7 +7,7 @@ export function ReputationBadge({ userId }: { userId: string | undefined }) {
   if (!reputation.data || reputation.data.totalRatingsReceived === 0) return null;
 
   const { averageRating, totalRatingsReceived } = reputation.data;
-  const average = averageRating?.toFixed(1) ?? '—';
+  const average = formatAverageRating(averageRating);
 
   return (
     <span
