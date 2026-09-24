@@ -71,6 +71,12 @@ export async function unhideChatRoom({ roomId, pin }: { roomId: string; pin: str
   return parseChatRoom(response.data);
 }
 
-export async function setHiddenChatsPin({ pin }: { pin: string }) {
-  await normalizeFailure(apiClient.put('/users/me/hidden-chats-pin', { pin }));
+export async function setHiddenChatsPin({
+  pin,
+  currentPassword,
+}: {
+  pin: string;
+  currentPassword?: string;
+}) {
+  await normalizeFailure(apiClient.put('/users/me/hidden-chats-pin', { pin, currentPassword }));
 }
