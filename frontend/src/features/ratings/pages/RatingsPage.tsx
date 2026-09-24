@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
+import { formatAverageRating } from '@/lib/formatRating';
 import { cn } from '@/lib/utils';
 import { DueRatingRow } from '../components/DueRatingRow';
 import { ReceivedRatingRow } from '../components/ReceivedRatingRow';
@@ -50,7 +51,7 @@ export function RatingsPage() {
         <div className="border-border bg-card mt-4 flex items-center gap-2 rounded-xl border p-4">
           <p className="text-foreground text-base">
             <span className="font-semibold">
-              {reputation.data.averageRating?.toFixed(1) ?? '—'}/5
+              {formatAverageRating(reputation.data.averageRating)}/5
             </span>{' '}
             average from {reputation.data.distinctRaterCount}{' '}
             {reputation.data.distinctRaterCount === 1 ? 'person' : 'people'} ·{' '}
