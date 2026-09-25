@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { CircleCheck } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '@/lib/api/errors';
@@ -12,6 +13,7 @@ import { loginSchema, type LoginFormValues } from '../schemas/loginSchema';
 
 type AuthRouteState = {
   from?: { pathname?: string; search?: string; hash?: string };
+  justReset?: boolean;
 };
 
 function intendedDestination(state: unknown) {
@@ -24,6 +26,7 @@ function intendedDestination(state: unknown) {
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const justReset = Boolean((location.state as AuthRouteState | null)?.justReset);
   const login = useLogin();
   const {
     register,
@@ -68,6 +71,12 @@ export function LoginPage() {
       }
     >
       <form noValidate onSubmit={onSubmit} className="space-y-5">
+        {justReset ? (
+          <div className="border-primary/25 bg-primary/5 text-foreground flex gap-3 rounded-md border px-3 py-3 text-sm leading-5">
+            <CircleCheck aria-hidden="true" className="text-primary mt-0.5 size-4 shrink-0" />
+            <span>Password reset. Sign in with your new password.</span>
+          </div>
+        ) : null}
         <AuthFormError message={errors.root?.server?.message} />
         <AuthFormField
           id="login-email"
@@ -77,13 +86,21 @@ export function LoginPage() {
           error={errors.email?.message}
           {...register('email')}
         />
-        <PasswordField
-          id="login-password"
-          label="Password"
-          autoComplete="current-password"
-          error={errors.password?.message}
-          {...register('password')}
-        />
+        <div className="space-y-2">
+          <PasswordField
+            id="login-password"
+            label="Password"
+            autoComplete="current-password"
+            error={errors.password?.message}
+            {...register('password')}
+          />
+          <Link
+            to="/forgot-password"
+            className="text-muted-foreground hover:text-primary block text-right text-sm font-medium"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <AuthSubmitButton
           type="submit"
           className="h-11 w-full px-4"

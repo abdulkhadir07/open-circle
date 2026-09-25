@@ -18,6 +18,21 @@ const VerifyEmailPage = lazy(() =>
     default: module.VerifyEmailPage,
   })),
 );
+const ForgotPasswordPage = lazy(() =>
+  import('@/features/auth/pages/ForgotPasswordPage').then((module) => ({
+    default: module.ForgotPasswordPage,
+  })),
+);
+const ResetPasswordPage = lazy(() =>
+  import('@/features/auth/pages/ResetPasswordPage').then((module) => ({
+    default: module.ResetPasswordPage,
+  })),
+);
+const NewPasswordPage = lazy(() =>
+  import('@/features/auth/pages/NewPasswordPage').then((module) => ({
+    default: module.NewPasswordPage,
+  })),
+);
 const EngagementRequestsPage = lazy(() =>
   import('@/features/engagement-requests/pages/EngagementRequestsPage').then((module) => ({
     default: module.EngagementRequestsPage,
@@ -95,6 +110,9 @@ export function AppRoutes() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/reset-password/new-password" element={<NewPasswordPage />} />
         </Route>
         <Route path="/" element={<RootPage />} />
         <Route element={<ProtectedRoute />}>

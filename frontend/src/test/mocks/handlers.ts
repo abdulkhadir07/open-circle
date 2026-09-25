@@ -20,6 +20,8 @@ export const handlers = [
     HttpResponse.json({ token: 'verified-token', user: authUser }),
   ),
   http.post('*/api/auth/resend-verification', () => new HttpResponse(null, { status: 204 })),
+  http.post('*/api/auth/forgot-password', () => new HttpResponse(null, { status: 204 })),
+  http.post('*/api/auth/reset-password', () => new HttpResponse(null, { status: 204 })),
   http.post('*/api/auth/logout', () => new HttpResponse(null, { status: 204 })),
   http.put('*/api/users/me/location', () => HttpResponse.json(authUser)),
   http.post('*/api/invite-posts', () => HttpResponse.json(invitePost, { status: 201 })),
