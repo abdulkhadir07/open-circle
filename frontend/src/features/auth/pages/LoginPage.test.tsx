@@ -91,4 +91,24 @@ describe('LoginPage', () => {
 
     expect(await screen.findByText('Verify maya@example.com')).toBeInTheDocument();
   });
+
+  it('links to the forgot-password flow', () => {
+    renderLogin();
+
+    expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    );
+  });
+
+  it('shows a confirmation banner after a successful password reset', () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>,
+      { initialEntries: [{ pathname: '/login', state: { justReset: true } }] },
+    );
+
+    expect(screen.getByText('Password reset. Sign in with your new password.')).toBeInTheDocument();
+  });
 });

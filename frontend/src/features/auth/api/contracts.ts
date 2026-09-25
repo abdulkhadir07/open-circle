@@ -18,6 +18,8 @@ export type SignupRequest = ApiSchemas['SignupRequest'];
 export type LoginRequest = ApiSchemas['LoginRequest'];
 export type VerifyEmailRequest = ApiSchemas['VerifyEmailRequest'];
 export type ResendVerificationRequest = ApiSchemas['ResendVerificationRequest'];
+export type ForgotPasswordRequest = ApiSchemas['ForgotPasswordRequest'];
+export type ResetPasswordRequest = ApiSchemas['ResetPasswordRequest'];
 
 const userSchema = z
   .object({

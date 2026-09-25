@@ -5,8 +5,10 @@ import {
   parseCurrentUser,
   parseSignupResponse,
   type AuthUser,
+  type ForgotPasswordRequest,
   type LoginRequest,
   type ResendVerificationRequest,
+  type ResetPasswordRequest,
   type SignupRequest,
   type VerifyEmailRequest,
 } from './contracts';
@@ -43,6 +45,18 @@ export async function verifyEmail(request: VerifyEmailRequest) {
 export async function resendVerification(request: ResendVerificationRequest) {
   await normalizeFailure(
     apiClient.post('/auth/resend-verification', request, { skipAuthRefresh: true }),
+  );
+}
+
+export async function forgotPassword(request: ForgotPasswordRequest) {
+  await normalizeFailure(
+    apiClient.post('/auth/forgot-password', request, { skipAuthRefresh: true }),
+  );
+}
+
+export async function resetPassword(request: ResetPasswordRequest) {
+  await normalizeFailure(
+    apiClient.post('/auth/reset-password', request, { skipAuthRefresh: true }),
   );
 }
 
