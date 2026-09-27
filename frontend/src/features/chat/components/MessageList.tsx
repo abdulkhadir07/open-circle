@@ -1,9 +1,11 @@
-import { LoaderCircle, Paperclip } from 'lucide-react';
+import { FileText, Image as ImageIcon, LoaderCircle } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '../api/contracts';
 import { useChatMessages } from '../hooks/useChatMessages';
+import { useOpenAttachment } from '../hooks/useOpenAttachment';
+import { formatFileSize } from '../lib/formatFileSize';
 
 /** How close to the bottom (in px) still counts as "following" the conversation. */
 const NEAR_BOTTOM_THRESHOLD = 150;
@@ -18,6 +20,45 @@ function SystemMessage({ text }: { text: string }) {
       <span className="text-muted-foreground bg-muted/60 rounded-full px-3 py-1 text-xs">
         {text}
       </span>
+    </div>
+  );
+}
+
+function AttachmentContent({ message }: { message: ChatMessage }) {
+  const openAttachment = useOpenAttachment();
+  const attachment = message.attachment;
+
+  if (!attachment) return null;
+
+  const isImage = attachment.contentType.startsWith('image/');
+  const Icon = isImage ? ImageIcon : FileText;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        type="button"
+        onClick={() => openAttachment.mutate(attachment.id)}
+        disabled={openAttachment.isPending}
+        className="flex items-center gap-2 text-left hover:underline disabled:no-underline"
+      >
+        {openAttachment.isPending ? (
+          <LoaderCircle aria-hidden="true" className="size-4 shrink-0 animate-spin" />
+        ) : (
+          <Icon aria-hidden="true" className="size-4 shrink-0" />
+        )}
+        <span className="flex flex-col">
+          <span className="font-medium">{attachment.originalFilename}</span>
+          <span className="text-xs opacity-75">{formatFileSize(attachment.fileSizeBytes)}</span>
+        </span>
+      </button>
+      {message.body ? <p className="whitespace-pre-wrap">{message.body}</p> : null}
+      {openAttachment.isError ? (
+        <p role="alert" className="text-xs opacity-90">
+          {openAttachment.error instanceof Error
+            ? openAttachment.error.message
+            : 'Unable to open that attachment.'}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -37,14 +78,7 @@ function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolea
             : 'bg-muted text-foreground rounded-bl-md',
         )}
       >
-        {message.type === 'ATTACHMENT' ? (
-          <span className="inline-flex items-center gap-1.5 align-bottom">
-            <Paperclip aria-hidden="true" className="size-3.5 shrink-0" />
-            {message.attachment?.originalFilename ?? 'Attachment'}
-          </span>
-        ) : (
-          message.body
-        )}
+        {message.type === 'ATTACHMENT' ? <AttachmentContent message={message} /> : message.body}
         <span
           className={cn(
             'ml-2 text-xs tabular-nums',
