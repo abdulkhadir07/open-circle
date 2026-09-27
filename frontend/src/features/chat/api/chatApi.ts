@@ -45,6 +45,27 @@ export async function sendChatMessage({ roomId, body }: { roomId: string; body: 
   return parseChatMessage(response.data);
 }
 
+export async function sendChatAttachment({
+  roomId,
+  file,
+  caption,
+}: {
+  roomId: string;
+  file: File;
+  caption?: string;
+}) {
+  const formData = new FormData();
+  formData.set('file', file);
+  if (caption) {
+    formData.set('caption', caption);
+  }
+
+  const response = await normalizeFailure(
+    apiClient.post(`/chat-rooms/${roomId}/attachments`, formData),
+  );
+  return parseChatMessage(response.data);
+}
+
 export async function saveChatRoom(roomId: string) {
   const response = await normalizeFailure(apiClient.patch(`/chat-rooms/${roomId}/save`));
   return parseChatRoom(response.data);

@@ -134,6 +134,23 @@ export const chatMessage: ChatMessage = {
   createdAt: new Date().toISOString(),
 };
 
+export const attachmentChatMessage: ChatMessage = {
+  id: '77777777-7777-4777-8777-777777777778',
+  roomId: chatRoom.id,
+  senderId: '66666666-6666-4666-8666-666666666666',
+  senderUsername: 'jordan.lee',
+  senderProfileImage: null,
+  type: 'ATTACHMENT',
+  body: 'Here is the flyer',
+  attachment: {
+    id: '99999999-9999-4999-8999-999999999999',
+    originalFilename: 'flyer.png',
+    contentType: 'image/png',
+    fileSizeBytes: 245 * 1024,
+  },
+  createdAt: new Date().toISOString(),
+};
+
 export const notification: Notification = {
   id: '88888888-8888-4888-8888-888888888888',
   type: 'ENGAGEMENT_REQUESTED',
