@@ -5,6 +5,7 @@ import type { EngagementRequest } from '@/features/engagement-requests/api/contr
 import { EngageControl } from '@/features/engagement-requests/components/EngageControl';
 import { SCOPE_LABELS, type InvitePost } from '../api/contracts';
 import { formatTimeRemaining } from '../lib/formatTimeRemaining';
+import { PostImageCarousel } from './PostImageCarousel';
 
 const REFRESH_INTERVAL_MS = 60_000;
 const TOTAL_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -121,6 +122,8 @@ export function InvitePostCard({ post, isOwnPost = false, myRequest }: InvitePos
       </div>
 
       <p className="text-foreground mt-4 leading-6 whitespace-pre-wrap">{post.content}</p>
+
+      <PostImageCarousel images={post.images} />
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
         <span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-sm font-medium">

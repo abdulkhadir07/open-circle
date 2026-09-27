@@ -7,6 +7,7 @@ import {
   chatRoom,
   engagementRequest,
   invitePost,
+  invitePostImage,
 } from './fixtures';
 import type { UserProfile } from '@/features/profile/api/contracts';
 import type { Reputation } from '@/features/ratings/api/contracts';
@@ -28,6 +29,9 @@ export const handlers = [
   http.post('*/api/invite-posts', () => HttpResponse.json(invitePost, { status: 201 })),
   http.get('*/api/invite-posts/local', () => HttpResponse.json([invitePost])),
   http.get('*/api/invite-posts/global', () => HttpResponse.json([])),
+  http.post('*/api/invite-posts/:postId/images', () =>
+    HttpResponse.json(invitePostImage, { status: 201 }),
+  ),
   http.post('*/api/invite-posts/:postId/engagements', () =>
     HttpResponse.json(engagementRequest, { status: 201 }),
   ),

@@ -2,7 +2,7 @@ import type { Session } from '@/features/accountsettings/api/contracts';
 import type { AuthUser } from '@/features/auth/api/contracts';
 import type { ChatMessage, ChatRoom } from '@/features/chat/api/contracts';
 import type { EngagementRequest } from '@/features/engagement-requests/api/contracts';
-import type { InvitePost } from '@/features/invite-posts/api/contracts';
+import type { InvitePost, InvitePostImage } from '@/features/invite-posts/api/contracts';
 import type { Notification } from '@/features/notifications/api/contracts';
 import type { DueRating, ReceivedRating, Reputation } from '@/features/ratings/api/contracts';
 import type { Scoreboard, ScoreSummary } from '@/features/scoreboard/api/contracts';
@@ -51,6 +51,26 @@ export const invitePost: InvitePost = {
   expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
+  images: [],
+};
+
+export const invitePostImage: InvitePostImage = {
+  id: '22222222-2222-4222-8222-222222222223',
+  url: 'https://storage.example.com/invite-post-images/coffee.jpg?signature=abc',
+  urlExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+  originalFilename: 'coffee.jpg',
+  contentType: 'image/jpeg',
+  fileSizeBytes: 512 * 1024,
+  displayOrder: 1,
+  createdAt: new Date().toISOString(),
+};
+
+export const invitePostWithImages: InvitePost = {
+  ...invitePost,
+  images: [
+    invitePostImage,
+    { ...invitePostImage, id: '22222222-2222-4222-8222-222222222224', displayOrder: 2 },
+  ],
 };
 
 export const engagementRequest: EngagementRequest = {

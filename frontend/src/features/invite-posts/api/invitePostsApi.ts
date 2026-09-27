@@ -2,6 +2,7 @@ import { apiClient } from '@/lib/api/client';
 import { normalizeApiError } from '@/lib/api/errors';
 import {
   parseInvitePost,
+  parseInvitePostImage,
   parseInvitePostList,
   type CreateInvitePostRequest,
   type LocalFeedScope,
@@ -18,6 +19,16 @@ async function normalizeFailure<T>(request: Promise<T>): Promise<T> {
 export async function createInvitePost(request: CreateInvitePostRequest) {
   const response = await normalizeFailure(apiClient.post('/invite-posts', request));
   return parseInvitePost(response.data);
+}
+
+export async function uploadInvitePostImage({ postId, file }: { postId: string; file: File }) {
+  const formData = new FormData();
+  formData.set('file', file);
+
+  const response = await normalizeFailure(
+    apiClient.post(`/invite-posts/${postId}/images`, formData),
+  );
+  return parseInvitePostImage(response.data);
 }
 
 export async function getLocalFeed(scope?: LocalFeedScope) {
