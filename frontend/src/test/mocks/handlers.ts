@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import {
   accountSessions,
+  attachmentChatMessage,
   authUser,
   chatMessage,
   chatRoom,
@@ -49,6 +50,15 @@ export const handlers = [
   http.get('*/api/chat-rooms/:roomId/messages', () => HttpResponse.json([])),
   http.post('*/api/chat-rooms/:roomId/messages', () =>
     HttpResponse.json(chatMessage, { status: 201 }),
+  ),
+  http.post('*/api/chat-rooms/:roomId/attachments', () =>
+    HttpResponse.json(attachmentChatMessage, { status: 201 }),
+  ),
+  http.get('*/api/attachments/:attachmentId/download-url', () =>
+    HttpResponse.json({
+      url: 'https://storage.example.com/chat-attachments/flyer.png?signature=abc',
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    }),
   ),
   http.patch('*/api/chat-rooms/:roomId/save', () =>
     HttpResponse.json({ ...chatRoom, saved: true }),
