@@ -50,3 +50,8 @@ class ResizeObserverStub {
   disconnect() {}
 }
 window.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+
+// jsdom doesn't implement the Blob URL registry — photo pickers that preview
+// a staged File via an object URL just need these to not throw in tests.
+window.URL.createObjectURL ??= () => 'blob:mock-url';
+window.URL.revokeObjectURL ??= () => undefined;

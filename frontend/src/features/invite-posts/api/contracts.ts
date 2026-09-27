@@ -15,6 +15,21 @@ export const SCOPE_LABELS: Record<LocationScope, string> = {
   GLOBAL: 'Global',
 };
 
+const invitePostImageSchema = z
+  .object({
+    id: z.string().min(1),
+    url: z.string().min(1),
+    urlExpiresAt: z.string().min(1),
+    originalFilename: z.string().min(1),
+    contentType: z.string().min(1),
+    fileSizeBytes: z.number(),
+    displayOrder: z.number().int(),
+    createdAt: z.string().min(1),
+  })
+  .passthrough();
+
+export type InvitePostImage = z.infer<typeof invitePostImageSchema>;
+
 const invitePostSchema = z
   .object({
     id: z.string().min(1),
@@ -33,6 +48,7 @@ const invitePostSchema = z
     expiresAt: z.string().min(1),
     createdAt: z.string().min(1),
     updatedAt: z.string().min(1),
+    images: z.array(invitePostImageSchema),
   })
   .passthrough();
 
@@ -46,4 +62,8 @@ export function parseInvitePost(value: unknown): InvitePost {
 
 export function parseInvitePostList(value: unknown): InvitePost[] {
   return parseWithContract(invitePostListSchema, value);
+}
+
+export function parseInvitePostImage(value: unknown): InvitePostImage {
+  return parseWithContract(invitePostImageSchema, value);
 }
