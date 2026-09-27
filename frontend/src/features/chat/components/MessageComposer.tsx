@@ -1,8 +1,10 @@
-import { LoaderCircle, Send } from 'lucide-react';
-import { type KeyboardEvent, useState } from 'react';
+import { LoaderCircle, Paperclip, Send } from 'lucide-react';
+import { type ChangeEvent, type KeyboardEvent, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useSendChatAttachment } from '../hooks/useSendChatAttachment';
 import { useSendChatMessage } from '../hooks/useSendChatMessage';
+import { validateAttachment } from '../lib/validateAttachment';
 
 export function MessageComposer({
   roomId,
@@ -14,11 +16,15 @@ export function MessageComposer({
   disabledReason?: string;
 }) {
   const [body, setBody] = useState('');
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const sendMessage = useSendChatMessage(roomId);
+  const sendAttachment = useSendChatAttachment(roomId);
+  const isPending = sendMessage.isPending || sendAttachment.isPending;
 
   function submit() {
     const trimmed = body.trim();
-    if (!trimmed || sendMessage.isPending) return;
+    if (!trimmed || isPending) return;
 
     sendMessage.mutate(trimmed, { onSuccess: () => setBody('') });
   }
@@ -30,6 +36,38 @@ export function MessageComposer({
     }
   }
 
+  function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || isPending) return;
+
+    const validationMessage = validateAttachment(file);
+    if (validationMessage) {
+      setAttachmentError(validationMessage);
+      return;
+    }
+
+    setAttachmentError(null);
+    const trimmed = body.trim();
+    sendAttachment.mutate(
+      { file, caption: trimmed || undefined },
+      { onSuccess: () => setBody('') },
+    );
+  }
+
+  const errorMessage =
+    attachmentError ??
+    (sendMessage.isError
+      ? sendMessage.error instanceof Error
+        ? sendMessage.error.message
+        : 'Unable to send that message.'
+      : null) ??
+    (sendAttachment.isError
+      ? sendAttachment.error instanceof Error
+        ? sendAttachment.error.message
+        : 'Unable to send that attachment.'
+      : null);
+
   return (
     <div>
       <form
@@ -39,11 +77,33 @@ export function MessageComposer({
         }}
         className="flex items-end gap-2"
       >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,application/pdf"
+          onChange={handleFileSelected}
+          disabled={disabled || isPending}
+          className="hidden"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          disabled={disabled || isPending}
+          aria-label="Attach a file"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {sendAttachment.isPending ? (
+            <LoaderCircle aria-hidden="true" className="animate-spin" />
+          ) : (
+            <Paperclip aria-hidden="true" />
+          )}
+        </Button>
         <Textarea
           value={body}
           onChange={(event) => setBody(event.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={disabled || sendMessage.isPending}
+          disabled={disabled || isPending}
           placeholder={disabled ? disabledReason : 'Write a message…'}
           aria-label="Message"
           rows={1}
@@ -52,7 +112,7 @@ export function MessageComposer({
         <Button
           type="submit"
           size="icon"
-          disabled={disabled || sendMessage.isPending || body.trim().length === 0}
+          disabled={disabled || isPending || body.trim().length === 0}
           aria-label="Send message"
         >
           {sendMessage.isPending ? (
@@ -62,11 +122,9 @@ export function MessageComposer({
           )}
         </Button>
       </form>
-      {sendMessage.isError ? (
+      {errorMessage ? (
         <p role="alert" className="text-destructive mt-1.5 text-sm">
-          {sendMessage.error instanceof Error
-            ? sendMessage.error.message
-            : 'Unable to send that message.'}
+          {errorMessage}
         </p>
       ) : null}
     </div>
