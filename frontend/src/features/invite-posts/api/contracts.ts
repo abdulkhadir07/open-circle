@@ -15,6 +15,16 @@ export const SCOPE_LABELS: Record<LocationScope, string> = {
   GLOBAL: 'Global',
 };
 
+const profileImageSchema = z
+  .object({
+    id: z.string().min(1),
+    url: z.string().min(1),
+    urlExpiresAt: z.string().min(1),
+    contentType: z.string().min(1),
+    updatedAt: z.string().min(1),
+  })
+  .passthrough();
+
 const invitePostImageSchema = z
   .object({
     id: z.string().min(1),
@@ -35,6 +45,7 @@ const invitePostSchema = z
     id: z.string().min(1),
     posterId: z.string().min(1),
     posterUsername: z.string().min(1),
+    posterProfileImage: profileImageSchema.nullish(),
     content: z.string().min(1),
     inviteType: z.enum(['SINGLE', 'GROUP']),
     totalCapacity: z.number().int().positive(),

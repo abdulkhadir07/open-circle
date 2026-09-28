@@ -1,5 +1,6 @@
 import { Crown } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
+import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import type { ScoreboardEntry } from '../api/contracts';
 
@@ -37,16 +38,16 @@ function PodiumSlot({
   return (
     <div className="flex flex-1 flex-col items-center gap-2">
       <div className="relative">
-        <span
+        <Avatar
+          name={entry.username}
+          profileImage={entry.profileImage}
           className={cn(
-            'flex items-center justify-center rounded-full font-bold',
+            'font-bold',
             styles.ring,
             styles.avatar,
             place === 1 ? 'size-16 text-xl' : 'size-12 text-base',
           )}
-        >
-          {entry.username[0]?.toUpperCase()}
-        </span>
+        />
         {place === 1 ? (
           <Crown
             aria-hidden="true"

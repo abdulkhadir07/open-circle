@@ -1,6 +1,7 @@
 import { Check, Clock, MapPin, Undo2, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { Avatar } from '@/components/ui/avatar';
 import { ReputationBadge } from '@/features/ratings/components/ReputationBadge';
 import { cn } from '@/lib/utils';
 import type { EngagementRequest } from '../api/contracts';
@@ -36,6 +37,12 @@ type EngagementRequestRowProps = {
    * poster's username, not their id.
    */
   otherUserId?: string;
+  /**
+   * The other party's photo — only available on the Received tab, since the
+   * Sent tab's `invitePost` summary carries no profile-image field (a
+   * backend gap, same reason `otherUserId` is omitted there too).
+   */
+  personProfileImage?: { url: string } | null;
   /** Actionable buttons for this row (Withdraw, or Accept/Decline/Hold) — omitted once the request is final. */
   actions?: ReactNode;
 };
@@ -44,6 +51,7 @@ export function EngagementRequestRow({
   request,
   personName,
   otherUserId,
+  personProfileImage,
   actions,
 }: EngagementRequestRowProps) {
   const { label, icon: Icon, tone } = STATUS_PRESENTATION[request.status];
@@ -51,9 +59,11 @@ export function EngagementRequestRow({
   return (
     <li className="border-border bg-card flex flex-wrap items-start justify-between gap-3 rounded-xl border p-4">
       <div className="flex min-w-0 items-start gap-3">
-        <span className="bg-accent/20 text-accent flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
-          {personName[0]?.toUpperCase()}
-        </span>
+        <Avatar
+          name={personName}
+          profileImage={personProfileImage}
+          className="bg-accent/20 text-accent size-9 text-sm"
+        />
         <div className="min-w-0">
           <p className="text-foreground flex items-center gap-2 text-base font-semibold">
             {otherUserId ? (

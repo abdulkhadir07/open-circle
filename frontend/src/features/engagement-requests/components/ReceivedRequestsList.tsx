@@ -49,6 +49,7 @@ export function ReceivedRequestsList() {
               request={request}
               personName={request.requesterUsername}
               otherUserId={request.requesterId}
+              personProfileImage={request.requesterProfileImage}
               actions={
                 actionable ? (
                   <div className="flex items-center gap-1.5">

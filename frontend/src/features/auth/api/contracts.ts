@@ -4,9 +4,22 @@ import type { ApiSchemas } from '@/types/api-types';
 
 export { ApiContractError } from '@/lib/api/contracts';
 
-export type AuthUser = ApiSchemas['UserResponse'] & {
+const profileImageSchema = z
+  .object({
+    id: z.string().min(1),
+    url: z.string().min(1),
+    urlExpiresAt: z.string().min(1),
+    contentType: z.string().min(1),
+    updatedAt: z.string().min(1),
+  })
+  .passthrough();
+
+export type ProfileImage = z.infer<typeof profileImageSchema>;
+
+export type AuthUser = Omit<ApiSchemas['UserResponse'], 'profileImage'> & {
   id: string;
   username: string;
+  profileImage?: ProfileImage | null;
   firstName: string;
   lastName: string;
   email: string;
@@ -25,6 +38,7 @@ const userSchema = z
   .object({
     id: z.string().min(1),
     username: z.string().min(1),
+    profileImage: profileImageSchema.nullish(),
     firstName: z.string().min(1),
     lastName: z.string().min(1),
     email: z.string().email(),

@@ -11,6 +11,12 @@ const profileImageSchema = z
   })
   .passthrough();
 
+export type ProfileImage = z.infer<typeof profileImageSchema>;
+
+export function parseProfileImage(value: unknown): ProfileImage {
+  return parseWithContract(profileImageSchema, value);
+}
+
 const profileReputationSchema = z
   .object({
     averageRating: z.number().nullable(),
