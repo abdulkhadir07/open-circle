@@ -21,8 +21,18 @@ export function ScoreboardPage() {
         Back
       </Link>
 
-      <p className="text-primary mt-4 text-sm font-semibold">Your circle</p>
-      <h1 className="text-foreground text-3xl font-semibold">Scoreboard</h1>
+      <div className="mt-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-primary text-sm font-semibold">Your circle</p>
+          <h1 className="text-foreground text-3xl font-semibold">Scoreboard</h1>
+        </div>
+        <Link
+          to="/scoreboard/hall-of-fame"
+          className="text-primary text-sm font-medium hover:underline"
+        >
+          Past winners
+        </Link>
+      </div>
 
       {myScore.isLoading ? (
         <LoaderCircle
