@@ -5,7 +5,7 @@ import type { EngagementRequest } from '@/features/engagement-requests/api/contr
 import type { InvitePost, InvitePostImage } from '@/features/invite-posts/api/contracts';
 import type { Notification } from '@/features/notifications/api/contracts';
 import type { DueRating, ReceivedRating, Reputation } from '@/features/ratings/api/contracts';
-import type { Scoreboard, ScoreSummary } from '@/features/scoreboard/api/contracts';
+import type { AnnualAward, Scoreboard, ScoreSummary } from '@/features/scoreboard/api/contracts';
 import type { UserProfile } from '@/features/profile/api/contracts';
 
 export const profileImage = {
@@ -255,6 +255,20 @@ export const scoreboard: Scoreboard = {
       annualScore: 30,
       averageRating: null,
       currentYearDistinctRaterCount: 3,
+    },
+  ],
+};
+
+export const annualAward: AnnualAward = {
+  seasonYear: 2025,
+  name: 'Circle Champion 2025',
+  finalizedAt: '2026-01-01T00:05:00Z',
+  winners: [
+    {
+      userId: authUser.id,
+      username: authUser.username,
+      profileImage: null,
+      finalScore: 210,
     },
   ],
 };

@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import {
   accountSessions,
+  annualAward,
   attachmentChatMessage,
   authUser,
   chatMessage,
@@ -119,6 +120,7 @@ export const handlers = [
   http.get('*/api/scoreboard', () =>
     HttpResponse.json({ seasonYear: new Date().getUTCFullYear(), entries: [] }),
   ),
+  http.get('*/api/awards/:year', () => HttpResponse.json(annualAward)),
   // Order matters: the specific "me/profile" routes must come before the
   // generic ":userId/profile" one below, since ":userId" would otherwise
   // also match the literal segment "me".

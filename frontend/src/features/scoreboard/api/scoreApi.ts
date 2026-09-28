@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api/client';
 import { normalizeApiError } from '@/lib/api/errors';
-import { parseScoreSummary, parseScoreboard } from './contracts';
+import { parseAnnualAward, parseScoreSummary, parseScoreboard } from './contracts';
 
 async function normalizeFailure<T>(request: Promise<T>): Promise<T> {
   try {
@@ -18,4 +18,9 @@ export async function getMyScore() {
 export async function getScoreboard() {
   const response = await normalizeFailure(apiClient.get('/scoreboard'));
   return parseScoreboard(response.data);
+}
+
+export async function getAnnualAward(year: number) {
+  const response = await normalizeFailure(apiClient.get(`/awards/${year}`));
+  return parseAnnualAward(response.data);
 }

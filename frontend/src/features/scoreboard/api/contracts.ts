@@ -45,10 +45,36 @@ const scoreboardSchema = z
 
 export type Scoreboard = z.infer<typeof scoreboardSchema>;
 
+const annualAwardWinnerSchema = z
+  .object({
+    userId: z.string().min(1),
+    username: z.string().min(1),
+    profileImage: profileImageSchema.nullish(),
+    finalScore: z.number(),
+  })
+  .passthrough();
+
+export type AnnualAwardWinner = z.infer<typeof annualAwardWinnerSchema>;
+
+const annualAwardSchema = z
+  .object({
+    seasonYear: z.number(),
+    name: z.string().min(1),
+    finalizedAt: z.string().min(1),
+    winners: z.array(annualAwardWinnerSchema),
+  })
+  .passthrough();
+
+export type AnnualAward = z.infer<typeof annualAwardSchema>;
+
 export function parseScoreSummary(value: unknown): ScoreSummary {
   return parseWithContract(scoreSummarySchema, value);
 }
 
 export function parseScoreboard(value: unknown): Scoreboard {
   return parseWithContract(scoreboardSchema, value);
+}
+
+export function parseAnnualAward(value: unknown): AnnualAward {
+  return parseWithContract(annualAwardSchema, value);
 }
