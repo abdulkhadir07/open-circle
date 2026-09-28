@@ -11,6 +11,16 @@ export const ENGAGEMENT_REQUEST_STATUSES = [
 
 export type EngagementRequestStatus = (typeof ENGAGEMENT_REQUEST_STATUSES)[number];
 
+const profileImageSchema = z
+  .object({
+    id: z.string().min(1),
+    url: z.string().min(1),
+    urlExpiresAt: z.string().min(1),
+    contentType: z.string().min(1),
+    updatedAt: z.string().min(1),
+  })
+  .passthrough();
+
 const engagementInvitePostSummarySchema = z
   .object({
     id: z.string().min(1),
@@ -31,6 +41,7 @@ const engagementRequestSchema = z
     invitePost: engagementInvitePostSummarySchema,
     requesterId: z.string().min(1),
     requesterUsername: z.string().min(1),
+    requesterProfileImage: profileImageSchema.nullish(),
     status: z.enum(ENGAGEMENT_REQUEST_STATUSES),
     expiresAt: z.string().min(1),
     respondedAt: z.string().nullish(),
