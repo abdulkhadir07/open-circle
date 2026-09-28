@@ -66,6 +66,11 @@ const ScoreboardPage = lazy(() =>
     default: module.ScoreboardPage,
   })),
 );
+const HallOfFamePage = lazy(() =>
+  import('@/features/scoreboard/pages/HallOfFamePage').then((module) => ({
+    default: module.HallOfFamePage,
+  })),
+);
 const ProfilePage = lazy(() =>
   import('@/features/profile/pages/ProfilePage').then((module) => ({
     default: module.ProfilePage,
@@ -156,6 +161,14 @@ export function AppRoutes() {
             element={
               <AppLayout>
                 <ScoreboardPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/scoreboard/hall-of-fame"
+            element={
+              <AppLayout>
+                <HallOfFamePage />
               </AppLayout>
             }
           />

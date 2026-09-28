@@ -16,6 +16,15 @@ function renderScoreboardPage() {
 }
 
 describe('ScoreboardPage', () => {
+  it('links to the Hall of Fame page', async () => {
+    renderScoreboardPage();
+
+    expect(await screen.findByRole('link', { name: 'Past winners' })).toHaveAttribute(
+      'href',
+      '/scoreboard/hall-of-fame',
+    );
+  });
+
   it('shows an empty state when no one has scored yet', async () => {
     renderScoreboardPage();
 
