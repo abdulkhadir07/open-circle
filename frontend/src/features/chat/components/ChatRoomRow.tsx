@@ -1,6 +1,7 @@
 import { Pin, User } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import type { ChatRoom } from '../api/contracts';
 
@@ -27,8 +28,10 @@ export function ChatRoomRow({
 }: ChatRoomRowProps) {
   const names = otherParticipantNames(room, currentUserId);
   const others = room.participants.filter((p) => p.userId !== currentUserId);
-  // A profile link naming one specific person only makes sense for a 1:1 chat.
-  const soleOtherParticipantId = others.length === 1 ? others[0]?.userId : undefined;
+  // A profile link (and a real photo, as opposed to a group's generic
+  // letter) naming one specific person only makes sense for a 1:1 chat.
+  const soleOtherParticipant = others.length === 1 ? others[0] : undefined;
+  const soleOtherParticipantId = soleOtherParticipant?.userId;
 
   return (
     <li
@@ -38,9 +41,11 @@ export function ChatRoomRow({
       )}
     >
       <Link to={`/chats/${room.id}`} className="flex min-w-0 flex-1 items-center gap-3 px-2 py-2.5">
-        <span className="bg-accent/20 text-accent flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
-          {names[0]?.toUpperCase()}
-        </span>
+        <Avatar
+          name={names}
+          profileImage={soleOtherParticipant?.profileImage}
+          className="bg-accent/20 text-accent size-9 text-sm"
+        />
         <div className="min-w-0 flex-1">
           <p className="text-foreground flex items-center gap-1.5 text-base font-semibold">
             {room.saved ? (

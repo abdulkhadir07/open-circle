@@ -4,11 +4,13 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useParams } from 'react-router-dom';
+import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { ApiError } from '@/lib/api/errors';
+import { EditableProfileAvatar } from '../components/EditableProfileAvatar';
 import { InterestChips } from '../components/InterestChips';
 import { ProfileAwardsList } from '../components/ProfileAwardsList';
 import { ProfileReputationSummary } from '../components/ProfileReputationSummary';
@@ -115,9 +117,19 @@ export function ProfilePage() {
       <div className="border-primary/15 from-card to-primary/[0.04] mt-4 rounded-2xl border bg-gradient-to-br p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <span className="bg-primary/10 text-primary flex size-20 shrink-0 items-center justify-center rounded-full text-3xl font-semibold">
-              {data.displayName[0]?.toUpperCase()}
-            </span>
+            {isOwnProfile ? (
+              <EditableProfileAvatar
+                name={data.displayName}
+                profileImage={data.profileImage}
+                className="bg-primary/10 text-primary size-20 text-3xl"
+              />
+            ) : (
+              <Avatar
+                name={data.displayName}
+                profileImage={data.profileImage}
+                className="bg-primary/10 text-primary size-20 text-3xl"
+              />
+            )}
             <div className="min-w-0">
               <h1 className="text-foreground truncate text-2xl font-semibold sm:text-3xl">
                 {data.displayName}

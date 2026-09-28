@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Avatar } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +62,8 @@ export function ChatRoomPage() {
   // Keeps showing who you were talking to even after they leave the room.
   const others = room.participants.filter((p) => p.userId !== currentUser.data?.id);
   const names = others.length > 0 ? others.map((p) => p.username).join(', ') : 'Just you';
+  // A real photo, like the profile link elsewhere, only makes sense for a 1:1 chat.
+  const soleOtherParticipant = others.length === 1 ? others[0] : undefined;
   const departedOther = others.find((p) => !p.active);
   const canSendMessages = !room.closed && others.some((p) => p.active);
 
@@ -79,9 +82,11 @@ export function ChatRoomPage() {
           >
             <ArrowLeft aria-hidden="true" className="size-5" />
           </Link>
-          <span className="bg-accent/20 text-accent flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
-            {names[0]?.toUpperCase()}
-          </span>
+          <Avatar
+            name={names}
+            profileImage={soleOtherParticipant?.profileImage}
+            className="bg-accent/20 text-accent size-9 text-sm"
+          />
           <div className="min-w-0">
             <h1 className="text-foreground truncate text-base font-semibold">{names}</h1>
             {room.closed ? (

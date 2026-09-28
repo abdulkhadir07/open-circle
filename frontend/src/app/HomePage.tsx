@@ -23,6 +23,7 @@ import { useLocalFeed } from '@/features/invite-posts/hooks/useLocalFeed';
 import { SCOPE_LABELS, type LocalFeedScope } from '@/features/invite-posts/api/contracts';
 import { useMyEngagementRequests } from '@/features/engagement-requests/hooks/useMyEngagementRequests';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { EditableProfileAvatar } from '@/features/profile/components/EditableProfileAvatar';
 
 const FEED_MODE_OPTIONS = [
   { value: 'local', label: 'Local' },
@@ -85,9 +86,11 @@ export function HomePage() {
           same actions live inline with the feed below instead. */}
       <aside className="sticky top-8 hidden lg:flex lg:h-[calc(100svh-6rem)] lg:flex-col">
         <div className="flex items-center gap-3">
-          <span className="bg-primary/10 text-primary flex size-11 shrink-0 items-center justify-center rounded-full text-base font-semibold">
-            {user.firstName?.[0]?.toUpperCase()}
-          </span>
+          <EditableProfileAvatar
+            name={user.firstName}
+            profileImage={user.profileImage}
+            className="bg-primary/10 text-primary size-11 text-base"
+          />
           <div className="min-w-0">
             <p className="text-foreground truncate text-base font-semibold">
               {user.firstName} {user.lastName}

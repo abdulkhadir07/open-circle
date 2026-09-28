@@ -8,9 +8,18 @@ import type { DueRating, ReceivedRating, Reputation } from '@/features/ratings/a
 import type { Scoreboard, ScoreSummary } from '@/features/scoreboard/api/contracts';
 import type { UserProfile } from '@/features/profile/api/contracts';
 
+export const profileImage = {
+  id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  url: 'https://storage.example.com/profile-images/maya.jpg?signature=abc',
+  urlExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+  contentType: 'image/jpeg',
+  updatedAt: new Date().toISOString(),
+};
+
 export const authUser: AuthUser = {
   id: '11111111-1111-4111-8111-111111111111',
   username: 'maya.chen',
+  profileImage: null,
   firstName: 'Maya',
   lastName: 'Chen',
   email: 'maya@example.com',
@@ -35,6 +44,7 @@ export const invitePost: InvitePost = {
   id: '22222222-2222-4222-8222-222222222222',
   posterId: authUser.id,
   posterUsername: authUser.username,
+  posterProfileImage: null,
   content: 'Anyone up for coffee near Union Square this afternoon?',
   inviteType: 'SINGLE',
   totalCapacity: 1,
@@ -86,6 +96,7 @@ export const engagementRequest: EngagementRequest = {
   },
   requesterId: '44444444-4444-4444-8444-444444444444',
   requesterUsername: 'sam.rivera',
+  requesterProfileImage: null,
   status: 'PENDING',
   expiresAt: invitePost.expiresAt,
   respondedAt: null,

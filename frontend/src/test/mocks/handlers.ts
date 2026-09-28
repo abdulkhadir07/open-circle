@@ -8,6 +8,7 @@ import {
   engagementRequest,
   invitePost,
   invitePostImage,
+  profileImage,
 } from './fixtures';
 import type { UserProfile } from '@/features/profile/api/contracts';
 import type { Reputation } from '@/features/ratings/api/contracts';
@@ -170,6 +171,8 @@ export const handlers = [
   http.post('*/api/users/me/email-change/verify', () =>
     HttpResponse.json({ token: 'rotated-token' }),
   ),
+  http.put('*/api/users/me/profile-image', () => HttpResponse.json(profileImage)),
+  http.delete('*/api/users/me/profile-image', () => new HttpResponse(null, { status: 204 })),
   http.get('*/api/users/me/sessions', () => HttpResponse.json({ sessions: accountSessions })),
   http.delete('*/api/users/me/sessions/:sessionId', () => new HttpResponse(null, { status: 204 })),
   http.delete('*/api/users/me/sessions', () => new HttpResponse(null, { status: 204 })),
