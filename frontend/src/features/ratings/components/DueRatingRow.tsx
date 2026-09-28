@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Avatar } from '@/components/ui/avatar';
 import type { DueRating } from '../api/contracts';
 import { formatDueCountdown } from '../lib/formatDueCountdown';
 import { copyForTrigger } from '../lib/ratingTriggerCopy';
@@ -19,9 +20,11 @@ export function DueRatingRow({ dueRating }: { dueRating: DueRating }) {
   return (
     <li className="border-border bg-card flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="bg-accent/20 text-accent flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
-          {dueRating.otherUsername[0]?.toUpperCase()}
-        </span>
+        <Avatar
+          name={dueRating.otherUsername}
+          profileImage={dueRating.otherUserProfileImage}
+          className="bg-accent/20 text-accent size-9 text-sm"
+        />
         <div className="min-w-0">
           <p className="text-foreground text-base font-semibold">{dueRating.otherUsername}</p>
           <p className="text-muted-foreground mt-0.5 text-sm">

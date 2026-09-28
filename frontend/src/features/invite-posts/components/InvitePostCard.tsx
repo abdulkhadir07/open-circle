@@ -1,5 +1,6 @@
 import { MapPin } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
+import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import type { EngagementRequest } from '@/features/engagement-requests/api/contracts';
 import { EngageControl } from '@/features/engagement-requests/components/EngageControl';
@@ -106,9 +107,11 @@ export function InvitePostCard({ post, isOwnPost = false, myRequest }: InvitePos
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <ExpiryRing fraction={fraction}>
-            <span className="bg-accent/20 text-accent flex size-8 items-center justify-center rounded-full text-sm font-semibold">
-              {post.posterUsername[0]?.toUpperCase()}
-            </span>
+            <Avatar
+              name={post.posterUsername}
+              profileImage={post.posterProfileImage}
+              className="bg-accent/20 text-accent size-8 text-sm"
+            />
           </ExpiryRing>
           <div>
             <p className="text-foreground text-base font-semibold">{post.posterUsername}</p>

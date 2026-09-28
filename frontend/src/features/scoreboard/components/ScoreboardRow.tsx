@@ -1,3 +1,4 @@
+import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import type { ScoreboardEntry } from '../api/contracts';
 
@@ -23,9 +24,11 @@ export function ScoreboardRow({
       <span className="text-muted-foreground w-5 shrink-0 text-center text-sm font-semibold tabular-nums">
         {position}
       </span>
-      <span className="bg-accent/20 text-accent flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
-        {entry.username[0]?.toUpperCase()}
-      </span>
+      <Avatar
+        name={entry.username}
+        profileImage={entry.profileImage}
+        className="bg-accent/20 text-accent size-9 text-sm"
+      />
       <div className="min-w-0 flex-1">
         <p className="text-foreground truncate text-sm font-semibold">
           {entry.username}

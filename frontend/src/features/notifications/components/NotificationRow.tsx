@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import type { Notification } from '../api/contracts';
 import { useMarkNotificationRead } from '../hooks/useMarkNotificationRead';
@@ -27,12 +28,12 @@ export function NotificationRow({ notification, onNavigate }: NotificationRowPro
 
   const content = (
     <>
-      <span
+      <Avatar
         aria-hidden="true"
-        className="bg-accent/20 text-accent mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
-      >
-        {(notification.actor?.username ?? '?')[0]?.toUpperCase()}
-      </span>
+        name={notification.actor?.username ?? '?'}
+        profileImage={notification.actor?.profileImage}
+        className="bg-accent/20 text-accent mt-0.5 size-8 text-sm"
+      />
       <div className="min-w-0 flex-1">
         <p className="text-foreground text-sm leading-5">{messageFor(notification)}</p>
         <p className="text-muted-foreground mt-0.5 text-xs">
