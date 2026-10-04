@@ -26,15 +26,15 @@ class InvitePostServiceTest {
     );
 
     @Test
-    void createPostUsesVerifiedLocationSnapshot() {
-        AppUser poster = verifiedUser("poster@example.com", "San Francisco", "California", "USA");
+    void createPostBelongsToThePostersCampus() {
+        AppUser poster = verifiedUser("poster@student.sfsu.edu", "San Francisco", "California", "USA");
         when(posts.save(any(InvitePost.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         CreateInvitePostRequest request = new CreateInvitePostRequest(
                 "Anyone want to grab coffee near campus?",
                 InviteType.GROUP,
                 4,
-                LocationScope.CITY,
+                null,
                 null
         );
 
@@ -44,14 +44,57 @@ class InvitePostServiceTest {
         assertThat(post.getContent()).isEqualTo("Anyone want to grab coffee near campus?");
         assertThat(post.getInviteType()).isEqualTo(InviteType.GROUP);
         assertThat(post.getTotalCapacity()).isEqualTo(4);
-        assertThat(post.getLocationScope()).isEqualTo(LocationScope.CITY);
-        assertThat(post.getCity()).isEqualTo("San Francisco");
-        assertThat(post.getStateRegion()).isEqualTo("California");
-        assertThat(post.getCountry()).isEqualTo("USA");
+        assertThat(post.getLocationScope()).isEqualTo(LocationScope.CAMPUS);
+        assertThat(post.getCampus()).isEqualTo("sfsu.edu");
+        assertThat(post.getCity()).isNull();
+        assertThat(post.getCountry()).isNull();
         assertThat(post.getCreatedAt()).isEqualTo(NOW);
         assertThat(post.getExpiresAt()).isEqualTo(NOW.plusSeconds(24 * 60 * 60L));
 
         verify(posts).save(post);
+    }
+
+    @Test
+    void createPostIgnoresARequestedLocationScope() {
+        AppUser poster = verifiedUser("scoped@sfsu.edu", "San Francisco", "California", "USA");
+        when(posts.save(any(InvitePost.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        InvitePost post = service.createPost(poster, new CreateInvitePostRequest(
+                "Worldwide, please",
+                InviteType.SINGLE,
+                null,
+                LocationScope.GLOBAL,
+                null
+        ));
+
+        assertThat(post.getLocationScope()).isEqualTo(LocationScope.CAMPUS);
+    }
+
+    @Test
+    void createPostWorksWithoutAVerifiedLocation() {
+        AppUser poster = user("nolocation@sfsu.edu", "San Francisco", "California", "USA");
+        when(posts.save(any(InvitePost.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        InvitePost post = service.createPost(poster, new CreateInvitePostRequest(
+                "No location needed",
+                InviteType.SINGLE,
+                null,
+                null,
+                null
+        ));
+
+        assertThat(post.getCampus()).isEqualTo("sfsu.edu");
+    }
+
+    @Test
+    void campusFeedReturnsOnlyTheViewersCampusPosts() {
+        AppUser viewer = user("viewer@student.sfsu.edu", "San Francisco", "California", "USA");
+        InvitePost campusPost = new InvitePost(viewer, "SFSU post", InviteType.SINGLE, 1, NOW.minusSeconds(60), List.of());
+        when(posts.findCampusFeed(InvitePostStatus.ACTIVE, NOW, "sfsu.edu")).thenReturn(List.of(campusPost));
+
+        assertThat(service.getCampusFeed(viewer)).containsExactly(campusPost);
+
+        verify(posts).findCampusFeed(InvitePostStatus.ACTIVE, NOW, "sfsu.edu");
     }
 
     @Test
@@ -72,24 +115,6 @@ class InvitePostServiceTest {
         assertThat(post.getInviteType()).isEqualTo(InviteType.SINGLE);
         assertThat(post.getTotalCapacity()).isEqualTo(1);
         assertThat(post.getInvitesLeft()).isEqualTo(1);
-    }
-
-    @Test
-    void createPostRejectsUnverifiedLocation() {
-        AppUser poster = user("unverified@example.com", "San Francisco", "California", "USA");
-
-        CreateInvitePostRequest request = new CreateInvitePostRequest(
-                "This should not post yet",
-                InviteType.SINGLE,
-                1,
-                LocationScope.GLOBAL,
-                null
-        );
-
-        assertThatThrownBy(() -> service.createPost(poster, request))
-                .isInstanceOf(LocationNotVerifiedException.class);
-
-        verify(posts, never()).save(any());
     }
 
     @Test
@@ -126,25 +151,6 @@ class InvitePostServiceTest {
         assertThatThrownBy(() -> service.createPost(poster, request))
                 .isInstanceOf(InvalidInvitePostRequestException.class)
                 .hasMessage("Group invites must have a total capacity of at least 2");
-
-        verify(posts, never()).save(any());
-    }
-
-    @Test
-    void createPostRejectsStateRegionScopeWhenVerifiedLocationHasNoStateRegion() {
-        AppUser poster = verifiedUser("banjul@example.com", "Banjul", null, "The Gambia");
-
-        CreateInvitePostRequest request = new CreateInvitePostRequest(
-                "Anyone in my region?",
-                InviteType.GROUP,
-                3,
-                LocationScope.STATE_REGION,
-                null
-        );
-
-        assertThatThrownBy(() -> service.createPost(poster, request))
-                .isInstanceOf(InvalidInvitePostRequestException.class)
-                .hasMessage("State/region scope is not available for your verified location");
 
         verify(posts, never()).save(any());
     }

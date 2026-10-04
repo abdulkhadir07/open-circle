@@ -1,5 +1,6 @@
 package com.opencircle.user;
 
+import com.opencircle.campus.Campus;
 import jakarta.persistence.*;
 
 import java.time.Duration;
@@ -43,13 +44,16 @@ public class AppUser {
     @Column(name = "date_of_birth", nullable = false)
     private LocalDate dateOfBirth;
 
-    @Column(nullable = false, length = 80)
+    @Column(nullable = false, length = 160)
+    private String campus;
+
+    @Column(length = 80)
     private String city;
 
     @Column(name = "state_region", length = 80)
     private String stateRegion;
 
-    @Column(nullable = false, length = 80)
+    @Column(length = 80)
     private String country;
 
     @Enumerated(EnumType.STRING)
@@ -96,6 +100,26 @@ public class AppUser {
     protected AppUser() {
     }
 
+    // A campus account: no location is collected, the campus comes from the email domain.
+    public AppUser(
+            String username,
+            String firstName,
+            String lastName,
+            String email,
+            String passwordHash,
+            String phoneNumber,
+            LocalDate dateOfBirth
+    ) {
+        this.username = username.trim().toLowerCase();
+        this.firstName = firstName.trim();
+        this.lastName = lastName.trim();
+        this.email = email.trim().toLowerCase();
+        this.campus = Campus.fromEmail(this.email);
+        this.passwordHash = passwordHash;
+        this.phoneNumber = phoneNumber.trim();
+        this.dateOfBirth = dateOfBirth;
+    }
+
     public AppUser(
             String username,
             String firstName,
@@ -112,6 +136,7 @@ public class AppUser {
         this.firstName = firstName.trim();
         this.lastName = lastName.trim();
         this.email = email.trim().toLowerCase();
+        this.campus = Campus.fromEmail(this.email);
         this.passwordHash = passwordHash;
         this.phoneNumber = phoneNumber.trim();
         this.dateOfBirth = dateOfBirth;
@@ -148,6 +173,10 @@ public class AppUser {
     public String getPhoneNumber() {return phoneNumber;}
 
     public LocalDate getDateOfBirth() {return dateOfBirth;}
+
+    public String getCampus() {
+        return campus;
+    }
 
     public String getCity() {return city;}
 
@@ -205,6 +234,7 @@ public class AppUser {
         }
 
         this.email = email.trim().toLowerCase();
+        this.campus = Campus.fromEmail(this.email);
         this.emailVerified = true;
         this.emailVerifiedAt = verifiedAt;
     }
