@@ -4,13 +4,23 @@ import com.opencircle.user.AppUser;
 import jakarta.persistence.*;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Entity
 @Table(name = "invite_posts")
 public class InvitePost {
 
     private static final int EXPIRATION_HOURS = 24;
+
+    static final int MAX_TAGS = 5;
+    static final int MAX_TAG_LENGTH = 30;
+    private static final Pattern TAG_PATTERN = Pattern.compile("[\\p{L}\\p{N}][\\p{L}\\p{N}_-]*");
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -56,6 +66,15 @@ public class InvitePost {
     @Column(name = "expiration_notified_at", insertable = false, updatable = false)
     private Instant expirationNotifiedAt;
 
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(
+            name = "invite_post_tags",
+            joinColumns = @JoinColumn(name = "post_id"),
+            foreignKey = @ForeignKey(name = "fk_invite_post_tags_post")
+    )
+    @OrderBy("displayOrder ASC")
+    private List<InvitePostTag> tags = new ArrayList<>();
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -75,6 +94,21 @@ public class InvitePost {
             String stateRegion,
             String country,
             Instant createdAt
+    ) {
+        this(poster, content, inviteType, totalCapacity, locationScope, city, stateRegion, country, createdAt, List.of());
+    }
+
+    public InvitePost(
+            AppUser poster,
+            String content,
+            InviteType inviteType,
+            int totalCapacity,
+            LocationScope locationScope,
+            String city,
+            String stateRegion,
+            String country,
+            Instant createdAt,
+            List<String> tags
     ) {
         if (poster == null) {
             throw new IllegalArgumentException("Poster is required");
@@ -127,6 +161,11 @@ public class InvitePost {
         this.createdAt = createdAt;
         this.updatedAt = createdAt;
         this.expiresAt = createdAt.plusSeconds(EXPIRATION_HOURS * 60L * 60L);
+
+        List<String> normalizedTags = normalizeTags(tags);
+        for (short index = 0; index < normalizedTags.size(); index++) {
+            this.tags.add(new InvitePostTag(normalizedTags.get(index), index));
+        }
     }
 
     @PrePersist
@@ -200,6 +239,12 @@ public class InvitePost {
         return expirationNotifiedAt;
     }
 
+    public List<String> getTags() {
+        return tags.stream()
+                .map(InvitePostTag::getValue)
+                .toList();
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -226,5 +271,46 @@ public class InvitePost {
         }
 
         acceptedCount++;
+    }
+
+    // Tags are stored lowercase without the leading '#'; blanks are dropped and duplicates collapse.
+    private static List<String> normalizeTags(List<String> values) {
+        if (values == null) {
+            return List.of();
+        }
+
+        Set<String> normalized = new LinkedHashSet<>();
+
+        for (String value : values) {
+            if (value == null) {
+                continue;
+            }
+
+            String tag = value.trim();
+            while (tag.startsWith("#")) {
+                tag = tag.substring(1);
+            }
+            tag = tag.trim().toLowerCase(Locale.ROOT);
+
+            if (tag.isEmpty()) {
+                continue;
+            }
+
+            if (tag.length() > MAX_TAG_LENGTH) {
+                throw new IllegalArgumentException("Tags must not exceed 30 characters");
+            }
+
+            if (!TAG_PATTERN.matcher(tag).matches()) {
+                throw new IllegalArgumentException("Tags can only contain letters, numbers, hyphens and underscores");
+            }
+
+            normalized.add(tag);
+        }
+
+        if (normalized.size() > MAX_TAGS) {
+            throw new IllegalArgumentException("A post can have at most 5 tags");
+        }
+
+        return List.copyOf(normalized);
     }
 }

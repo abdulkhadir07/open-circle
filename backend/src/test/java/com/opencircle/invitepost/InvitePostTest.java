@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -203,6 +204,56 @@ class InvitePostTest {
         assertThatThrownBy(post::recordAcceptedEngagement)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Invite post is already full");
+    }
+
+    @Test
+    void constructorDefaultsToNoTags() {
+        InvitePost post = postWithTags(null);
+
+        assertThat(post.getTags()).isEmpty();
+    }
+
+    @Test
+    void constructorNormalizesTagsToLowercaseWithoutHashAndDropsBlanksAndDuplicates() {
+        InvitePost post = postWithTags(List.of("#Walk", " Study ", "walk", "", "  ", "Code-Jam"));
+
+        assertThat(post.getTags()).containsExactly("walk", "study", "code-jam");
+    }
+
+    @Test
+    void constructorRejectsMoreThanFiveTags() {
+        assertThatThrownBy(() -> postWithTags(List.of("a", "b", "c", "d", "e", "f")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("A post can have at most 5 tags");
+    }
+
+    @Test
+    void constructorRejectsTooLongTags() {
+        assertThatThrownBy(() -> postWithTags(List.of("x".repeat(31))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Tags must not exceed 30 characters");
+    }
+
+    @Test
+    void constructorRejectsTagsWithInvalidCharacters() {
+        assertThatThrownBy(() -> postWithTags(List.of("hello world")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Tags can only contain letters, numbers, hyphens and underscores");
+    }
+
+    private InvitePost postWithTags(List<String> tags) {
+        return new InvitePost(
+                user(),
+                "Anyone up for a walk?",
+                InviteType.GROUP,
+                3,
+                LocationScope.CITY,
+                "San Francisco",
+                "California",
+                "USA",
+                Instant.parse("2026-08-29T12:00:00Z"),
+                tags
+        );
     }
 
     private AppUser user() {

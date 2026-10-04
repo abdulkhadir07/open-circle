@@ -19,7 +19,7 @@ public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
     @Query("select post from InvitePost post where post.id = :postId")
     Optional<InvitePost> findByIdForImageUpload(UUID postId);
 
-    @EntityGraph(attributePaths = "poster")
+    @EntityGraph(attributePaths = {"poster", "tags"})
     @Query("""
             select post
             from InvitePost post
@@ -36,7 +36,7 @@ public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
             String country
     );
 
-    @EntityGraph(attributePaths = "poster")
+    @EntityGraph(attributePaths = {"poster", "tags"})
     @Query("""
             select post
             from InvitePost post
@@ -55,7 +55,7 @@ public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
             String stateRegion
     );
 
-    @EntityGraph(attributePaths = "poster")
+    @EntityGraph(attributePaths = {"poster", "tags"})
     @Query("""
             select post
             from InvitePost post
@@ -74,7 +74,7 @@ public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
             String city
     );
 
-    @EntityGraph(attributePaths = "poster")
+    @EntityGraph(attributePaths = {"poster", "tags"})
     @Query("""
             select post
             from InvitePost post
@@ -89,7 +89,7 @@ public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
             LocationScope locationScope
     );
 
-    @EntityGraph(attributePaths = "poster")
+    @EntityGraph(attributePaths = {"poster", "tags"})
     @Query("select post from InvitePost post where post.id = :postId")
     Optional<InvitePost> findByIdWithPoster(UUID postId);
 }

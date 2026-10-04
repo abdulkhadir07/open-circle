@@ -25,7 +25,8 @@ record InvitePostResponse(
         Instant expiresAt,
         Instant createdAt,
         Instant updatedAt,
-        List<InvitePostImageResponse> images
+        List<InvitePostImageResponse> images,
+        List<String> tags
 ) {
 
     static InvitePostResponse from(InvitePost post) {
@@ -59,7 +60,8 @@ record InvitePostResponse(
                 post.getExpiresAt(),
                 post.getCreatedAt(),
                 post.getUpdatedAt(),
-                List.copyOf(images)
+                List.copyOf(images),
+                post.getTags()
         );
     }
 }

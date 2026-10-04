@@ -192,6 +192,7 @@ class EngagementRequestControllerIntegrationTest extends AbstractIntegrationTest
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].invitePost.content").value("Second post needing help"))
+                .andExpect(jsonPath("$[0].invitePost.posterId").value(poster.getId().toString()))
                 .andExpect(jsonPath("$[0].invitePost.posterUsername").value(poster.getUsername()))
                 .andExpect(jsonPath("$[1].invitePost.content").value("First post needing help"));
     }

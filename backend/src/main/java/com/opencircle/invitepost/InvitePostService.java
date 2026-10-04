@@ -30,17 +30,23 @@ class InvitePostService {
         int totalCapacity = totalCapacityFor(request);
         validateLocationScope(poster, request.locationScope());
 
-        InvitePost post = new InvitePost(
-                poster,
-                request.content(),
-                request.inviteType(),
-                totalCapacity,
-                request.locationScope(),
-                poster.getVerifiedCity(),
-                poster.getVerifiedStateRegion(),
-                poster.getVerifiedCountry(),
-                Instant.now(clock)
-        );
+        InvitePost post;
+        try {
+            post = new InvitePost(
+                    poster,
+                    request.content(),
+                    request.inviteType(),
+                    totalCapacity,
+                    request.locationScope(),
+                    poster.getVerifiedCity(),
+                    poster.getVerifiedStateRegion(),
+                    poster.getVerifiedCountry(),
+                    Instant.now(clock),
+                    request.tags()
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new InvalidInvitePostRequestException(exception.getMessage());
+        }
 
         return posts.save(post);
     }
