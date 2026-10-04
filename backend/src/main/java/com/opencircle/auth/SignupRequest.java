@@ -39,14 +39,13 @@ record SignupRequest(
         @NotNull(message = "Date of birth is required")
         LocalDate dateOfBirth,
 
-        @NotBlank(message = "City is required")
+        // Location is no longer collected at signup (accounts belong to a campus); still accepted.
         @Size(max = 80)
         String city,
 
         @Size(max = 80)
         String stateRegion,
 
-        @NotBlank(message = "Country is required")
         @Size(max = 80)
         String country
 ) {

@@ -23,6 +23,33 @@ public class UserService {
         this.usernameGenerator = usernameGenerator;
     }
 
+    // Creates a campus account: no location is collected, the campus comes from the email domain.
+    @Transactional
+    public AppUser createUser(
+            String firstName,
+            String lastName,
+            String email,
+            String passwordHash,
+            String phoneNumber,
+            java.time.LocalDate dateOfBirth
+    ) {
+        String username = usernameGenerator.generate();
+
+        AppUser user = new AppUser(
+                username,
+                firstName,
+                lastName,
+                email,
+                passwordHash,
+                phoneNumber,
+                dateOfBirth
+        );
+
+        AppUser savedUser = users.save(user);
+        profiles.save(new UserProfile(savedUser, savedUser.getCreatedAt()));
+        return savedUser;
+    }
+
     @Transactional
     public AppUser createUser(
             String firstName,

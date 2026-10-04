@@ -25,6 +25,21 @@ public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
             from InvitePost post
             where post.status = :status
               and post.expiresAt > :now
+              and post.campus = :campus
+            order by post.createdAt desc
+            """)
+    List<InvitePost> findCampusFeed(
+            InvitePostStatus status,
+            Instant now,
+            String campus
+    );
+
+    @EntityGraph(attributePaths = {"poster", "tags"})
+    @Query("""
+            select post
+            from InvitePost post
+            where post.status = :status
+              and post.expiresAt > :now
               and post.locationScope = :locationScope
               and post.country = :country
             order by post.createdAt desc
