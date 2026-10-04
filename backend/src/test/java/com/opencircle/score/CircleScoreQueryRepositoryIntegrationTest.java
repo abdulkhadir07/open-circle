@@ -218,6 +218,56 @@ class CircleScoreQueryRepositoryIntegrationTest extends AbstractIntegrationTest 
     }
 
     @Test
+    void currentRankCoversEveryPositionSharesTiedRanksAndIsNullWhenUnranked() {
+        int seasonYear = 2026;
+        Instant revealedAt = Instant.parse("2026-07-01T12:00:00Z");
+
+        AppUser first = user("rank-first");
+        addRatingFromNewRater(first, 5, revealedAt, "rank-first-a");
+        addRatingFromNewRater(first, 5, revealedAt, "rank-first-b");
+
+        AppUser second = user("rank-second");
+        addRatingFromNewRater(second, 5, revealedAt, "rank-second-a");
+        addRatingFromNewRater(second, 4, revealedAt, "rank-second-b");
+
+        AppUser tiedThirdA = user("rank-third-a");
+        addRatingFromNewRater(tiedThirdA, 5, revealedAt, "rank-third-a");
+
+        AppUser tiedThirdB = user("rank-third-b");
+        addRatingFromNewRater(tiedThirdB, 5, revealedAt, "rank-third-b");
+
+        AppUser fifth = user("rank-fifth");
+        addRatingFromNewRater(fifth, 4, revealedAt, "rank-fifth");
+
+        // Sixth is outside the public top five but still has a rank of their own.
+        AppUser sixth = user("rank-sixth");
+        addRatingFromNewRater(sixth, 2, revealedAt, "rank-sixth");
+
+        AppUser noScore = user("rank-no-score");
+
+        AppUser negativeScore = user("rank-negative");
+        addMissedObligation(
+                negativeScore,
+                user("rank-negative-counterpart"),
+                revealedAt,
+                "rank-negative-penalty"
+        );
+
+        assertThat(scores.findRank(first.getId(), seasonYear)).isEqualTo(1L);
+        assertThat(scores.findRank(second.getId(), seasonYear)).isEqualTo(2L);
+        assertThat(scores.findRank(tiedThirdA.getId(), seasonYear)).isEqualTo(3L);
+        assertThat(scores.findRank(tiedThirdB.getId(), seasonYear)).isEqualTo(3L);
+        assertThat(scores.findRank(fifth.getId(), seasonYear)).isEqualTo(5L);
+        assertThat(scores.findRank(sixth.getId(), seasonYear)).isEqualTo(6L);
+        assertThat(scores.findTopRanks(seasonYear, 5))
+                .extracting(RankedScoreboardEntry::userId)
+                .doesNotContain(sixth.getId());
+        assertThat(scores.findRank(noScore.getId(), seasonYear)).isNull();
+        assertThat(scores.findRank(negativeScore.getId(), seasonYear)).isNull();
+        assertThat(scores.findRank(first.getId(), seasonYear - 1)).isNull();
+    }
+
+    @Test
     void awardCandidatesUseLifetimeReputationFrozenAtTheSeasonBoundary() {
         int seasonYear = 2025;
         Instant reputationCutoff = Instant.parse("2026-01-01T00:00:00Z");

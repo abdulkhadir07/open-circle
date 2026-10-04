@@ -42,7 +42,8 @@ public class ScoreController {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
         return ScoreSummaryResponse.from(
                 currentUser.getId(),
-                scoreService.getCurrentScore(currentUser)
+                scoreService.getCurrentScore(currentUser),
+                scoreService.getCurrentRank(currentUser)
         );
     }
 

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -70,6 +71,7 @@ class ScoreControllerIntegrationTest extends AbstractIntegrationTest {
 
         when(scores.findSummary(currentUser.getId(), 2026))
                 .thenReturn(new CircleScoreSummary(2026, -7, 18));
+        when(scores.findRank(currentUser.getId(), 2026)).thenReturn(7L);
         when(scores.findTopRanks(2026, 5)).thenReturn(List.of(
                 new RankedScoreboardEntry(
                         1,
@@ -95,7 +97,8 @@ class ScoreControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.userId").value(currentUser.getId().toString()))
                 .andExpect(jsonPath("$.seasonYear").value(2026))
                 .andExpect(jsonPath("$.annualScore").value(-7))
-                .andExpect(jsonPath("$.lifetimeScore").value(18));
+                .andExpect(jsonPath("$.lifetimeScore").value(18))
+                .andExpect(jsonPath("$.rank").value(7));
 
         mockMvc.perform(get("/api/scoreboard")
                         .header("Authorization", bearer(token)))
@@ -112,6 +115,22 @@ class ScoreControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.entries[1].rank").value(5));
 
         verify(profileImages).getProfileImagesByUserIds(Set.of(firstUserId, tiedUserId));
+    }
+
+    @Test
+    void returnsANullRankWhenTheCurrentUserHasNoPositiveScoreThisSeason() throws Exception {
+        AppUser currentUser = verifiedUser("score.unranked@example.com");
+        String token = loginToken(currentUser.getEmail());
+
+        when(scores.findSummary(currentUser.getId(), 2026))
+                .thenReturn(new CircleScoreSummary(2026, 0, 0));
+        when(scores.findRank(currentUser.getId(), 2026)).thenReturn(null);
+
+        mockMvc.perform(get("/api/users/me/score")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.annualScore").value(0))
+                .andExpect(jsonPath("$.rank").value(nullValue()));
     }
 
     @Test
