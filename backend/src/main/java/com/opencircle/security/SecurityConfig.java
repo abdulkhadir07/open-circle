@@ -108,6 +108,16 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/chat-rooms/{roomId}/hide").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/chat-rooms/{roomId}/participants/{userId}/remove").authenticated()
 
+
+                        .requestMatchers(HttpMethod.GET, "/api/banter").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/banter").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/banter/*").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/banter/*/like").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/banter/*/like").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/banter/*/replies").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/banter/*/replies").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/banter/*/replies/*").authenticated()
+
                         .anyRequest().authenticated()
                 )
 
