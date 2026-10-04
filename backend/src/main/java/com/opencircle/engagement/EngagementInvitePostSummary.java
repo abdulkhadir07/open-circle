@@ -6,6 +6,7 @@ import java.util.UUID;
 
 record EngagementInvitePostSummary(
         UUID id,
+        UUID posterId,
         String content,
         String posterUsername,
         String city,
@@ -16,6 +17,7 @@ record EngagementInvitePostSummary(
     static EngagementInvitePostSummary from(InvitePost post) {
         return new EngagementInvitePostSummary(
                 post.getId(),
+                post.getPoster().getId(),
                 post.getContent(),
                 post.getPoster().getUsername(),
                 post.getCity(),
