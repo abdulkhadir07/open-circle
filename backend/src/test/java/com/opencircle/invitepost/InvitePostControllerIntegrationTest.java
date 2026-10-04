@@ -95,6 +95,89 @@ class InvitePostControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void createPostStoresNormalizedTagsAndReturnsThemInFeeds() throws Exception {
+        verifiedUser("tagger@example.com", "San Francisco", "California", "USA");
+        verifiedUser("viewer.tags@example.com", "San Francisco", "California", "USA");
+        String token = loginToken("tagger@example.com");
+
+        mockMvc.perform(post("/api/invite-posts")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "Morning walk along the bay",
+                                  "inviteType": "GROUP",
+                                  "totalCapacity": 3,
+                                  "locationScope": "CITY",
+                                  "tags": ["#Walk", "outdoors", "walk"]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tags", hasSize(2)))
+                .andExpect(jsonPath("$.tags[0]").value("walk"))
+                .andExpect(jsonPath("$.tags[1]").value("outdoors"));
+
+        mockMvc.perform(get("/api/invite-posts/local")
+                        .header("Authorization", "Bearer " + loginToken("viewer.tags@example.com")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].tags[0]").value("walk"))
+                .andExpect(jsonPath("$[0].tags[1]").value("outdoors"));
+    }
+
+    @Test
+    void createPostWithoutTagsReturnsAnEmptyTagList() throws Exception {
+        verifiedUser("notags@example.com", "San Francisco", "California", "USA");
+        String token = loginToken("notags@example.com");
+
+        mockMvc.perform(post("/api/invite-posts")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "Coffee anyone?",
+                                  "inviteType": "SINGLE",
+                                  "locationScope": "GLOBAL"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tags", hasSize(0)));
+    }
+
+    @Test
+    void createPostRejectsTooManyOrMalformedTags() throws Exception {
+        verifiedUser("badtags@example.com", "San Francisco", "California", "USA");
+        String token = loginToken("badtags@example.com");
+
+        mockMvc.perform(post("/api/invite-posts")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "Too many tags",
+                                  "inviteType": "SINGLE",
+                                  "locationScope": "GLOBAL",
+                                  "tags": ["a", "b", "c", "d", "e", "f"]
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/invite-posts")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "Bad tag characters",
+                                  "inviteType": "SINGLE",
+                                  "locationScope": "GLOBAL",
+                                  "tags": ["has space"]
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Tags can only contain letters, numbers, hyphens and underscores"));
+    }
+
+    @Test
     void createPostReturnsForbiddenWhenLocationIsNotVerified() throws Exception {
         AppUser user = users.createUser(
                 "Jane",

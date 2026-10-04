@@ -34,7 +34,8 @@ class InvitePostServiceTest {
                 "Anyone want to grab coffee near campus?",
                 InviteType.GROUP,
                 4,
-                LocationScope.CITY
+                LocationScope.CITY,
+                null
         );
 
         InvitePost post = service.createPost(poster, request);
@@ -62,7 +63,8 @@ class InvitePostServiceTest {
                 "One person want to study Java?",
                 InviteType.SINGLE,
                 null,
-                LocationScope.COUNTRY
+                LocationScope.COUNTRY,
+                null
         );
 
         InvitePost post = service.createPost(poster, request);
@@ -80,7 +82,8 @@ class InvitePostServiceTest {
                 "This should not post yet",
                 InviteType.SINGLE,
                 1,
-                LocationScope.GLOBAL
+                LocationScope.GLOBAL,
+                null
         );
 
         assertThatThrownBy(() -> service.createPost(poster, request))
@@ -97,7 +100,8 @@ class InvitePostServiceTest {
                 "Single invite with too many spots",
                 InviteType.SINGLE,
                 2,
-                LocationScope.CITY
+                LocationScope.CITY,
+                null
         );
 
         assertThatThrownBy(() -> service.createPost(poster, request))
@@ -115,7 +119,8 @@ class InvitePostServiceTest {
                 "Group invite with one spot",
                 InviteType.GROUP,
                 1,
-                LocationScope.CITY
+                LocationScope.CITY,
+                null
         );
 
         assertThatThrownBy(() -> service.createPost(poster, request))
@@ -133,7 +138,8 @@ class InvitePostServiceTest {
                 "Anyone in my region?",
                 InviteType.GROUP,
                 3,
-                LocationScope.STATE_REGION
+                LocationScope.STATE_REGION,
+                null
         );
 
         assertThatThrownBy(() -> service.createPost(poster, request))
