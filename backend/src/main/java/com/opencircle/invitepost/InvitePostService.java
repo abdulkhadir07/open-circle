@@ -22,13 +22,10 @@ class InvitePostService {
         this.clock = clock;
     }
 
-    // Creates an invite post using the poster's verified location snapshot.
+    // Creates an invite post for the poster's campus.
     @Transactional
     InvitePost createPost(AppUser poster, CreateInvitePostRequest request) {
-        requireVerifiedLocation(poster);
-
         int totalCapacity = totalCapacityFor(request);
-        validateLocationScope(poster, request.locationScope());
 
         InvitePost post;
         try {
@@ -37,10 +34,6 @@ class InvitePostService {
                     request.content(),
                     request.inviteType(),
                     totalCapacity,
-                    request.locationScope(),
-                    poster.getVerifiedCity(),
-                    poster.getVerifiedStateRegion(),
-                    poster.getVerifiedCountry(),
                     Instant.now(clock),
                     request.tags()
             );
@@ -49,6 +42,12 @@ class InvitePostService {
         }
 
         return posts.save(post);
+    }
+
+    // Returns the open invite posts from the viewer's campus, newest first.
+    @Transactional(readOnly = true)
+    List<InvitePost> getCampusFeed(AppUser viewer) {
+        return posts.findCampusFeed(InvitePostStatus.ACTIVE, Instant.now(clock), viewer.getCampus());
     }
 
     // Returns local posts that match the viewer's verified location.
@@ -67,6 +66,7 @@ class InvitePostService {
             case STATE_REGION -> stateRegionFeed(viewer, now);
             case CITY -> cityFeed(viewer, now);
             case GLOBAL -> throw new InvalidInvitePostRequestException("Global scope is not part of the local feed");
+            case CAMPUS -> throw new InvalidInvitePostRequestException("Campus scope is not part of the local feed");
         };
     }
 

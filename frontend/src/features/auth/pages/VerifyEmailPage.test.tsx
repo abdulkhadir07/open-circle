@@ -8,36 +8,47 @@ import { server } from '@/test/mocks/server';
 import { renderWithProviders } from '@/test/render';
 import { VerifyEmailPage } from './VerifyEmailPage';
 
-function renderVerification() {
+function renderVerification(state: { email?: string } | undefined = { email: 'maya@example.com' }) {
   return renderWithProviders(
     <Routes>
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/" element={<p>Authenticated home</p>} />
     </Routes>,
-    { initialEntries: [{ pathname: '/verify-email', state: { email: 'maya@example.com' } }] },
+    { initialEntries: [{ pathname: '/verify-email', state }] },
   );
 }
 
 describe('VerifyEmailPage', () => {
   it('verifies the code, stores credentials, and completes authentication', async () => {
+    let verifyBody: unknown;
     server.use(
-      http.post('*/api/auth/verify-email', () =>
-        HttpResponse.json({ token: 'verified-token', user: authUser }),
-      ),
+      http.post('*/api/auth/verify-email', async ({ request }) => {
+        verifyBody = await request.json();
+        return HttpResponse.json({ token: 'verified-token', user: authUser });
+      }),
     );
     const { user } = renderVerification();
-    expect(screen.getByLabelText('Email')).toHaveValue('maya@example.com');
+    // The address is already known from signup, so it isn't asked for (or shown) again.
+    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
+    expect(screen.queryByText('maya@example.com')).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('Verification code'), '123456');
     await user.click(screen.getByRole('button', { name: 'Verify email' }));
 
     expect(await screen.findByText('Authenticated home')).toBeInTheDocument();
+    expect(verifyBody).toEqual({ email: 'maya@example.com', code: '123456' });
     expect(useAuthStore.getState()).toMatchObject({
       authStatus: 'authenticated',
       accessToken: 'verified-token',
     });
   });
 
-  it('resends to the editable email and starts a client-only cooldown', async () => {
+  it('still asks for the email when the page is opened without one', async () => {
+    renderVerification({});
+
+    expect(screen.getByLabelText('Email')).toHaveValue('');
+  });
+
+  it('resends to the signup email and starts a client-only cooldown', async () => {
     let requestedEmail: unknown;
     server.use(
       http.post('*/api/auth/resend-verification', async ({ request }) => {

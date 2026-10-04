@@ -12,8 +12,9 @@ export function LandingPage() {
           </div>
           <h1 className="mt-4 text-4xl font-bold tracking-tight">OpenCircle</h1>
           <p className="text-muted-foreground mt-2">
-            No followers. Just people nearby to do things with today.
+            No followers. Just people on your campus to do things with today.
           </p>
+          <p className="text-muted-foreground mt-1 text-sm">Sign up with your school email.</p>
         </div>
 
         <div

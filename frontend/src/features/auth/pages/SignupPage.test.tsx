@@ -1,51 +1,32 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { authUser } from '@/test/mocks/fixtures';
 import { server } from '@/test/mocks/server';
 import { renderWithProviders } from '@/test/render';
 import { SignupPage } from './SignupPage';
 
-const locationDataMocks = vi.hoisted(() => ({
-  loadCountries: vi.fn<() => Promise<Array<{ code: string; name: string }>>>(),
-  loadRegions: vi.fn<(countryCode: string) => Promise<Array<{ code: string; name: string }>>>(),
-  loadCities:
-    vi.fn<
-      (countryCode: string, regionCode: string) => Promise<Array<{ id: number; name: string }>>
-    >(),
-}));
+type User = ReturnType<typeof renderWithProviders>['user'];
 
-vi.mock('../data/locationData', () => locationDataMocks);
-
-async function selectFromCombobox(
-  user: ReturnType<typeof renderWithProviders>['user'],
-  label: string,
-  query: string,
-) {
-  const input = await screen.findByLabelText(label);
-  await waitFor(() => expect(input).toBeEnabled());
-  await user.type(input, query);
-  await user.click(await screen.findByRole('option', { name: query }));
-}
-
-async function fillThroughFinalStep(user: ReturnType<typeof renderWithProviders>['user']) {
+async function fillAboutYou(user: User) {
   await user.type(screen.getByLabelText('First name'), 'Maya');
   await user.type(screen.getByLabelText('Last name'), 'Chen');
   await user.click(screen.getByRole('option', { name: '12' }));
   await user.click(screen.getByRole('option', { name: 'May' }));
   await user.click(screen.getByRole('option', { name: '1994' }));
   await user.click(screen.getByRole('button', { name: 'Continue' }));
+}
 
-  await user.type(screen.getByLabelText('Email'), 'maya@example.com');
+async function fillContact(user: User, email = 'maya@student.sfsu.edu') {
+  await user.type(screen.getByLabelText('Email'), email);
   await user.type(screen.getByLabelText('Phone number'), '+1 415 555 0100');
   await user.click(screen.getByRole('button', { name: 'Continue' }));
+}
 
-  await selectFromCombobox(user, 'Country', 'United States');
-  await selectFromCombobox(user, 'State or region', 'California');
-  await selectFromCombobox(user, 'City', 'San Francisco');
-  await user.click(screen.getByRole('button', { name: 'Continue' }));
-
+async function fillThroughFinalStep(user: User) {
+  await fillAboutYou(user);
+  await fillContact(user);
   await user.type(screen.getByLabelText('Password'), 'open-circle-strong');
   await user.type(screen.getByLabelText('Confirm password'), 'open-circle-strong');
 }
@@ -61,39 +42,7 @@ function renderSignup() {
 }
 
 describe('SignupPage', () => {
-  beforeEach(() => {
-    locationDataMocks.loadCountries.mockReset().mockResolvedValue([
-      { code: 'CA', name: 'Canada' },
-      { code: 'US', name: 'United States' },
-      { code: 'VA', name: 'Vatican City State (Holy See)' },
-    ]);
-    locationDataMocks.loadRegions.mockReset().mockImplementation((countryCode: string) => {
-      if (countryCode === 'CA') return Promise.resolve([{ code: 'ON', name: 'Ontario' }]);
-      if (countryCode === 'US') {
-        return Promise.resolve([
-          { code: 'CA', name: 'California' },
-          { code: 'NY', name: 'New York' },
-        ]);
-      }
-      return Promise.resolve([]);
-    });
-    locationDataMocks.loadCities
-      .mockReset()
-      .mockImplementation((countryCode: string, regionCode: string) => {
-        if (countryCode === 'CA' && regionCode === 'ON') {
-          return Promise.resolve([{ id: 3, name: 'Toronto' }]);
-        }
-        if (countryCode === 'US' && regionCode === 'CA') {
-          return Promise.resolve([
-            { id: 1, name: 'Los Angeles' },
-            { id: 2, name: 'San Francisco' },
-          ]);
-        }
-        return Promise.resolve([{ id: 4, name: 'New York City' }]);
-      });
-  });
-
-  it('validates each step, preserves back-navigation values, and submits only on step four', async () => {
+  it('validates each step, preserves back-navigation values, and submits only on step three', async () => {
     let signupCalls = 0;
     let signupBody: unknown;
     server.use(
@@ -107,29 +56,21 @@ describe('SignupPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByText('First name is required')).toBeInTheDocument();
-    expect(screen.getByText('Step 1 of 4')).toBeInTheDocument();
+    expect(screen.getByText('Step 1 of 3')).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText('First name'), 'Maya');
-    await user.type(screen.getByLabelText('Last name'), 'Chen');
-    await user.click(screen.getByRole('option', { name: '12' }));
-    await user.click(screen.getByRole('option', { name: 'May' }));
-    await user.click(screen.getByRole('option', { name: '1994' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(screen.getByText('Step 2 of 4')).toBeInTheDocument();
+    await fillAboutYou(user);
+    expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
     expect(signupCalls).toBe(0);
 
-    await user.type(screen.getByLabelText('Email'), 'maya@example.com');
+    await user.type(screen.getByLabelText('Email'), 'maya@student.sfsu.edu');
     await user.type(screen.getByLabelText('Phone number'), '+1 415 555 0100');
     await user.click(screen.getByRole('button', { name: 'Back' }));
     expect(screen.getByLabelText('First name')).toHaveValue('Maya');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(screen.getByLabelText('Email')).toHaveValue('maya@example.com');
+    expect(screen.getByLabelText('Email')).toHaveValue('maya@student.sfsu.edu');
 
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await selectFromCombobox(user, 'Country', 'United States');
-    await selectFromCombobox(user, 'State or region', 'California');
-    await selectFromCombobox(user, 'City', 'San Francisco');
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(screen.getByText('Step 3 of 3')).toBeInTheDocument();
     await user.type(screen.getByLabelText('Password'), 'open-circle-strong');
     await user.type(screen.getByLabelText('Confirm password'), 'open-circle-strong');
     expect(signupCalls).toBe(0);
@@ -137,17 +78,46 @@ describe('SignupPage', () => {
     await user.click(screen.getByRole('button', { name: 'Create account' }));
     expect(await screen.findByText('Verification route')).toBeInTheDocument();
     expect(signupCalls).toBe(1);
+    // No location is collected: accounts belong to a campus, taken from the email domain.
     expect(signupBody).toEqual({
       firstName: 'Maya',
       lastName: 'Chen',
       dateOfBirth: '1994-05-12',
-      email: 'maya@example.com',
+      email: 'maya@student.sfsu.edu',
       phoneNumber: '+1 415 555 0100',
-      country: 'United States',
-      stateRegion: 'California',
-      city: 'San Francisco',
       password: 'open-circle-strong',
     });
+  });
+
+  it('has no location step', async () => {
+    const { user } = renderSignup();
+    await fillAboutYou(user);
+    await fillContact(user);
+
+    expect(screen.queryByLabelText('Country')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('City')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
+  });
+
+  it('asks for a school email and rejects non-.edu addresses', async () => {
+    const { user } = renderSignup();
+    await fillAboutYou(user);
+
+    expect(screen.getByText('Use your school (.edu) email')).toBeInTheDocument();
+
+    await fillContact(user, 'maya@gmail.com');
+    expect(
+      await screen.findByText('Use your school email address (it must end in .edu)'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
+  });
+
+  it('accepts a school email on a subdomain', async () => {
+    const { user } = renderSignup();
+    await fillAboutYou(user);
+    await fillContact(user, 'maya@mail.cs.sfsu.edu');
+
+    expect(await screen.findByText('Step 3 of 3')).toBeInTheDocument();
   });
 
   it('returns a signup conflict to the contact step with the safe backend message', async () => {
@@ -171,7 +141,7 @@ describe('SignupPage', () => {
     await user.click(screen.getByRole('button', { name: 'Create account' }));
 
     expect(await screen.findByText('Email is already in use')).toBeInTheDocument();
-    expect(screen.getByText('Step 2 of 4')).toBeInTheDocument();
+    expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
   });
 
   it('rejects non-letter characters in first and last name', async () => {
@@ -183,7 +153,7 @@ describe('SignupPage', () => {
 
     expect(await screen.findByText('First name can only contain letters')).toBeInTheDocument();
     expect(screen.getByText('Last name can only contain letters')).toBeInTheDocument();
-    expect(screen.getByText('Step 1 of 4')).toBeInTheDocument();
+    expect(screen.getByText('Step 1 of 3')).toBeInTheDocument();
   });
 
   it('requires a full date of birth before leaving the first step', async () => {
@@ -193,106 +163,24 @@ describe('SignupPage', () => {
     await user.type(screen.getByLabelText('Last name'), 'Chen');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByText('Date of birth is required')).toBeInTheDocument();
-    expect(screen.getByText('Step 1 of 4')).toBeInTheDocument();
+    expect(screen.getByText('Step 1 of 3')).toBeInTheDocument();
 
     await user.click(screen.getByRole('option', { name: '12' }));
     await user.click(screen.getByRole('option', { name: 'May' }));
     await user.click(screen.getByRole('option', { name: '1994' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(screen.getByText('Step 2 of 4')).toBeInTheDocument();
-  });
-
-  async function reachLocationStep(user: ReturnType<typeof renderWithProviders>['user']) {
-    await user.type(screen.getByLabelText('First name'), 'Maya');
-    await user.type(screen.getByLabelText('Last name'), 'Chen');
-    await user.click(screen.getByRole('option', { name: '12' }));
-    await user.click(screen.getByRole('option', { name: 'May' }));
-    await user.click(screen.getByRole('option', { name: '1994' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-
-    await user.type(screen.getByLabelText('Email'), 'maya@example.com');
-    await user.type(screen.getByLabelText('Phone number'), '+1 415 555 0100');
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-  }
-
-  it('only accepts a country chosen from the list, not arbitrary typed text', async () => {
-    const { user } = renderSignup();
-    await reachLocationStep(user);
-
-    await user.type(screen.getByLabelText('Country'), 'Not A Real Country');
-    await user.tab();
-    expect(screen.getByLabelText('Country')).toHaveValue('');
-
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(await screen.findByText('Country is required')).toBeInTheDocument();
-  });
-
-  it('resets state or region and city, and their options, when the country changes', async () => {
-    const { user } = renderSignup();
-    await reachLocationStep(user);
-
-    await selectFromCombobox(user, 'Country', 'Canada');
-    await selectFromCombobox(user, 'State or region', 'Ontario');
-    await selectFromCombobox(user, 'City', 'Toronto');
-    expect(screen.getByLabelText('State or region')).toHaveValue('Ontario');
-    expect(screen.getByLabelText('City')).toHaveValue('Toronto');
-
-    await selectFromCombobox(user, 'Country', 'United States');
-    expect(screen.getByLabelText('State or region')).toHaveValue('');
-    expect(screen.getByLabelText('City')).toHaveValue('');
-
-    await user.type(screen.getByLabelText('State or region'), 'Ontario');
-    expect(screen.queryByRole('option', { name: 'Ontario' })).not.toBeInTheDocument();
-  });
-
-  it('allows signup to continue without a state for a country with no subdivisions', async () => {
-    const { user } = renderSignup();
-    await reachLocationStep(user);
-
-    await selectFromCombobox(user, 'Country', 'Vatican City State (Holy See)');
-    expect(
-      await screen.findByText('No state or region is required for this country'),
-    ).toBeVisible();
-    expect(screen.getByLabelText('State or region')).toBeDisabled();
-    await user.type(screen.getByLabelText('City'), 'Vatican City');
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-
-    expect(await screen.findByText('Step 4 of 4')).toBeInTheDocument();
-  });
-
-  it('offers manual city entry and retry when the city list fails to load', async () => {
-    locationDataMocks.loadCities
-      .mockRejectedValueOnce(new Error('network unavailable'))
-      .mockResolvedValueOnce([{ id: 2, name: 'San Francisco' }]);
-    const { user } = renderSignup();
-    await reachLocationStep(user);
-
-    await selectFromCombobox(user, 'Country', 'United States');
-    await selectFromCombobox(user, 'State or region', 'California');
-    expect(
-      await screen.findByText('The city list could not load. You can enter your city manually.'),
-    ).toBeVisible();
-
-    await user.click(screen.getByRole('button', { name: 'Retry' }));
-    await selectFromCombobox(user, 'City', 'San Francisco');
-    expect(screen.getByLabelText('City')).toHaveValue('San Francisco');
+    expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
   });
 
   it('blocks letters in a phone number before leaving the contact step', async () => {
     const { user } = renderSignup();
+    await fillAboutYou(user);
 
-    await user.type(screen.getByLabelText('First name'), 'Maya');
-    await user.type(screen.getByLabelText('Last name'), 'Chen');
-    await user.click(screen.getByRole('option', { name: '12' }));
-    await user.click(screen.getByRole('option', { name: 'May' }));
-    await user.click(screen.getByRole('option', { name: '1994' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-
-    await user.type(screen.getByLabelText('Email'), 'maya@example.com');
+    await user.type(screen.getByLabelText('Email'), 'maya@student.sfsu.edu');
     await user.type(screen.getByLabelText('Phone number'), 'not a phone number');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     expect(await screen.findByText('Enter a valid phone number')).toBeInTheDocument();
-    expect(screen.getByText('Step 2 of 4')).toBeInTheDocument();
+    expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
   });
 });

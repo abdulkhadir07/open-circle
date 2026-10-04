@@ -18,7 +18,7 @@ record CreateInvitePostRequest(
         @Positive(message = "Total capacity must be positive")
         Integer totalCapacity,
 
-        @NotNull(message = "Location scope is required")
+        // Ignored: every invite goes to the poster's campus. Kept so older clients still work.
         LocationScope locationScope,
 
         @Size(max = InvitePost.MAX_TAGS, message = "A post can have at most 5 tags")

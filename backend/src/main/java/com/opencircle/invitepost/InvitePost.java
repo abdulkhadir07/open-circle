@@ -47,13 +47,16 @@ public class InvitePost {
     @Column(name = "location_scope", nullable = false, length = 30)
     private LocationScope locationScope;
 
-    @Column(nullable = false, length = 80)
+    @Column(nullable = false, length = 160)
+    private String campus;
+
+    @Column(length = 80)
     private String city;
 
     @Column(name = "state_region", length = 80)
     private String stateRegion;
 
-    @Column(nullable = false, length = 80)
+    @Column(length = 80)
     private String country;
 
     @Enumerated(EnumType.STRING)
@@ -110,17 +113,7 @@ public class InvitePost {
             Instant createdAt,
             List<String> tags
     ) {
-        if (poster == null) {
-            throw new IllegalArgumentException("Poster is required");
-        }
-
-        if (content == null || content.isBlank()) {
-            throw new IllegalArgumentException("Content is required");
-        }
-
-        if (inviteType == null) {
-            throw new IllegalArgumentException("Invite type is required");
-        }
+        validateCore(poster, content, inviteType, totalCapacity, createdAt);
 
         if (locationScope == null) {
             throw new IllegalArgumentException("Location scope is required");
@@ -134,23 +127,12 @@ public class InvitePost {
             throw new IllegalArgumentException("Country is required");
         }
 
-        if (createdAt == null) {
-            throw new IllegalArgumentException("Created time is required");
-        }
-
-        if (inviteType == InviteType.SINGLE && totalCapacity != 1) {
-            throw new IllegalArgumentException("Single invites must have a capacity of 1");
-        }
-
-        if (inviteType == InviteType.GROUP && totalCapacity < 2) {
-            throw new IllegalArgumentException("Group invites must have a capacity of at least 2");
-        }
-
         if (locationScope == LocationScope.STATE_REGION && (stateRegion == null || stateRegion.isBlank())) {
             throw new IllegalArgumentException("State/region is required for state-region scoped posts");
         }
 
         this.poster = poster;
+        this.campus = poster.getCampus();
         this.content = content.trim();
         this.inviteType = inviteType;
         this.totalCapacity = totalCapacity;
@@ -162,6 +144,66 @@ public class InvitePost {
         this.updatedAt = createdAt;
         this.expiresAt = createdAt.plusSeconds(EXPIRATION_HOURS * 60L * 60L);
 
+        applyTags(tags);
+    }
+
+    // A campus invite: visible to the poster's campus, with no location of its own.
+    public InvitePost(
+            AppUser poster,
+            String content,
+            InviteType inviteType,
+            int totalCapacity,
+            Instant createdAt,
+            List<String> tags
+    ) {
+        validateCore(poster, content, inviteType, totalCapacity, createdAt);
+
+        this.poster = poster;
+        this.campus = poster.getCampus();
+        this.content = content.trim();
+        this.inviteType = inviteType;
+        this.totalCapacity = totalCapacity;
+        this.locationScope = LocationScope.CAMPUS;
+        this.createdAt = createdAt;
+        this.updatedAt = createdAt;
+        this.expiresAt = createdAt.plusSeconds(EXPIRATION_HOURS * 60L * 60L);
+
+        applyTags(tags);
+    }
+
+    private static void validateCore(
+            AppUser poster,
+            String content,
+            InviteType inviteType,
+            int totalCapacity,
+            Instant createdAt
+    ) {
+        if (poster == null) {
+            throw new IllegalArgumentException("Poster is required");
+        }
+
+        if (content == null || content.isBlank()) {
+            throw new IllegalArgumentException("Content is required");
+        }
+
+        if (inviteType == null) {
+            throw new IllegalArgumentException("Invite type is required");
+        }
+
+        if (createdAt == null) {
+            throw new IllegalArgumentException("Created time is required");
+        }
+
+        if (inviteType == InviteType.SINGLE && totalCapacity != 1) {
+            throw new IllegalArgumentException("Single invites must have a capacity of 1");
+        }
+
+        if (inviteType == InviteType.GROUP && totalCapacity < 2) {
+            throw new IllegalArgumentException("Group invites must have a capacity of at least 2");
+        }
+    }
+
+    private void applyTags(List<String> tags) {
         List<String> normalizedTags = normalizeTags(tags);
         for (short index = 0; index < normalizedTags.size(); index++) {
             this.tags.add(new InvitePostTag(normalizedTags.get(index), index));
@@ -213,6 +255,10 @@ public class InvitePost {
 
     public LocationScope getLocationScope() {
         return locationScope;
+    }
+
+    public String getCampus() {
+        return campus;
     }
 
     public String getCity() {

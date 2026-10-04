@@ -5,7 +5,6 @@ import {
   parseInvitePostImage,
   parseInvitePostList,
   type CreateInvitePostRequest,
-  type LocalFeedScope,
 } from './contracts';
 
 async function normalizeFailure<T>(request: Promise<T>): Promise<T> {
@@ -31,14 +30,8 @@ export async function uploadInvitePostImage({ postId, file }: { postId: string; 
   return parseInvitePostImage(response.data);
 }
 
-export async function getLocalFeed(scope?: LocalFeedScope) {
-  const response = await normalizeFailure(
-    apiClient.get('/invite-posts/local', { params: scope ? { scope } : undefined }),
-  );
-  return parseInvitePostList(response.data);
-}
-
-export async function getGlobalFeed() {
-  const response = await normalizeFailure(apiClient.get('/invite-posts/global'));
+/** Open invites from the signed-in user's campus, newest first. */
+export async function getCampusFeed() {
+  const response = await normalizeFailure(apiClient.get('/invite-posts/campus'));
   return parseInvitePostList(response.data);
 }

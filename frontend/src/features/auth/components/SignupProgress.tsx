@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const stepNames = ['About you', 'Contact', 'Location', 'Security'] as const;
+const stepNames = ['About you', 'Contact', 'Security'] as const;
 
 export function SignupProgress({ currentStep }: { currentStep: number }) {
   return (
