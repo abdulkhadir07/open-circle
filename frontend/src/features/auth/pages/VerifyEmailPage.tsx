@@ -93,14 +93,18 @@ export function VerifyEmailPage() {
     >
       <form noValidate onSubmit={onSubmit} className="space-y-5">
         <AuthFormError message={errors.root?.server?.message} />
-        <AuthFormField
-          id="verification-email"
-          label="Email"
-          type="email"
-          autoComplete="email"
-          error={errors.email?.message}
-          {...register('email')}
-        />
+        {/* The address is already known when coming from signup or login, so only ask for it
+            when someone lands here directly. */}
+        {routeState?.email ? null : (
+          <AuthFormField
+            id="verification-email"
+            label="Email"
+            type="email"
+            autoComplete="email"
+            error={errors.email?.message}
+            {...register('email')}
+          />
+        )}
 
         <div className="space-y-2">
           <label

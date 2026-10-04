@@ -5,12 +5,12 @@ import { renderWithProviders } from '@/test/render';
 import { InvitePostCard } from './InvitePostCard';
 
 describe('InvitePostCard', () => {
-  it('shows the poster and content for a single invite, without a location', () => {
+  it('shows the poster and content for a single invite, with no location line', () => {
     renderWithProviders(<InvitePostCard post={invitePost} />);
 
     expect(screen.getByText(invitePost.posterUsername)).toBeInTheDocument();
     expect(screen.getByText(invitePost.content)).toBeInTheDocument();
-    expect(screen.queryByText(`${invitePost.city}, ${invitePost.country}`)).not.toBeInTheDocument();
+    expect(screen.queryByText(/San Francisco/)).not.toBeInTheDocument();
     expect(screen.queryByText('City')).not.toBeInTheDocument();
     expect(screen.getByText('1 spot left')).toBeInTheDocument();
   });

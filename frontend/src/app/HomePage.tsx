@@ -5,36 +5,28 @@ import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/ui/avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
-import { SegmentedControl } from '@/components/ui/segmented-control';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
-import { LocationVerificationPrompt } from '@/features/location/components/LocationVerificationPrompt';
 import { InvitePostCard } from '@/features/invite-posts/components/InvitePostCard';
-import { useGlobalFeed } from '@/features/invite-posts/hooks/useGlobalFeed';
-import { useLocalFeed } from '@/features/invite-posts/hooks/useLocalFeed';
-import { SCOPE_LABELS, type LocalFeedScope } from '@/features/invite-posts/api/contracts';
+import { useCampusFeed } from '@/features/invite-posts/hooks/useCampusFeed';
+import { formatCampusName } from '@/lib/campus';
 import { cn } from '@/lib/utils';
 import { useMyEngagementRequests } from '@/features/engagement-requests/hooks/useMyEngagementRequests';
-
-const FEED_MODE_OPTIONS = [
-  { value: 'local', label: 'Local' },
-  { value: 'global', label: 'Global' },
-] as const;
 
 const IDEAS = [
   {
     label: 'Coffee chat',
-    text: 'Coffee and a chat near the park this afternoon, 1 person',
+    text: 'Coffee and a chat on campus this afternoon, 1 person',
     tags: ['coffee'],
   },
   {
     label: 'Grab food',
-    text: 'Anyone want to grab lunch downtown at noon? 2 people',
+    text: 'Anyone want to grab lunch at the student center at noon? 2 people',
     tags: ['food'],
   },
   { label: 'Pickup game', text: 'Need 4 players for pickup soccer at 5pm', tags: ['games'] },
   {
     label: 'Walk and talk',
-    text: 'Walk around the neighborhood after work at 6pm, 2 or 3 people',
+    text: 'Walk around campus after class at 4pm, 2 or 3 people',
     tags: ['walk'],
   },
 ];
@@ -59,65 +51,37 @@ function greeting() {
   return hour < 12 ? 'Morning' : hour < 18 ? 'Hey' : 'Evening';
 }
 
-type LocalScopeFilter = 'ALL' | LocalFeedScope;
-
 export function HomePage() {
   const reduceMotion = useReducedMotion();
   const currentUser = useCurrentUser();
-  const [feedMode, setFeedMode] = useState<'local' | 'global'>('local');
-  const [localScope, setLocalScope] = useState<LocalScopeFilter>('ALL');
   const [query, setQuery] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
-  const locationVerified = Boolean(currentUser.data?.locationVerifiedAt);
-  const stateRegionAvailable = Boolean(currentUser.data?.verifiedStateRegion);
-  const localScopeOptions = useMemo(
-    () =>
-      (['ALL', 'CITY', 'STATE_REGION', 'COUNTRY'] as const)
-        .filter((scope) => scope !== 'STATE_REGION' || stateRegionAvailable)
-        .map((scope) => ({
-          value: scope,
-          label: scope === 'ALL' ? 'All' : SCOPE_LABELS[scope],
-        })),
-    [stateRegionAvailable],
-  );
-
-  // These run on every render regardless of the early returns below (Rules
-  // of Hooks), including while the location-verification prompt is still
-  // showing — `enabled` is what actually stops them from hitting the API
-  // (and caching a 403) before there's a verified location to query with.
-  const localFeed = useLocalFeed(localScope === 'ALL' ? undefined : localScope, {
-    enabled: locationVerified,
-  });
-  const globalFeed = useGlobalFeed({ enabled: locationVerified });
-  const activeFeed = feedMode === 'local' ? localFeed : globalFeed;
+  const feed = useCampusFeed();
   const search = query.trim().toLowerCase();
   const visiblePosts = useMemo(
     () =>
-      (activeFeed.data ?? []).filter((post) => {
+      (feed.data ?? []).filter((post) => {
         if (activeTag && !post.tags.includes(activeTag)) return false;
         return (
           !search ||
-          [post.content, post.posterUsername, post.city, post.country, ...post.tags]
-            .join(' ')
-            .toLowerCase()
-            .includes(search)
+          [post.content, post.posterUsername, ...post.tags].join(' ').toLowerCase().includes(search)
         );
       }),
-    [activeFeed.data, search, activeTag],
+    [feed.data, search, activeTag],
   );
   // Topics in the loaded feed, most-used first.
   const feedTags = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const post of activeFeed.data ?? []) {
+    for (const post of feed.data ?? []) {
       for (const tag of post.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
     }
     return [...counts.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .slice(0, MAX_TAG_FILTERS)
       .map(([tag]) => tag);
-  }, [activeFeed.data]);
-  const myRequests = useMyEngagementRequests({ enabled: locationVerified });
+  }, [feed.data]);
+  const myRequests = useMyEngagementRequests();
   const myRequestsByPostId = useMemo(
     () => new Map(myRequests.data?.map((request) => [request.invitePostId, request])),
     [myRequests.data],
@@ -131,16 +95,14 @@ export function HomePage() {
     );
   }
 
-  if (!currentUser.data?.locationVerifiedAt) {
-    return <LocationVerificationPrompt />;
-  }
-
   const user = currentUser.data;
-  const place = `${user.verifiedCity}, ${user.verifiedCountry}`;
-  const openCount = activeFeed.data?.length ?? 0;
+  if (!user) return null;
+  const campusName = formatCampusName(user.campus);
+  const openCount = feed.data?.length ?? 0;
 
-  const myPosts = visiblePosts.filter((post) => post.posterId === user.id);
-  const otherPosts = visiblePosts.filter((post) => post.posterId !== user.id);
+  const viewerId = user.id;
+  const myPosts = visiblePosts.filter((post) => post.posterId === viewerId);
+  const otherPosts = visiblePosts.filter((post) => post.posterId !== viewerId);
 
   function renderPost(post: (typeof visiblePosts)[number], index: number) {
     return (
@@ -156,7 +118,7 @@ export function HomePage() {
       >
         <InvitePostCard
           post={post}
-          isOwnPost={post.posterId === user.id}
+          isOwnPost={post.posterId === viewerId}
           myRequest={myRequestsByPostId.get(post.id)}
           onTagClick={(tag) => setActiveTag(activeTag === tag ? null : tag)}
         />
@@ -169,11 +131,11 @@ export function HomePage() {
       <PageHeader
         title={`${greeting()}${user.firstName ? `, ${user.firstName}` : ''}`}
         sub={
-          activeFeed.isLoading
-            ? `Invites near ${place}.`
+          feed.isLoading
+            ? `Invites at ${campusName}.`
             : openCount > 0
-              ? `${openCount} open invite${openCount === 1 ? '' : 's'} near ${place} right now. Jump in.`
-              : `Nothing open near ${place} yet. What are you up to today?`
+              ? `${openCount} open invite${openCount === 1 ? '' : 's'} at ${campusName} right now. Jump in.`
+              : `Nothing open at ${campusName} yet. What are you up to today?`
         }
       />
 
@@ -209,7 +171,7 @@ export function HomePage() {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search invites, places, people..."
+          placeholder="Search invites, topics, people..."
           aria-label="Search invites"
           className="bg-card focus:ring-primary/40 w-full rounded-xl border py-2.5 pr-9 pl-9 text-sm transition outline-none focus:ring-2"
         />
@@ -249,36 +211,8 @@ export function HomePage() {
         </fieldset>
       ) : null}
 
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <SegmentedControl
-          aria-label="Feed"
-          options={FEED_MODE_OPTIONS}
-          value={feedMode}
-          onChange={setFeedMode}
-        />
-        <AnimatePresence initial={false}>
-          {feedMode === 'local' ? (
-            <motion.div
-              key="scope"
-              initial={reduceMotion ? false : { opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={reduceMotion ? undefined : { opacity: 0, x: -8 }}
-              transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
-            >
-              <SegmentedControl
-                aria-label="Local feed scope"
-                size="sm"
-                options={localScopeOptions}
-                value={localScope}
-                onChange={setLocalScope}
-              />
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-      </div>
-
       <AnimatePresence mode="wait" initial={false}>
-        {activeFeed.isLoading ? (
+        {feed.isLoading ? (
           <motion.div
             key="loading"
             exit={reduceMotion ? undefined : { opacity: 0 }}
@@ -289,27 +223,25 @@ export function HomePage() {
               className="text-muted-foreground size-5 animate-spin"
             />
           </motion.div>
-        ) : activeFeed.isError ? (
+        ) : feed.isError ? (
           <motion.p
             key="error"
             role="alert"
             exit={reduceMotion ? undefined : { opacity: 0 }}
             className="text-destructive text-base"
           >
-            {activeFeed.error instanceof Error
-              ? activeFeed.error.message
-              : 'Unable to load invite posts.'}
+            {feed.error instanceof Error ? feed.error.message : 'Unable to load invite posts.'}
           </motion.p>
         ) : visiblePosts.length > 0 ? (
           <motion.div
-            key={`${feedMode}-${localScope}`}
+            key="posts"
             exit={reduceMotion ? undefined : { opacity: 0 }}
             className="flex flex-col gap-4"
           >
             {myPosts.length > 0 ? <FeedHeading>Your open invites</FeedHeading> : null}
             {myPosts.map((post, index) => renderPost(post, index))}
             {myPosts.length > 0 && otherPosts.length > 0 ? (
-              <FeedHeading className="mt-2">Nearby</FeedHeading>
+              <FeedHeading className="mt-2">On campus</FeedHeading>
             ) : null}
             {otherPosts.map((post, index) => renderPost(post, myPosts.length + index))}
           </motion.div>
