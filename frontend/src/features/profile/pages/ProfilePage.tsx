@@ -1,19 +1,22 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Calendar, Lock, LoaderCircle } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Link, useParams } from 'react-router-dom';
-import { Avatar } from '@/components/ui/avatar';
+import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
+import { useMyScore } from '@/features/scoreboard/hooks/useMyScore';
 import { ApiError } from '@/lib/api/errors';
-import { EditableProfileAvatar } from '../components/EditableProfileAvatar';
 import { InterestChips } from '../components/InterestChips';
 import { ProfileAwardsList } from '../components/ProfileAwardsList';
-import { ProfileReputationSummary } from '../components/ProfileReputationSummary';
+import { ProfileCompletion } from '../components/ProfileCompletion';
+import { ProfileHeader } from '../components/ProfileHeader';
+import { ProfileOpenInvites } from '../components/ProfileOpenInvites';
+import { ProfileStats } from '../components/ProfileStats';
 import { useProfile } from '../hooks/useProfile';
 import { useUpdateMyProfile } from '../hooks/useUpdateMyProfile';
 import {
@@ -22,15 +25,12 @@ import {
   type UpdateProfileFormValues,
 } from '../schemas/updateProfileSchema';
 
-function formatMemberSince(iso: string): string {
-  return new Date(iso).toLocaleDateString([], { year: 'numeric', month: 'long' });
-}
-
 export function ProfilePage() {
   const { userId } = useParams<{ userId: string }>();
   const reduceMotion = useReducedMotion();
   const currentUser = useCurrentUser();
   const profile = useProfile(userId);
+  const myScore = useMyScore();
   const updateProfile = useUpdateMyProfile();
   const [editing, setEditing] = useState(false);
 
@@ -88,7 +88,7 @@ export function ProfilePage() {
   if (profile.isError || !profile.data) {
     const notFound = profile.error instanceof ApiError && profile.error.status === 404;
     return (
-      <div className="mx-auto max-w-2xl">
+      <div>
         <p role="alert" className="text-destructive text-base">
           {notFound
             ? "This profile doesn't exist."
@@ -101,62 +101,19 @@ export function ProfilePage() {
   }
 
   const data = profile.data;
+  const privateName =
+    isOwnProfile && currentUser.data
+      ? `${currentUser.data.firstName} ${currentUser.data.lastName}`
+      : undefined;
+  const hasBio = Boolean(data.bio);
+  const hasInterests = data.interests.length > 0;
 
-  return (
-    <div className="mx-auto max-w-2xl">
-      <Link
-        to="/"
-        className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-base font-medium"
-      >
-        <ArrowLeft aria-hidden="true" className="size-4" />
-        Back
-      </Link>
-
-      {/* Identity hero — the same gradient-tinted card treatment InvitePostCard
-          uses for its primary subject, reused here for consistency. */}
-      <div className="border-primary/15 from-card to-primary/[0.04] mt-4 rounded-2xl border bg-gradient-to-br p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            {isOwnProfile ? (
-              <EditableProfileAvatar
-                name={data.displayName}
-                profileImage={data.profileImage}
-                className="bg-primary/10 text-primary size-20 text-3xl"
-              />
-            ) : (
-              <Avatar
-                name={data.displayName}
-                profileImage={data.profileImage}
-                className="bg-primary/10 text-primary size-20 text-3xl"
-              />
-            )}
-            <div className="min-w-0">
-              <h1 className="text-foreground truncate text-2xl font-semibold sm:text-3xl">
-                {data.displayName}
-              </h1>
-              <p className="text-muted-foreground truncate text-base">@{data.username}</p>
-              {isOwnProfile && currentUser.data ? (
-                <p
-                  title="Only visible to you"
-                  className="text-muted-foreground mt-1.5 flex items-center gap-1.5 text-sm"
-                >
-                  <Lock aria-hidden="true" className="size-3.5" />
-                  {currentUser.data.firstName} {currentUser.data.lastName}
-                </p>
-              ) : null}
-              <p className="text-muted-foreground mt-1.5 flex items-center gap-1.5 text-sm">
-                <Calendar aria-hidden="true" className="size-3.5" />
-                Member since {formatMemberSince(data.memberSince)}
-              </p>
-            </div>
-          </div>
-          {isOwnProfile && !editing ? (
-            <Button type="button" variant="outline" className="shrink-0" onClick={startEditing}>
-              Edit profile
-            </Button>
-          ) : null}
-        </div>
-
+  const about = (
+    <section>
+      <h2 className="text-muted-foreground mb-2 px-1 text-xs font-semibold tracking-wide uppercase">
+        About
+      </h2>
+      <Card>
         <AnimatePresence mode="wait" initial={false}>
           {editing ? (
             <motion.form
@@ -167,7 +124,7 @@ export function ProfilePage() {
               transition={{ duration: reduceMotion ? 0 : 0.15 }}
               onSubmit={(event) => void onSubmit(event)}
               noValidate
-              className="mt-6 space-y-4"
+              className="space-y-4"
             >
               {errors.root?.message ? (
                 <p role="alert" className="text-destructive text-base">
@@ -178,7 +135,7 @@ export function ProfilePage() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="profile-display-name"
-                  className="text-foreground text-base font-medium"
+                  className="text-muted-foreground mb-1 block text-xs font-medium"
                 >
                   Display name
                 </label>
@@ -195,7 +152,10 @@ export function ProfilePage() {
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="profile-bio" className="text-foreground text-base font-medium">
+                <label
+                  htmlFor="profile-bio"
+                  className="text-muted-foreground mb-1 block text-xs font-medium"
+                >
                   Bio
                 </label>
                 <Controller
@@ -220,7 +180,7 @@ export function ProfilePage() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="profile-interests"
-                  className="text-foreground text-base font-medium"
+                  className="text-muted-foreground mb-1 block text-xs font-medium"
                 >
                   Interests
                 </label>
@@ -266,17 +226,22 @@ export function ProfilePage() {
               animate={{ opacity: 1 }}
               exit={reduceMotion ? undefined : { opacity: 0 }}
               transition={{ duration: reduceMotion ? 0 : 0.15 }}
+              className="space-y-4"
             >
-              {data.bio ? (
-                <p className="text-foreground mt-5 leading-6 whitespace-pre-wrap">{data.bio}</p>
-              ) : null}
+              {hasBio ? (
+                <p className="text-foreground leading-6 whitespace-pre-wrap">{data.bio}</p>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  {isOwnProfile ? 'You haven’t added a bio yet.' : 'No bio yet.'}
+                </p>
+              )}
 
-              {data.interests.length > 0 ? (
-                <div className="mt-4 flex flex-wrap gap-1.5">
+              {hasInterests ? (
+                <div className="flex flex-wrap gap-1.5">
                   {data.interests.map((interest) => (
                     <span
                       key={interest}
-                      className="bg-background text-foreground border-border rounded-full border px-2.5 py-1 text-sm"
+                      className="bg-primary/10 text-primary rounded-full px-3 py-1 text-sm font-medium"
                     >
                       {interest}
                     </span>
@@ -286,35 +251,53 @@ export function ProfilePage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </Card>
+    </section>
+  );
 
-      <motion.div
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: reduceMotion ? 0 : 0.3, delay: reduceMotion ? 0 : 0.05 }}
-        className="mt-6"
-      >
-        <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-          Reputation
-        </p>
-        <div className="mt-2">
-          <ProfileReputationSummary reputation={data.reputation} />
-        </div>
-      </motion.div>
+  return (
+    <div className="space-y-6">
+      <ProfileHeader
+        profile={data}
+        isOwnProfile={isOwnProfile}
+        privateName={privateName}
+        editing={editing}
+        onEdit={startEditing}
+      />
 
-      <motion.div
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: reduceMotion ? 0 : 0.3, delay: reduceMotion ? 0 : 0.1 }}
-        className="mt-6"
-      >
-        <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+      {editing ? about : null}
+
+      {isOwnProfile && !editing ? (
+        <ProfileCompletion
+          hasBio={hasBio}
+          hasInterests={hasInterests}
+          hasPhoto={Boolean(data.profileImage)}
+          onEditProfile={startEditing}
+        />
+      ) : null}
+
+      <ProfileStats
+        reputation={data.reputation}
+        awardsCount={data.awards.length}
+        memberSince={data.memberSince}
+        points={isOwnProfile ? myScore.data?.annualScore : undefined}
+        rank={isOwnProfile ? myScore.data?.rank : undefined}
+      />
+
+      {!editing ? about : null}
+
+      <section>
+        <h2 className="text-muted-foreground mb-2 px-1 text-xs font-semibold tracking-wide uppercase">
           Awards
-        </p>
-        <div className="mt-2">
-          <ProfileAwardsList awards={data.awards} />
-        </div>
-      </motion.div>
+        </h2>
+        <ProfileAwardsList awards={data.awards} />
+      </section>
+
+      <ProfileOpenInvites
+        userId={data.userId}
+        isOwnProfile={isOwnProfile}
+        displayName={data.displayName}
+      />
     </div>
   );
 }

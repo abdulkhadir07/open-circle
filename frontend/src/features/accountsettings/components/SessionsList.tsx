@@ -29,7 +29,7 @@ export function SessionsList() {
   const hasOtherSessions = data.some((session) => !session.current);
 
   return (
-    <div className="border-border bg-card rounded-xl border p-4">
+    <div className="bg-card rounded-2xl border p-4">
       <div className="flex items-center justify-between gap-4">
         <p className="text-muted-foreground text-sm">
           Devices currently signed in to your account.

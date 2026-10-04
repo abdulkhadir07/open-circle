@@ -82,7 +82,7 @@ export function ChangeEmailForm() {
 
   if (pendingEmail) {
     return (
-      <div className="border-border bg-card space-y-4 rounded-xl border p-4">
+      <div className="bg-card space-y-4 rounded-2xl border p-4">
         <p className="text-foreground text-base">
           Enter the 6-digit code we sent to <span className="font-medium">{pendingEmail}</span>.
           Codes expire after 15 minutes.
@@ -156,7 +156,7 @@ export function ChangeEmailForm() {
     <form
       noValidate
       onSubmit={(event) => void onSubmitRequest(event)}
-      className="border-border bg-card space-y-4 rounded-xl border p-4"
+      className="bg-card space-y-4 rounded-2xl border p-4"
     >
       {errors.root?.message ? (
         <p role="alert" className="text-destructive text-base">
@@ -170,7 +170,10 @@ export function ChangeEmailForm() {
       </p>
 
       <div className="space-y-1.5">
-        <label htmlFor="settings-new-email" className="text-foreground text-base font-medium">
+        <label
+          htmlFor="settings-new-email"
+          className="text-muted-foreground mb-1 block text-xs font-medium"
+        >
           New email
         </label>
         <Input

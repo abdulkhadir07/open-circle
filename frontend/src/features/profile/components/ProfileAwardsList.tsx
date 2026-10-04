@@ -1,21 +1,18 @@
 import { Trophy } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { ProfileAward } from '../api/contracts';
 
 function formatAwardDate(iso: string): string {
   return new Date(iso).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+/** Awards as a shelf of gold trophy cards. */
 export function ProfileAwardsList({ awards }: { awards: ProfileAward[] }) {
   const reduceMotion = useReducedMotion();
 
   if (awards.length === 0) {
-    return (
-      <div className="border-border flex flex-col items-center gap-2 rounded-xl border border-dashed py-8 text-center">
-        <Trophy aria-hidden="true" className="text-muted-foreground size-5" />
-        <p className="text-muted-foreground text-base">No awards yet.</p>
-      </div>
-    );
+    return <EmptyState icon={Trophy}>No awards yet.</EmptyState>;
   }
 
   return (
@@ -30,18 +27,20 @@ export function ProfileAwardsList({ awards }: { awards: ProfileAward[] }) {
             delay: reduceMotion ? 0 : index * 0.06,
             ease: 'easeOut',
           }}
-          className="flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/5 p-4"
+          className="to-gold/10 bg-card relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 p-4"
         >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-600">
-            <Trophy aria-hidden="true" className="size-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-foreground truncate text-base font-semibold">{award.name}</p>
-            <p className="text-muted-foreground text-sm">{formatAwardDate(award.awardedAt)}</p>
+          <div className="flex items-center gap-3">
+            <span className="bg-gold/25 flex size-12 shrink-0 items-center justify-center rounded-full text-amber-600 dark:text-amber-400">
+              <Trophy aria-hidden="true" className="size-6" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-semibold">{award.name}</p>
+              <p className="text-muted-foreground text-xs">
+                Season {award.seasonYear} · {formatAwardDate(award.awardedAt)}
+              </p>
+            </div>
           </div>
-          <span className="text-foreground shrink-0 text-sm font-semibold tabular-nums">
-            {award.finalScore} Circle Points
-          </span>
+          <p className="mt-3 text-sm font-bold tabular-nums">{award.finalScore} Circle Points</p>
         </motion.li>
       ))}
     </ul>

@@ -43,10 +43,33 @@ describe('SettingsPage', () => {
     expect(screen.getByText(authUser.email)).toBeInTheDocument();
   });
 
-  it("shows the account's name as the Personal info row subtitle", () => {
+  it('shows a profile summary card with a link to the profile, without the email in it', () => {
     renderSettingsPage();
 
     expect(screen.getByText(`${authUser.firstName} ${authUser.lastName}`)).toBeInTheDocument();
+    expect(screen.getByText(`@${authUser.username}`)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View profile' })).toHaveAttribute(
+      'href',
+      `/profile/${authUser.id}`,
+    );
+  });
+
+  it('groups the rows under Account, Security, and Appearance', () => {
+    renderSettingsPage();
+
+    for (const heading of ['Account', 'Security', 'Appearance']) {
+      expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
+    }
+  });
+
+  it('links the Theme row to the appearance page and shows the current choice', () => {
+    renderSettingsPage();
+
+    expect(screen.getByRole('link', { name: /Theme/ })).toHaveAttribute(
+      'href',
+      '/settings/appearance',
+    );
+    expect(screen.getByText('System')).toBeInTheDocument();
   });
 
   it('invites setting up a PIN when none exists yet', () => {
