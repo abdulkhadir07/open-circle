@@ -3,6 +3,7 @@ import {
   Home,
   LogOut,
   MessageCircle,
+  MessageSquareText,
   Plus,
   Settings,
   Star,
@@ -20,6 +21,12 @@ import { useUnreadNotificationCount } from '@/features/notifications/hooks/useUn
 import { useMyScore } from '@/features/scoreboard/hooks/useMyScore';
 import { EditableProfileAvatar } from '@/features/profile/components/EditableProfileAvatar';
 import { cn } from '@/lib/utils';
+
+const SIDEBAR_CREATE_CLASS =
+  'bg-primary text-primary-foreground shadow-primary/30 mb-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold shadow-md transition hover:-translate-y-0.5 hover:shadow-lg active:scale-95';
+
+const FLOATING_CREATE_CLASS =
+  'group bg-primary text-primary-foreground shadow-primary/40 fixed right-5 bottom-5 z-20 flex cursor-pointer items-center gap-2 rounded-full p-4 shadow-xl transition hover:scale-105 active:scale-95 md:right-8 md:bottom-8 md:px-5';
 
 type NavItem = { to: string; label: string; icon: LucideIcon; active: (path: string) => boolean };
 
@@ -99,6 +106,12 @@ export function AppLayout({ children, fill = false }: { children: ReactNode; fil
       active: (path) => path.startsWith('/chats'),
     },
     {
+      to: '/banter',
+      label: 'Banter',
+      icon: MessageSquareText,
+      active: (path) => path.startsWith('/banter'),
+    },
+    {
       to: '/notifications',
       label: 'Notifications',
       icon: Bell,
@@ -134,7 +147,17 @@ export function AppLayout({ children, fill = false }: { children: ReactNode; fil
     navigate('/login', { replace: true });
   }
 
-  const hideFloatingCreate = pathname === '/new' || pathname.startsWith('/chats/');
+  // "Start an invite" only belongs on Home. The Banter board has its own "Create a post" button
+  // that jumps to its composer; every other page has no create button.
+  const onHome = pathname === '/';
+  const onBanter = pathname.startsWith('/banter');
+  const showCreate = onHome || onBanter;
+  const createLabel = onBanter ? 'Create a post' : 'Start an invite';
+
+  function focusBanterComposer() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('banter-text')?.focus({ preventScroll: true });
+  }
 
   return (
     <div className="bg-background min-h-svh md:flex">
@@ -161,13 +184,17 @@ export function AppLayout({ children, fill = false }: { children: ReactNode; fil
           </div>
         ) : null}
 
-        <Link
-          to="/new"
-          className="bg-primary text-primary-foreground shadow-primary/30 mb-4 flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold shadow-md transition hover:-translate-y-0.5 hover:shadow-lg active:scale-95"
-        >
-          <Plus aria-hidden="true" className="size-5" />
-          Start an invite
-        </Link>
+        {onBanter ? (
+          <button type="button" onClick={focusBanterComposer} className={SIDEBAR_CREATE_CLASS}>
+            <Plus aria-hidden="true" className="size-5" />
+            {createLabel}
+          </button>
+        ) : onHome ? (
+          <Link to="/new" className={SIDEBAR_CREATE_CLASS}>
+            <Plus aria-hidden="true" className="size-5" />
+            {createLabel}
+          </Link>
+        ) : null}
 
         <nav aria-label="Main" className="flex flex-col gap-1">
           <NavLinks items={items} pathname={pathname} unread={unread} />
@@ -213,14 +240,20 @@ export function AppLayout({ children, fill = false }: { children: ReactNode; fil
         {children}
       </main>
 
-      {hideFloatingCreate ? null : (
-        <Link
-          to="/new"
-          aria-label="Start an invite"
-          className="group bg-primary text-primary-foreground shadow-primary/40 fixed right-5 bottom-5 z-20 flex items-center gap-2 rounded-full p-4 shadow-xl transition hover:scale-105 active:scale-95 md:right-8 md:bottom-8 md:px-5"
+      {!showCreate ? null : onBanter ? (
+        <button
+          type="button"
+          aria-label={createLabel}
+          onClick={focusBanterComposer}
+          className={FLOATING_CREATE_CLASS}
         >
           <Plus aria-hidden="true" className="size-6 transition group-hover:rotate-90" />
-          <span className="hidden text-sm font-semibold md:inline">Start an invite</span>
+          <span className="hidden text-sm font-semibold md:inline">{createLabel}</span>
+        </button>
+      ) : (
+        <Link to="/new" aria-label={createLabel} className={FLOATING_CREATE_CLASS}>
+          <Plus aria-hidden="true" className="size-6 transition group-hover:rotate-90" />
+          <span className="hidden text-sm font-semibold md:inline">{createLabel}</span>
         </Link>
       )}
     </div>
