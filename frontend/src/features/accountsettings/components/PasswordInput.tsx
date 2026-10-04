@@ -13,7 +13,7 @@ export function PasswordInput({ id, label, error, ...props }: PasswordInputProps
 
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="text-foreground text-base font-medium">
+      <label htmlFor={id} className="text-muted-foreground mb-1 block text-xs font-medium">
         {label}
       </label>
       <div className="relative">

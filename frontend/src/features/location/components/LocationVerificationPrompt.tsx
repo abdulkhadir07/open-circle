@@ -77,7 +77,7 @@ export function LocationVerificationPrompt() {
       initial={reduceMotion ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: reduceMotion ? 0 : 0.4, ease: 'easeOut' }}
-      className="flex max-w-md flex-col items-start gap-4"
+      className="bg-card mx-auto flex max-w-md flex-col items-center gap-4 rounded-2xl border p-8 text-center"
     >
       <div className="relative flex size-11 items-center justify-center">
         {!reduceMotion ? (
@@ -114,12 +114,7 @@ export function LocationVerificationPrompt() {
         </p>
       ) : (
         <>
-          <Button
-            type="button"
-            className="h-10 px-4"
-            disabled={pending}
-            onClick={() => void handleShareLocation()}
-          >
+          <Button type="button" disabled={pending} onClick={() => void handleShareLocation()}>
             {pending ? (
               <LoaderCircle aria-hidden="true" className="animate-spin" />
             ) : (

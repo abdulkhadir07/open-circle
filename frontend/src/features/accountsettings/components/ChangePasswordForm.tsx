@@ -54,7 +54,7 @@ export function ChangePasswordForm() {
           animate={{ opacity: 1 }}
           exit={reduceMotion ? undefined : { opacity: 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.15 }}
-          className="border-border bg-card flex flex-col items-center gap-3 rounded-xl border p-8 text-center"
+          className="bg-card flex flex-col items-center gap-3 rounded-2xl border p-8 text-center"
         >
           <span className="flex size-12 items-center justify-center rounded-full bg-green-500/15 text-green-700 dark:text-green-400">
             <CheckCircle2 aria-hidden="true" className="size-6" />
@@ -83,7 +83,7 @@ export function ChangePasswordForm() {
           transition={{ duration: reduceMotion ? 0 : 0.15 }}
           noValidate
           onSubmit={(event) => void onSubmit(event)}
-          className="border-border bg-card space-y-4 rounded-xl border p-4"
+          className="bg-card space-y-4 rounded-2xl border p-4"
         >
           {errors.root?.message ? (
             <p role="alert" className="text-destructive text-base">

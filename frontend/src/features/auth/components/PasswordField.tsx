@@ -16,28 +16,19 @@ export function PasswordField({ id, label, error, className, ...props }: Passwor
   const errorId = error && id ? `${id}-error` : undefined;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
+      <label htmlFor={id} className="text-muted-foreground mb-1 block text-xs font-medium">
+        {label}
+      </label>
       <div className="relative">
         <Input
           id={id}
           type={visible ? 'text' : 'password'}
-          placeholder=" "
           aria-invalid={Boolean(error)}
           aria-describedby={errorId}
-          className={cn('peer h-14 pt-4 pr-11 pb-1', className)}
+          className={cn('pr-11', className)}
           {...props}
         />
-        <label
-          htmlFor={id}
-          className={cn(
-            'text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2',
-            'text-base transition-all duration-150 ease-out',
-            'peer-focus:text-primary peer-focus:top-3.5 peer-focus:translate-y-0 peer-focus:text-xs',
-            'peer-[:not(:placeholder-shown)]:top-3.5 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-xs',
-          )}
-        >
-          {label}
-        </label>
         <button
           type="button"
           onClick={() => setVisible((value) => !value)}

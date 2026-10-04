@@ -1,34 +1,63 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import {
-  LoaderCircle,
-  MapPin,
-  MessageCircle,
-  Settings,
-  Sparkles,
-  Star,
-  Trophy,
-  User,
-  Users,
-} from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { LoaderCircle, Plus, Search, Sparkles, X } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Avatar } from '@/components/ui/avatar';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { LocationVerificationPrompt } from '@/features/location/components/LocationVerificationPrompt';
-import { CreatePostDialog } from '@/features/invite-posts/components/CreatePostDialog';
 import { InvitePostCard } from '@/features/invite-posts/components/InvitePostCard';
 import { useGlobalFeed } from '@/features/invite-posts/hooks/useGlobalFeed';
 import { useLocalFeed } from '@/features/invite-posts/hooks/useLocalFeed';
 import { SCOPE_LABELS, type LocalFeedScope } from '@/features/invite-posts/api/contracts';
+import { cn } from '@/lib/utils';
 import { useMyEngagementRequests } from '@/features/engagement-requests/hooks/useMyEngagementRequests';
-import { NotificationBell } from '@/features/notifications/components/NotificationBell';
-import { EditableProfileAvatar } from '@/features/profile/components/EditableProfileAvatar';
 
 const FEED_MODE_OPTIONS = [
   { value: 'local', label: 'Local' },
   { value: 'global', label: 'Global' },
 ] as const;
+
+const IDEAS = [
+  {
+    label: 'Coffee chat',
+    text: 'Coffee and a chat near the park this afternoon, 1 person',
+    tags: ['coffee'],
+  },
+  {
+    label: 'Grab food',
+    text: 'Anyone want to grab lunch downtown at noon? 2 people',
+    tags: ['food'],
+  },
+  { label: 'Pickup game', text: 'Need 4 players for pickup soccer at 5pm', tags: ['games'] },
+  {
+    label: 'Walk and talk',
+    text: 'Walk around the neighborhood after work at 6pm, 2 or 3 people',
+    tags: ['walk'],
+  },
+];
+
+const MAX_TAG_FILTERS = 12;
+
+function FeedHeading({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <h2
+      className={cn(
+        'text-muted-foreground -mb-1 px-1 text-xs font-semibold tracking-wide uppercase',
+        className,
+      )}
+    >
+      {children}
+    </h2>
+  );
+}
+
+function greeting() {
+  const hour = new Date().getHours();
+  return hour < 12 ? 'Morning' : hour < 18 ? 'Hey' : 'Evening';
+}
 
 type LocalScopeFilter = 'ALL' | LocalFeedScope;
 
@@ -37,6 +66,8 @@ export function HomePage() {
   const currentUser = useCurrentUser();
   const [feedMode, setFeedMode] = useState<'local' | 'global'>('local');
   const [localScope, setLocalScope] = useState<LocalScopeFilter>('ALL');
+  const [query, setQuery] = useState('');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const locationVerified = Boolean(currentUser.data?.locationVerifiedAt);
   const stateRegionAvailable = Boolean(currentUser.data?.verifiedStateRegion);
@@ -60,6 +91,32 @@ export function HomePage() {
   });
   const globalFeed = useGlobalFeed({ enabled: locationVerified });
   const activeFeed = feedMode === 'local' ? localFeed : globalFeed;
+  const search = query.trim().toLowerCase();
+  const visiblePosts = useMemo(
+    () =>
+      (activeFeed.data ?? []).filter((post) => {
+        if (activeTag && !post.tags.includes(activeTag)) return false;
+        return (
+          !search ||
+          [post.content, post.posterUsername, post.city, post.country, ...post.tags]
+            .join(' ')
+            .toLowerCase()
+            .includes(search)
+        );
+      }),
+    [activeFeed.data, search, activeTag],
+  );
+  // Topics in the loaded feed, most-used first.
+  const feedTags = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const post of activeFeed.data ?? []) {
+      for (const tag of post.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, MAX_TAG_FILTERS)
+      .map(([tag]) => tag);
+  }, [activeFeed.data]);
   const myRequests = useMyEngagementRequests({ enabled: locationVerified });
   const myRequestsByPostId = useMemo(
     () => new Map(myRequests.data?.map((request) => [request.invitePostId, request])),
@@ -79,291 +136,195 @@ export function HomePage() {
   }
 
   const user = currentUser.data;
+  const place = `${user.verifiedCity}, ${user.verifiedCountry}`;
+  const openCount = activeFeed.data?.length ?? 0;
+
+  const myPosts = visiblePosts.filter((post) => post.posterId === user.id);
+  const otherPosts = visiblePosts.filter((post) => post.posterId !== user.id);
+
+  function renderPost(post: (typeof visiblePosts)[number], index: number) {
+    return (
+      <motion.div
+        key={post.id}
+        initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: reduceMotion ? 0 : 0.3,
+          delay: reduceMotion ? 0 : index * 0.05,
+          ease: 'easeOut',
+        }}
+      >
+        <InvitePostCard
+          post={post}
+          isOwnPost={post.posterId === user.id}
+          myRequest={myRequestsByPostId.get(post.id)}
+          onTagClick={(tag) => setActiveTag(activeTag === tag ? null : tag)}
+        />
+      </motion.div>
+    );
+  }
 
   return (
-    <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)_260px] lg:items-start lg:gap-10">
-      {/* Identity + primary action rail — desktop only; on mobile these
-          same actions live inline with the feed below instead. */}
-      <aside className="sticky top-8 hidden lg:flex lg:h-[calc(100svh-6rem)] lg:flex-col">
-        <div className="flex items-center gap-3">
-          <EditableProfileAvatar
-            name={user.firstName}
-            profileImage={user.profileImage}
-            className="bg-primary/10 text-primary size-11 text-base"
-          />
-          <div className="min-w-0">
-            <p className="text-foreground truncate text-base font-semibold">
-              {user.firstName} {user.lastName}
-            </p>
-          </div>
-        </div>
+    <div>
+      <PageHeader
+        title={`${greeting()}${user.firstName ? `, ${user.firstName}` : ''}`}
+        sub={
+          activeFeed.isLoading
+            ? `Invites near ${place}.`
+            : openCount > 0
+              ? `${openCount} open invite${openCount === 1 ? '' : 's'} near ${place} right now. Jump in.`
+              : `Nothing open near ${place} yet. What are you up to today?`
+        }
+      />
 
-        <CreatePostDialog triggerClassName="mt-6 w-full justify-center" />
-
-        <Button asChild variant="outline" className="mt-3 w-full justify-center">
-          <Link to="/requests">
-            <Users aria-hidden="true" />
-            Requests
-          </Link>
-        </Button>
-
-        <Button asChild variant="outline" className="mt-3 w-full justify-center">
-          <Link to="/chats">
-            <MessageCircle aria-hidden="true" />
-            Chats
-          </Link>
-        </Button>
-
-        <NotificationBell triggerClassName="mt-3 w-full justify-center" />
-
-        <Button asChild variant="outline" className="mt-3 w-full justify-center">
-          <Link to="/ratings">
-            <Star aria-hidden="true" />
-            Ratings
-          </Link>
-        </Button>
-
-        <Button asChild variant="outline" className="mt-3 w-full justify-center">
-          <Link to="/scoreboard">
-            <Trophy aria-hidden="true" />
-            Scoreboard
-          </Link>
-        </Button>
-
-        <Button asChild variant="outline" className="mt-3 w-full justify-center">
-          <Link to={`/profile/${user.id}`}>
-            <User aria-hidden="true" />
-            Profile
-          </Link>
-        </Button>
-
-        <Button asChild variant="outline" className="mt-3 w-full justify-center">
-          <Link to="/settings">
-            <Settings aria-hidden="true" />
-            Settings
-          </Link>
-        </Button>
-      </aside>
-
-      <div className="flex flex-col gap-6">
-        <div className="space-y-2">
-          <p className="text-primary text-sm font-semibold">Your circle</p>
-          <h1 className="text-foreground text-3xl font-semibold">
-            Welcome back{user.firstName ? `, ${user.firstName}` : ''}
-          </h1>
-        </div>
-
-        <CreatePostDialog triggerClassName="w-full justify-center lg:hidden" />
-
-        <Button asChild variant="outline" className="w-full justify-center lg:hidden">
-          <Link to="/requests">
-            <Users aria-hidden="true" />
-            Requests
-          </Link>
-        </Button>
-
-        <Button asChild variant="outline" className="w-full justify-center lg:hidden">
-          <Link to="/chats">
-            <MessageCircle aria-hidden="true" />
-            Chats
-          </Link>
-        </Button>
-
-        <NotificationBell triggerClassName="w-full justify-center lg:hidden" />
-
-        <Button asChild variant="outline" className="w-full justify-center lg:hidden">
-          <Link to="/ratings">
-            <Star aria-hidden="true" />
-            Ratings
-          </Link>
-        </Button>
-
-        <Button asChild variant="outline" className="w-full justify-center lg:hidden">
-          <Link to="/scoreboard">
-            <Trophy aria-hidden="true" />
-            Scoreboard
-          </Link>
-        </Button>
-
-        <Button asChild variant="outline" className="w-full justify-center lg:hidden">
-          <Link to={`/profile/${user.id}`}>
-            <User aria-hidden="true" />
-            Profile
-          </Link>
-        </Button>
-
-        <Button asChild variant="outline" className="w-full justify-center lg:hidden">
-          <Link to="/settings">
-            <Settings aria-hidden="true" />
-            Settings
-          </Link>
-        </Button>
-
-        <div>
-          <div
-            role="radiogroup"
-            aria-label="Feed"
-            className="border-border flex items-baseline gap-7 border-b"
-          >
-            {FEED_MODE_OPTIONS.map((option) => {
-              const selected = option.value === feedMode;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => setFeedMode(option.value)}
-                  className={cn(
-                    'relative pb-3 text-xl font-semibold tracking-tight transition-colors',
-                    selected
-                      ? 'text-foreground'
-                      : 'text-muted-foreground/60 hover:text-muted-foreground',
-                  )}
-                >
-                  {option.label}
-                  {selected ? (
-                    <motion.span
-                      layoutId="feed-mode-underline"
-                      className="bg-primary absolute inset-x-0 bottom-0 h-[2.5px] rounded-full"
-                      transition={
-                        reduceMotion
-                          ? { duration: 0 }
-                          : { duration: 0.35, ease: [0.22, 1, 0.36, 1] }
-                      }
-                    />
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-
-          <AnimatePresence initial={false}>
-            {feedMode === 'local' ? (
-              <motion.div
-                key="scope"
-                initial={reduceMotion ? false : { height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
-                transition={{ duration: reduceMotion ? 0 : 0.25, ease: 'easeOut' }}
-                className="overflow-hidden"
-              >
-                <div
-                  role="radiogroup"
-                  aria-label="Local feed scope"
-                  className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-4"
-                >
-                  {localScopeOptions.map((option, index) => {
-                    const selected = option.value === localScope;
-                    return (
-                      <span key={option.value} className="flex items-center gap-3">
-                        {index > 0 ? (
-                          <span aria-hidden="true" className="text-border select-none">
-                            ·
-                          </span>
-                        ) : null}
-                        <button
-                          type="button"
-                          role="radio"
-                          aria-checked={selected}
-                          onClick={() => setLocalScope(option.value)}
-                          className={cn(
-                            'text-base font-medium transition-colors',
-                            selected
-                              ? 'text-primary'
-                              : 'text-muted-foreground hover:text-foreground',
-                          )}
-                        >
-                          {option.label}
-                        </button>
-                      </span>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </div>
-
-        <AnimatePresence mode="wait" initial={false}>
-          {activeFeed.isLoading ? (
-            <motion.div
-              key="loading"
-              exit={reduceMotion ? undefined : { opacity: 0 }}
-              className="flex justify-center py-10"
+      <div className="border-primary/30 bg-card mb-6 rounded-2xl border-2 p-4 shadow-sm">
+        <Link to="/new" className="group flex items-center gap-3">
+          <Avatar name={`${user.firstName} ${user.lastName}`} profileImage={user.profileImage} />
+          <span className="bg-background text-muted-foreground group-hover:border-primary/50 flex-1 rounded-full border px-4 py-2.5 text-sm transition">
+            What do you want to do today{user.firstName ? `, ${user.firstName}` : ''}?
+          </span>
+          <span className="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-full transition group-hover:scale-110">
+            <Plus aria-hidden="true" className="size-5" />
+          </span>
+        </Link>
+        <div className="mt-3 flex flex-wrap gap-1.5 pl-12">
+          {IDEAS.map((idea) => (
+            <Link
+              key={idea.label}
+              to={`/new?text=${encodeURIComponent(idea.text)}&tags=${idea.tags.join(',')}`}
+              className="bg-primary/10 text-primary hover:bg-primary/20 rounded-full px-3 py-1 text-xs font-medium transition active:scale-95"
             >
-              <LoaderCircle
-                aria-hidden="true"
-                className="text-muted-foreground size-5 animate-spin"
+              {idea.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative mb-3">
+        <Search
+          aria-hidden="true"
+          className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+        />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search invites, places, people..."
+          aria-label="Search invites"
+          className="bg-card focus:ring-primary/40 w-full rounded-xl border py-2.5 pr-9 pl-9 text-sm transition outline-none focus:ring-2"
+        />
+        {query ? (
+          <button
+            type="button"
+            onClick={() => setQuery('')}
+            aria-label="Clear search"
+            className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1"
+          >
+            <X aria-hidden="true" className="size-4" />
+          </button>
+        ) : null}
+      </div>
+
+      {feedTags.length > 0 || activeTag ? (
+        <fieldset className="mb-3 flex min-w-0 flex-wrap gap-1.5">
+          <legend className="sr-only">Filter by topic</legend>
+          {(activeTag && !feedTags.includes(activeTag) ? [activeTag, ...feedTags] : feedTags).map(
+            (tag) => (
+              <button
+                key={tag}
+                type="button"
+                aria-pressed={activeTag === tag}
+                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                className={cn(
+                  'cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition active:scale-95',
+                  activeTag === tag
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground',
+                )}
+              >
+                #{tag}
+              </button>
+            ),
+          )}
+        </fieldset>
+      ) : null}
+
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <SegmentedControl
+          aria-label="Feed"
+          options={FEED_MODE_OPTIONS}
+          value={feedMode}
+          onChange={setFeedMode}
+        />
+        <AnimatePresence initial={false}>
+          {feedMode === 'local' ? (
+            <motion.div
+              key="scope"
+              initial={reduceMotion ? false : { opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, x: -8 }}
+              transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
+            >
+              <SegmentedControl
+                aria-label="Local feed scope"
+                size="sm"
+                options={localScopeOptions}
+                value={localScope}
+                onChange={setLocalScope}
               />
             </motion.div>
-          ) : activeFeed.isError ? (
-            <motion.p
-              key="error"
-              role="alert"
-              exit={reduceMotion ? undefined : { opacity: 0 }}
-              className="text-destructive text-base"
-            >
-              {activeFeed.error instanceof Error
-                ? activeFeed.error.message
-                : 'Unable to load invite posts.'}
-            </motion.p>
-          ) : activeFeed.data && activeFeed.data.length > 0 ? (
-            <motion.div
-              key={`${feedMode}-${localScope}`}
-              exit={reduceMotion ? undefined : { opacity: 0 }}
-              className="flex flex-col gap-4"
-            >
-              {activeFeed.data.map((post, index) => (
-                <motion.div
-                  key={post.id}
-                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: reduceMotion ? 0 : 0.3,
-                    delay: reduceMotion ? 0 : index * 0.05,
-                    ease: 'easeOut',
-                  }}
-                >
-                  <InvitePostCard
-                    post={post}
-                    isOwnPost={post.posterId === user.id}
-                    myRequest={myRequestsByPostId.get(post.id)}
-                  />
-                </motion.div>
-              ))}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="empty"
-              exit={reduceMotion ? undefined : { opacity: 0 }}
-              className="border-border flex flex-col items-center gap-2 rounded-2xl border border-dashed py-12 text-center"
-            >
-              <Sparkles aria-hidden="true" className="text-muted-foreground size-5" />
-              <p className="text-muted-foreground text-base">
-                No invite posts here yet. Be the first to post one.
-              </p>
-            </motion.div>
-          )}
+          ) : null}
         </AnimatePresence>
       </div>
 
-      {/* Location context rail — desktop only; genuinely explains why the
-          feed shows what it shows, using data already on the user record. */}
-      <aside className="sticky top-8 hidden lg:block">
-        <div className="border-border bg-card rounded-2xl border p-5">
-          <div className="flex items-center gap-2">
-            <MapPin aria-hidden="true" className="text-primary size-4" />
-            <span className="text-foreground text-base font-semibold">Your location</span>
-          </div>
-          <p className="text-foreground mt-2 text-base">
-            {user.verifiedCity}, {user.verifiedCountry}
-          </p>
-          <p className="text-muted-foreground mt-3 text-sm leading-5">
-            Your feed and posts are matched to this location.
-          </p>
-        </div>
-      </aside>
+      <AnimatePresence mode="wait" initial={false}>
+        {activeFeed.isLoading ? (
+          <motion.div
+            key="loading"
+            exit={reduceMotion ? undefined : { opacity: 0 }}
+            className="flex justify-center py-10"
+          >
+            <LoaderCircle
+              aria-hidden="true"
+              className="text-muted-foreground size-5 animate-spin"
+            />
+          </motion.div>
+        ) : activeFeed.isError ? (
+          <motion.p
+            key="error"
+            role="alert"
+            exit={reduceMotion ? undefined : { opacity: 0 }}
+            className="text-destructive text-base"
+          >
+            {activeFeed.error instanceof Error
+              ? activeFeed.error.message
+              : 'Unable to load invite posts.'}
+          </motion.p>
+        ) : visiblePosts.length > 0 ? (
+          <motion.div
+            key={`${feedMode}-${localScope}`}
+            exit={reduceMotion ? undefined : { opacity: 0 }}
+            className="flex flex-col gap-4"
+          >
+            {myPosts.length > 0 ? <FeedHeading>Your open invites</FeedHeading> : null}
+            {myPosts.map((post, index) => renderPost(post, index))}
+            {myPosts.length > 0 && otherPosts.length > 0 ? (
+              <FeedHeading className="mt-2">Nearby</FeedHeading>
+            ) : null}
+            {otherPosts.map((post, index) => renderPost(post, myPosts.length + index))}
+          </motion.div>
+        ) : (
+          <motion.div key="empty" exit={reduceMotion ? undefined : { opacity: 0 }}>
+            {search || activeTag ? (
+              <EmptyState icon={Search}>No invites match that. Try another word.</EmptyState>
+            ) : (
+              <EmptyState icon={Sparkles}>
+                No invite posts here yet. Be the first to post one.
+              </EmptyState>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

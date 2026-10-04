@@ -23,6 +23,12 @@ describe('SentRequestsList', () => {
       await screen.findByText(engagementRequest.invitePost.posterUsername),
     ).toBeInTheDocument();
     expect(screen.getByText(engagementRequest.invitePost.content)).toBeInTheDocument();
+    expect(screen.getByText(/^You asked to join/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        `${engagementRequest.invitePost.city}, ${engagementRequest.invitePost.country}`,
+      ),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Withdraw Request' })).toBeInTheDocument();
   });
 
@@ -66,5 +72,14 @@ describe('SentRequestsList', () => {
     renderWithProviders(<SentRequestsList />);
 
     expect(await screen.findByText('Something went wrong')).toBeInTheDocument();
+  });
+
+  it("links the poster's name to their profile", async () => {
+    server.use(http.get('*/api/engagements/mine', () => HttpResponse.json([engagementRequest])));
+    renderWithProviders(<SentRequestsList />);
+
+    expect(
+      await screen.findByRole('link', { name: engagementRequest.invitePost.posterUsername }),
+    ).toHaveAttribute('href', `/profile/${engagementRequest.invitePost.posterId}`);
   });
 });

@@ -1,4 +1,6 @@
-import { LoaderCircle } from 'lucide-react';
+import { Inbox, LoaderCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useAcceptEngagementRequest } from '../hooks/useAcceptEngagementRequest';
 import { useDeclineEngagementRequest } from '../hooks/useDeclineEngagementRequest';
 import { useHoldEngagementRequest } from '../hooks/useHoldEngagementRequest';
@@ -29,11 +31,7 @@ export function ReceivedRequestsList() {
   }
 
   if (!requests.data || requests.data.length === 0) {
-    return (
-      <p className="text-muted-foreground text-base">
-        No one has requested to join your posts yet.
-      </p>
-    );
+    return <EmptyState icon={Inbox}>No one has requested to join your posts yet.</EmptyState>;
   }
 
   const actionError = acceptRequest.error ?? declineRequest.error ?? holdRequest.error;
@@ -47,37 +45,37 @@ export function ReceivedRequestsList() {
             <EngagementRequestRow
               key={request.id}
               request={request}
+              direction="received"
               personName={request.requesterUsername}
               otherUserId={request.requesterId}
               personProfileImage={request.requesterProfileImage}
               actions={
                 actionable ? (
-                  <div className="flex items-center gap-1.5">
-                    <button
+                  <div className="flex items-center gap-2">
+                    <Button
                       type="button"
                       onClick={() => acceptRequest.mutate(request.id)}
                       disabled={acceptRequest.isPending}
-                      className="bg-primary text-primary-foreground hover:bg-primary/80 rounded-md px-2.5 py-1 text-sm font-medium disabled:opacity-50"
                     >
                       Accept
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="outline"
                       onClick={() => declineRequest.mutate(request.id)}
                       disabled={declineRequest.isPending}
-                      className="text-muted-foreground hover:text-destructive rounded-md px-2 py-1 text-sm font-medium disabled:opacity-50"
                     >
                       Decline
-                    </button>
+                    </Button>
                     {request.status === 'PENDING' ? (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={() => holdRequest.mutate(request.id)}
                         disabled={holdRequest.isPending}
-                        className="text-muted-foreground hover:text-foreground rounded-md px-2 py-1 text-sm font-medium disabled:opacity-50"
                       >
                         Hold
-                      </button>
+                      </Button>
                     ) : null}
                   </div>
                 ) : null

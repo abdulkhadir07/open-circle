@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_TAGS } from '../lib/tags';
 
 /**
  * Mirrors the backend's exact constraints (CreateInvitePostRequest,
@@ -20,6 +21,7 @@ export function createInvitePostSchema(stateRegionAvailable: boolean) {
       // parsed to a number only where it's checked, below and at submit time.
       totalCapacity: z.string(),
       locationScope: z.enum(['CITY', 'STATE_REGION', 'COUNTRY', 'GLOBAL']),
+      tags: z.array(z.string()).max(MAX_TAGS, `Pick up to ${MAX_TAGS} topics`),
     })
     .refine(
       (values) => {

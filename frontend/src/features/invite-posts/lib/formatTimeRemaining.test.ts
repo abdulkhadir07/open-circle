@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { formatTimeRemaining } from './formatTimeRemaining';
 
 describe('formatTimeRemaining', () => {
-  it('shows hours when at least one full hour remains', () => {
-    expect(formatTimeRemaining(23 * 60 * 60 * 1000)).toBe('23h left');
+  it('shows hours and minutes when at least one full hour remains', () => {
+    expect(formatTimeRemaining(23 * 60 * 60 * 1000)).toBe('23h 0m left');
+    expect(formatTimeRemaining((2 * 60 + 30) * 60 * 1000)).toBe('2h 30m left');
   });
 
   it('shows minutes once under an hour remains', () => {

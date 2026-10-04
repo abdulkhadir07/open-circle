@@ -33,6 +33,11 @@ const NewPasswordPage = lazy(() =>
     default: module.NewPasswordPage,
   })),
 );
+const NewPostPage = lazy(() =>
+  import('@/features/invite-posts/pages/NewPostPage').then((module) => ({
+    default: module.NewPostPage,
+  })),
+);
 const EngagementRequestsPage = lazy(() =>
   import('@/features/engagement-requests/pages/EngagementRequestsPage').then((module) => ({
     default: module.EngagementRequestsPage,
@@ -41,11 +46,6 @@ const EngagementRequestsPage = lazy(() =>
 const ChatRoomsPage = lazy(() =>
   import('@/features/chat/pages/ChatRoomsPage').then((module) => ({
     default: module.ChatRoomsPage,
-  })),
-);
-const ChatRoomsEmptyState = lazy(() =>
-  import('@/features/chat/pages/ChatRoomsPage').then((module) => ({
-    default: module.ChatRoomsEmptyState,
   })),
 );
 const ChatRoomPage = lazy(() =>
@@ -101,6 +101,11 @@ const SessionsSettingsPage = lazy(() =>
     default: module.SessionsSettingsPage,
   })),
 );
+const AppearanceSettingsPage = lazy(() =>
+  import('@/features/accountsettings/pages/AppearanceSettingsPage').then((module) => ({
+    default: module.AppearanceSettingsPage,
+  })),
+);
 const PersonalInfoSettingsPage = lazy(() =>
   import('@/features/accountsettings/pages/PersonalInfoSettingsPage').then((module) => ({
     default: module.PersonalInfoSettingsPage,
@@ -122,6 +127,14 @@ export function AppRoutes() {
         <Route path="/" element={<RootPage />} />
         <Route element={<ProtectedRoute />}>
           <Route
+            path="/new"
+            element={
+              <AppLayout>
+                <NewPostPage />
+              </AppLayout>
+            }
+          />
+          <Route
             path="/requests"
             element={
               <AppLayout>
@@ -136,10 +149,15 @@ export function AppRoutes() {
                 <ChatRoomsPage />
               </AppLayout>
             }
-          >
-            <Route index element={<ChatRoomsEmptyState />} />
-            <Route path=":roomId" element={<ChatRoomPage />} />
-          </Route>
+          />
+          <Route
+            path="/chats/:roomId"
+            element={
+              <AppLayout fill>
+                <ChatRoomPage />
+              </AppLayout>
+            }
+          />
           <Route
             path="/notifications"
             element={
@@ -217,6 +235,14 @@ export function AppRoutes() {
             element={
               <AppLayout>
                 <SessionsSettingsPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/settings/appearance"
+            element={
+              <AppLayout>
+                <AppearanceSettingsPage />
               </AppLayout>
             }
           />

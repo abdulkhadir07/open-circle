@@ -118,4 +118,22 @@ describe('MessageList', () => {
       await screen.findByText('You must be a chat participant to perform this action'),
     ).toBeInTheDocument();
   });
+
+  it("links the sender's avatar to their profile, but not your own messages", async () => {
+    server.use(
+      http.get('*/api/chat-rooms/:roomId/messages', () => HttpResponse.json([chatMessage])),
+    );
+    const { unmount } = renderWithProviders(
+      <MessageList roomId={chatRoom.id} currentUserId="someone-else" />,
+    );
+
+    expect(
+      await screen.findByRole('link', { name: `View ${chatMessage.senderUsername}'s profile` }),
+    ).toHaveAttribute('href', `/profile/${chatMessage.senderId}`);
+    unmount();
+
+    renderWithProviders(<MessageList roomId={chatRoom.id} currentUserId={chatMessage.senderId} />);
+    expect(await screen.findByText(chatMessage.body!)).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
 });

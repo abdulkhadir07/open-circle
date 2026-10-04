@@ -1,30 +1,20 @@
-import { Check, Clock, MapPin, Undo2, X } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { ProfileAvatarLink, ProfileLink } from '@/features/profile/components/ProfileLink';
 import { Avatar } from '@/components/ui/avatar';
 import { ReputationBadge } from '@/features/ratings/components/ReputationBadge';
+import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { EngagementRequest } from '../api/contracts';
 
-type Tone = 'pending' | 'held' | 'accepted' | 'declined' | 'withdrawn';
-
 const STATUS_PRESENTATION: Record<
   EngagementRequest['status'],
-  { label: string; icon: typeof Check; tone: Tone }
+  { label: string; className: string }
 > = {
-  PENDING: { label: 'Pending', icon: Clock, tone: 'pending' },
-  HELD: { label: 'On hold', icon: Clock, tone: 'held' },
-  ACCEPTED: { label: 'Accepted', icon: Check, tone: 'accepted' },
-  DECLINED: { label: 'Declined', icon: X, tone: 'declined' },
-  WITHDRAWN: { label: 'Withdrawn', icon: Undo2, tone: 'withdrawn' },
-};
-
-const TONE_STYLES: Record<Tone, string> = {
-  pending: 'bg-primary/10 text-primary',
-  held: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-  accepted: 'bg-green-500/10 text-green-700 dark:text-green-400',
-  declined: 'bg-destructive/10 text-destructive',
-  withdrawn: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+  PENDING: { label: 'Pending', className: 'bg-muted text-muted-foreground' },
+  HELD: { label: 'On hold', className: 'bg-amber text-amber-foreground' },
+  ACCEPTED: { label: 'Accepted', className: 'bg-primary/15 text-primary' },
+  DECLINED: { label: 'Declined', className: 'bg-destructive/10 text-destructive' },
+  WITHDRAWN: { label: 'Withdrawn', className: 'bg-muted text-muted-foreground' },
 };
 
 type EngagementRequestRowProps = {
@@ -32,9 +22,9 @@ type EngagementRequestRowProps = {
   /** The other party's name — the poster for a sent row, the requester for a received row. */
   personName: string;
   /**
-   * The other party's userId, for a profile link and reputation badge —
-   * omitted on the Sent tab, since `request.invitePost` only carries the
-   * poster's username, not their id.
+   * The other party's userId, for a profile link and reputation badge.
+   * Absent on the Sent tab only when talking to a backend that predates
+   * `invitePost.posterId`.
    */
   otherUserId?: string;
   /**
@@ -43,6 +33,8 @@ type EngagementRequestRowProps = {
    * backend gap, same reason `otherUserId` is omitted there too).
    */
   personProfileImage?: { url: string } | null;
+  /** Whether this row is a request someone sent you (received) or one you sent (sent). */
+  direction: 'received' | 'sent';
   /** Actionable buttons for this row (Withdraw, or Accept/Decline/Hold) — omitted once the request is final. */
   actions?: ReactNode;
 };
@@ -52,50 +44,32 @@ export function EngagementRequestRow({
   personName,
   otherUserId,
   personProfileImage,
+  direction,
   actions,
 }: EngagementRequestRowProps) {
-  const { label, icon: Icon, tone } = STATUS_PRESENTATION[request.status];
+  const { label, className } = STATUS_PRESENTATION[request.status];
 
   return (
-    <li className="border-border bg-card flex flex-wrap items-start justify-between gap-3 rounded-xl border p-4">
-      <div className="flex min-w-0 items-start gap-3">
-        <Avatar
-          name={personName}
-          profileImage={personProfileImage}
-          className="bg-accent/20 text-accent size-9 text-sm"
-        />
-        <div className="min-w-0">
-          <p className="text-foreground flex items-center gap-2 text-base font-semibold">
-            {otherUserId ? (
-              <Link to={`/profile/${otherUserId}`} className="hover:underline">
-                {personName}
-              </Link>
-            ) : (
-              personName
-            )}
-            <ReputationBadge userId={otherUserId} />
-          </p>
-          <p className="text-foreground mt-0.5 line-clamp-2 text-base">
-            {request.invitePost.content}
-          </p>
-          <p className="text-muted-foreground mt-1 flex items-center gap-1 text-sm">
-            <MapPin aria-hidden="true" className="size-3" />
-            {request.invitePost.city}, {request.invitePost.country}
-          </p>
-        </div>
+    <Card as="li" className="animate-fade-up flex flex-wrap items-center gap-3 p-4">
+      {otherUserId ? (
+        <ProfileAvatarLink userId={otherUserId}>
+          <Avatar name={personName} profileImage={personProfileImage} />
+        </ProfileAvatarLink>
+      ) : (
+        <Avatar name={personName} profileImage={personProfileImage} />
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1.5 text-sm font-semibold">
+          {otherUserId ? <ProfileLink userId={otherUserId}>{personName}</ProfileLink> : personName}
+          <ReputationBadge userId={otherUserId} />
+        </p>
+        <p className="text-muted-foreground truncate text-xs">
+          {direction === 'sent' ? 'You asked to join ' : 'wants to join '}
+          <span>{request.invitePost.content}</span>
+        </p>
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-2">
-        <span
-          className={cn(
-            'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-medium',
-            TONE_STYLES[tone],
-          )}
-        >
-          <Icon aria-hidden="true" className="size-3" />
-          {label}
-        </span>
-        {actions}
-      </div>
-    </li>
+      <span className={cn('rounded-full px-2.5 py-1 text-xs font-medium', className)}>{label}</span>
+      {actions}
+    </Card>
   );
 }

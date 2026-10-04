@@ -37,8 +37,8 @@ export function SegmentedControl<Value extends string>({
       role="radiogroup"
       aria-label={ariaLabel}
       className={cn(
-        'inline-flex gap-1 rounded-lg p-1',
-        size === 'sm' ? 'bg-muted/60' : 'bg-muted',
+        'bg-card inline-flex gap-1 rounded-xl border p-1',
+        size === 'sm' && 'rounded-lg',
         className,
       )}
     >
@@ -53,15 +53,15 @@ export function SegmentedControl<Value extends string>({
             aria-checked={selected}
             onClick={() => onChange(option.value)}
             className={cn(
-              'relative flex items-center gap-1.5 rounded-md font-medium whitespace-nowrap',
-              size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm',
-              selected ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+              'relative flex cursor-pointer items-center gap-1.5 rounded-lg font-medium whitespace-nowrap transition',
+              size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-4 py-1.5 text-sm',
+              selected ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
             )}
           >
             {selected ? (
               <motion.span
                 layoutId={layoutId}
-                className="bg-card absolute inset-0 rounded-md shadow-sm"
+                className="bg-primary absolute inset-0 rounded-lg"
                 transition={
                   reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 34 }
                 }

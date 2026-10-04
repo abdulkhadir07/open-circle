@@ -1,22 +1,22 @@
 import { ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function SettingsSectionLayout({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       <Link
         to="/settings"
-        className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-base font-medium"
+        className="text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1.5 text-sm font-medium"
       >
         <ArrowLeft aria-hidden="true" className="size-4" />
         Back to Settings
       </Link>
 
-      <p className="text-primary mt-4 text-sm font-semibold">Your account</p>
-      <h1 className="text-foreground text-3xl font-semibold">{title}</h1>
+      <PageHeader title={title} />
 
-      <div className="mt-6">{children}</div>
+      {children}
     </div>
   );
 }

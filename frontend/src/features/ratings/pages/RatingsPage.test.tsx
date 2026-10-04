@@ -22,13 +22,13 @@ describe('RatingsPage', () => {
     expect(await screen.findByText('Nothing to rate right now.')).toBeInTheDocument();
   });
 
-  it('shows a due rating with a Rate action', async () => {
+  it('shows a due rating with star buttons to rate it', async () => {
     server.use(http.get('*/api/users/me/ratings/due', () => HttpResponse.json([dueRating])));
 
     renderRatingsPage();
 
     expect(await screen.findByText(dueRating.otherUsername)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Rate' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '5 out of 5' })).toBeInTheDocument();
   });
 
   it('shows an error message when the due list fails to load', async () => {
@@ -56,7 +56,7 @@ describe('RatingsPage', () => {
   it('switches to the Received tab and shows an empty state', async () => {
     const { user } = renderRatingsPage();
 
-    await user.click(screen.getByRole('radio', { name: 'Received' }));
+    await user.click(screen.getByRole('link', { name: 'Received' }));
 
     expect(await screen.findByText('No ratings yet.')).toBeInTheDocument();
   });
@@ -65,7 +65,7 @@ describe('RatingsPage', () => {
     renderRatingsPage(['/ratings?tab=received']);
 
     expect(await screen.findByText('No ratings yet.')).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'Received' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('link', { name: 'Received' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('shows received ratings and the reputation summary', async () => {
@@ -83,7 +83,7 @@ describe('RatingsPage', () => {
     );
 
     const { user } = renderRatingsPage();
-    await user.click(screen.getByRole('radio', { name: 'Received' }));
+    await user.click(screen.getByRole('link', { name: 'Received' }));
 
     expect(await screen.findByText(receivedRating.raterUsername)).toBeInTheDocument();
     expect(screen.getByText(/average from/)).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe('RatingsPage', () => {
       }),
     );
     const { user } = renderRatingsPage();
-    await user.click(screen.getByRole('radio', { name: 'Received' }));
+    await user.click(screen.getByRole('link', { name: 'Received' }));
 
     const loadMoreButton = await screen.findByRole('button', { name: 'Load more' });
     await user.click(loadMoreButton);

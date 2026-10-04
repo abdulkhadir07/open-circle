@@ -21,11 +21,11 @@ const STATUS_PRESENTATION: Record<EngagementRequest['status'], StatusPresentatio
 };
 
 const TONE_STYLES: Record<StatusPresentation['tone'], string> = {
-  pending: 'bg-primary/10 text-primary',
-  held: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-  accepted: 'bg-green-500/10 text-green-700 dark:text-green-400',
+  pending: 'bg-muted text-foreground',
+  held: 'bg-amber text-amber-foreground',
+  accepted: 'bg-primary/15 text-primary font-semibold',
   declined: 'bg-destructive/10 text-destructive',
-  withdrawn: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+  withdrawn: 'bg-muted text-muted-foreground',
 };
 
 type EngageControlProps = {
@@ -55,7 +55,7 @@ export function EngageControl({ invitePostId, myRequest, postOpen }: EngageContr
       <div className="flex items-center gap-2">
         <span
           className={cn(
-            'relative flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-medium',
+            'animate-pop relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium',
             TONE_STYLES[tone],
           )}
         >
@@ -76,14 +76,14 @@ export function EngageControl({ invitePostId, myRequest, postOpen }: EngageContr
           {label}
         </span>
         {canWithdraw ? (
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => withdrawRequest.mutate(myRequest.id)}
             disabled={withdrawRequest.isPending}
-            className="rounded-full bg-red-800 px-3 py-1 text-sm font-bold text-white hover:bg-red-900 disabled:opacity-50"
           >
             {withdrawRequest.isPending ? 'Withdrawing…' : 'Withdraw Request'}
-          </button>
+          </Button>
         ) : null}
         {withdrawRequest.isError ? (
           <span role="alert" className="text-destructive text-sm">
@@ -104,7 +104,6 @@ export function EngageControl({ invitePostId, myRequest, postOpen }: EngageContr
     <div className="flex items-center gap-2">
       <Button
         type="button"
-        size="sm"
         onClick={() => createRequest.mutate(invitePostId)}
         disabled={createRequest.isPending}
       >

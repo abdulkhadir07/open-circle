@@ -10,7 +10,10 @@ export function formatTimeRemaining(msRemaining: number): string {
   if (msRemaining <= 0) return 'Expired';
 
   const hours = Math.floor(msRemaining / HOUR_MS);
-  if (hours >= 1) return `${hours}h left`;
+  if (hours >= 1) {
+    const minutes = Math.floor((msRemaining % HOUR_MS) / MINUTE_MS);
+    return `${hours}h ${minutes}m left`;
+  }
 
   const minutes = Math.floor(msRemaining / MINUTE_MS);
   if (minutes >= 1) return `${minutes}m left`;
