@@ -1,18 +1,18 @@
 import { screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { invitePost, invitePostImage, invitePostWithImages } from '@/test/mocks/fixtures';
 import { renderWithProviders } from '@/test/render';
 import { InvitePostCard } from './InvitePostCard';
 
 describe('InvitePostCard', () => {
-  it('shows the poster, content, and scope for a single invite', () => {
+  it('shows the poster and content for a single invite, without a location', () => {
     renderWithProviders(<InvitePostCard post={invitePost} />);
 
     expect(screen.getByText(invitePost.posterUsername)).toBeInTheDocument();
     expect(screen.getByText(invitePost.content)).toBeInTheDocument();
-    expect(screen.getByText(`${invitePost.city}, ${invitePost.country}`)).toBeInTheDocument();
-    expect(screen.getByText('City')).toBeInTheDocument();
-    expect(screen.queryByText(/invites? left|\d+ left/)).not.toBeInTheDocument();
+    expect(screen.queryByText(`${invitePost.city}, ${invitePost.country}`)).not.toBeInTheDocument();
+    expect(screen.queryByText('City')).not.toBeInTheDocument();
+    expect(screen.getByText('1 spot left')).toBeInTheDocument();
   });
 
   it('shows no image carousel when the post has no images', () => {
@@ -41,7 +41,7 @@ describe('InvitePostCard', () => {
       />,
     );
 
-    expect(screen.getByText('3 left')).toBeInTheDocument();
+    expect(screen.getByText('3 spots left')).toBeInTheDocument();
   });
 
   it('falls back to plain text once capacity is too large to show as dots', () => {
@@ -57,6 +57,49 @@ describe('InvitePostCard', () => {
       />,
     );
 
-    expect(screen.getByText('24 invites left')).toBeInTheDocument();
+    expect(screen.getByText('24 spots left')).toBeInTheDocument();
+  });
+
+  it('says Full once a single invite has been accepted', () => {
+    renderWithProviders(
+      <InvitePostCard post={{ ...invitePost, acceptedCount: 1, invitesLeft: 0 }} />,
+    );
+
+    expect(screen.getByText('Full')).toBeInTheDocument();
+    expect(screen.queryByText('1 spot left')).not.toBeInTheDocument();
+  });
+
+  it('shows topic chips as plain labels when no handler is given', () => {
+    renderWithProviders(<InvitePostCard post={{ ...invitePost, tags: ['walk', 'code'] }} />);
+
+    expect(screen.getByText('#walk')).toBeInTheDocument();
+    expect(screen.getByText('#code')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '#walk' })).not.toBeInTheDocument();
+  });
+
+  it('makes topic chips clickable when a handler is given', async () => {
+    const onTagClick = vi.fn<(tag: string) => void>();
+    const { user } = renderWithProviders(
+      <InvitePostCard post={{ ...invitePost, tags: ['walk'] }} onTagClick={onTagClick} />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '#walk' }));
+
+    expect(onTagClick).toHaveBeenCalledWith('walk');
+  });
+
+  it('shows no topic row when the post has none', () => {
+    renderWithProviders(<InvitePostCard post={invitePost} />);
+
+    expect(screen.queryByText(/^#/)).not.toBeInTheDocument();
+  });
+
+  it("links the poster's avatar and name to their profile", () => {
+    renderWithProviders(<InvitePostCard post={invitePost} />);
+
+    expect(screen.getByRole('link', { name: invitePost.posterUsername })).toHaveAttribute(
+      'href',
+      `/profile/${invitePost.posterId}`,
+    );
   });
 });

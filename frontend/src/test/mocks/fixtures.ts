@@ -62,6 +62,7 @@ export const invitePost: InvitePost = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   images: [],
+  tags: [],
 };
 
 export const invitePostImage: InvitePostImage = {
@@ -89,6 +90,7 @@ export const engagementRequest: EngagementRequest = {
   invitePost: {
     id: invitePost.id,
     content: invitePost.content,
+    posterId: invitePost.posterId,
     posterUsername: invitePost.posterUsername,
     city: invitePost.city,
     stateRegion: invitePost.stateRegion,
