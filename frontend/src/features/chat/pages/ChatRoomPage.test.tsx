@@ -62,14 +62,16 @@ describe('ChatRoomPage', () => {
     expect(await screen.findByText("This chat isn't available anymore.")).toBeInTheDocument();
   });
 
-  it('disables the composer and hides the chat options menu for a closed room', async () => {
+  it('replaces the composer with an ended banner and hides the chat options menu for a closed room', async () => {
     server.use(
       http.get('*/api/chat-rooms', () => HttpResponse.json([{ ...chatRoom, closed: true }])),
     );
     renderRoomPage(chatRoom.id);
 
     expect(await screen.findByText('This chat is closed.')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Message' })).toBeDisabled();
+    expect(screen.getByText(/This chat has ended/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ratings' })).toHaveAttribute('href', '/ratings');
+    expect(screen.queryByRole('textbox', { name: 'Message' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Chat options' })).not.toBeInTheDocument();
   });
 

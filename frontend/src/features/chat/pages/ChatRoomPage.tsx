@@ -1,4 +1,4 @@
-import { ArrowLeft, LoaderCircle, LogOut, MoreVertical, Pin } from 'lucide-react';
+import { ArrowLeft, LoaderCircle, Lock, LogOut, MoreVertical, Pin } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Avatar } from '@/components/ui/avatar';
+import { ProfileAvatarLink, ProfileLink } from '@/features/profile/components/ProfileLink';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,23 +73,34 @@ export function ChatRoomPage() {
   }
 
   return (
-    <div className="border-border bg-card flex h-full flex-col overflow-hidden rounded-xl border">
-      <div className="border-border flex shrink-0 items-center justify-between gap-3 border-b p-4">
+    <div className="flex h-[calc(100svh-5.5rem)] flex-col md:h-[calc(100svh-4rem)]">
+      <div className="mb-4 flex shrink-0 items-center justify-between gap-3 border-b pb-4">
         <div className="flex min-w-0 items-center gap-3">
           <Link
             to="/chats"
             aria-label="Back to chats"
-            className="text-muted-foreground hover:text-foreground lg:hidden"
+            className="text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft aria-hidden="true" className="size-5" />
           </Link>
-          <Avatar
-            name={names}
-            profileImage={soleOtherParticipant?.profileImage}
-            className="bg-accent/20 text-accent size-9 text-sm"
-          />
+          {soleOtherParticipant ? (
+            <ProfileAvatarLink
+              userId={soleOtherParticipant.userId}
+              label={`View ${names}'s profile`}
+            >
+              <Avatar name={names} profileImage={soleOtherParticipant.profileImage} />
+            </ProfileAvatarLink>
+          ) : (
+            <Avatar name={names} />
+          )}
           <div className="min-w-0">
-            <h1 className="text-foreground truncate text-base font-semibold">{names}</h1>
+            <h1 className="truncate text-xl font-bold">
+              {soleOtherParticipant ? (
+                <ProfileLink userId={soleOtherParticipant.userId}>{names}</ProfileLink>
+              ) : (
+                names
+              )}
+            </h1>
             {room.closed ? (
               <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
                 This chat is closed.
@@ -138,7 +150,7 @@ export function ChatRoomPage() {
         </div>
       </div>
       {leaveRoom.isError ? (
-        <p role="alert" className="text-destructive px-4 pt-2 text-sm">
+        <p role="alert" className="text-destructive pb-2 text-sm">
           {leaveRoom.error instanceof Error
             ? leaveRoom.error.message
             : 'Unable to leave that chat.'}
@@ -166,18 +178,29 @@ export function ChatRoomPage() {
       <div className="min-h-0 flex-1">
         <MessageList roomId={room.id} currentUserId={currentUser.data?.id} />
       </div>
-      <div className="border-border shrink-0 border-t p-3">
-        <MessageComposer
-          roomId={room.id}
-          disabled={!canSendMessages}
-          disabledReason={
-            room.closed
-              ? 'This chat is closed'
-              : departedOther
+      <div className="mt-4 shrink-0">
+        {room.closed ? (
+          <p className="bg-muted text-muted-foreground flex items-center justify-center gap-2 rounded-xl p-3 text-sm">
+            <Lock aria-hidden="true" className="size-4" />
+            <span>
+              This chat has ended. Go to{' '}
+              <Link to="/ratings" className="text-primary font-medium hover:underline">
+                Ratings
+              </Link>{' '}
+              to rate your group.
+            </span>
+          </p>
+        ) : (
+          <MessageComposer
+            roomId={room.id}
+            disabled={!canSendMessages}
+            disabledReason={
+              departedOther
                 ? `${departedOther.username} left this chat, so you can't send new messages`
                 : undefined
-          }
-        />
+            }
+          />
+        )}
       </div>
     </div>
   );

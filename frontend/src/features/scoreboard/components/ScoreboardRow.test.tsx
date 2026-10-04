@@ -63,4 +63,13 @@ describe('ScoreboardRow', () => {
     const fill = container.querySelector('[style*="width"]');
     expect(fill).toHaveStyle({ width: '100%' });
   });
+
+  it("links the avatar and username to that user's profile", () => {
+    renderWithProviders(<ScoreboardRow entry={topEntry!} position={4} scoreFraction={1} />);
+
+    expect(screen.getByRole('link', { name: topEntry!.username })).toHaveAttribute(
+      'href',
+      `/profile/${topEntry!.userId}`,
+    );
+  });
 });

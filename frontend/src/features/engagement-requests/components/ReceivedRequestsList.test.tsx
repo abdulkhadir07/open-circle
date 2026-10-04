@@ -23,6 +23,7 @@ describe('ReceivedRequestsList', () => {
 
     expect(await screen.findByText(engagementRequest.requesterUsername)).toBeInTheDocument();
     expect(screen.getByText(engagementRequest.invitePost.content)).toBeInTheDocument();
+    expect(screen.getByText(/^wants to join/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Accept' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Decline' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Hold' })).toBeInTheDocument();

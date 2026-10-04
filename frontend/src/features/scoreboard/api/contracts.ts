@@ -17,6 +17,8 @@ const scoreSummarySchema = z
     seasonYear: z.number(),
     annualScore: z.number(),
     lifetimeScore: z.number(),
+    // The viewer's own season rank at any position; null/absent when unranked.
+    rank: z.number().nullish(),
   })
   .passthrough();
 

@@ -31,15 +31,39 @@ describe('ScoreboardPage', () => {
     expect(await screen.findByText('No one has scored yet this season.')).toBeInTheDocument();
   });
 
-  it("shows the current user's own score and season", async () => {
+  it('shows your circle score with your rank when you are on the board', async () => {
+    server.use(
+      http.get('*/api/users/me/score', () => HttpResponse.json(scoreSummary)),
+      http.get('*/api/scoreboard', () => HttpResponse.json(scoreboard)),
+    );
+
+    renderScoreboardPage();
+
+    expect(await screen.findByText('Your circle score')).toBeInTheDocument();
+    expect(screen.getAllByText('42 Circle Points').length).toBeGreaterThan(0);
+    expect(screen.getByText('Rank')).toBeInTheDocument();
+    expect(await screen.findByText('#1')).toBeInTheDocument();
+    expect(screen.queryByText('Lifetime')).not.toBeInTheDocument();
+  });
+
+  it('shows your rank from the score summary even when you are outside the top 5', async () => {
+    server.use(
+      http.get('*/api/users/me/score', () => HttpResponse.json({ ...scoreSummary, rank: 12 })),
+    );
+
+    renderScoreboardPage();
+
+    expect(await screen.findByText('#12')).toBeInTheDocument();
+    expect(screen.queryByText('Unranked')).not.toBeInTheDocument();
+  });
+
+  it('shows Unranked when you are not in the top 5', async () => {
     server.use(http.get('*/api/users/me/score', () => HttpResponse.json(scoreSummary)));
 
     renderScoreboardPage();
 
-    expect(await screen.findByText('42 Circle Points')).toBeInTheDocument();
-    expect(screen.getByText('2026 season')).toBeInTheDocument();
-    expect(screen.getByText('128 Circle Points')).toBeInTheDocument();
-    expect(screen.getByText('Lifetime')).toBeInTheDocument();
+    expect(await screen.findByText('Your circle score')).toBeInTheDocument();
+    expect(await screen.findByText('Unranked')).toBeInTheDocument();
   });
 
   it('shows an error message when the score fails to load', async () => {

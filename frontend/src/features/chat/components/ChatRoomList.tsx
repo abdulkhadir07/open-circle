@@ -1,13 +1,14 @@
-import { EyeOff, LoaderCircle } from 'lucide-react';
+import { EyeOff, LoaderCircle, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { useChatRooms } from '../hooks/useChatRooms';
 import { useHideChatRoom } from '../hooks/useHideChatRoom';
 import { ChatRoomRow } from './ChatRoomRow';
 import { SetHiddenChatsPinForm } from './SetHiddenChatsPinForm';
 
-export function ChatRoomList({ selectedRoomId }: { selectedRoomId?: string }) {
+export function ChatRoomList() {
   const currentUser = useCurrentUser();
   const rooms = useChatRooms();
   const hideRoom = useHideChatRoom();
@@ -40,21 +41,20 @@ export function ChatRoomList({ selectedRoomId }: { selectedRoomId?: string }) {
 
   if (!rooms.data || rooms.data.length === 0) {
     return (
-      <p className="text-muted-foreground text-base">
+      <EmptyState icon={MessageCircle}>
         No conversations yet. Accepting or being accepted into an invite starts one.
-      </p>
+      </EmptyState>
     );
   }
 
   return (
     <div className="space-y-2">
-      <ul className="space-y-0.5">
+      <ul className="space-y-3">
         {rooms.data.map((room) => (
           <ChatRoomRow
             key={room.id}
             room={room}
             currentUserId={currentUser.data?.id}
-            isSelected={room.id === selectedRoomId}
             actions={
               !room.closed ? (
                 <button
@@ -63,7 +63,7 @@ export function ChatRoomList({ selectedRoomId }: { selectedRoomId?: string }) {
                   disabled={hideRoom.isPending}
                   aria-label="Hide"
                   title="Hide"
-                  className="text-muted-foreground hover:bg-background hover:text-foreground flex size-8 items-center justify-center rounded-md disabled:opacity-50"
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground flex size-8 items-center justify-center rounded-md disabled:opacity-50"
                 >
                   <EyeOff aria-hidden="true" className="size-4" />
                 </button>

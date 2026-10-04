@@ -24,6 +24,8 @@ const profileImageSchema = z
 const engagementInvitePostSummarySchema = z
   .object({
     id: z.string().min(1),
+    // Absent on responses from a backend that predates it.
+    posterId: z.string().nullish(),
     content: z.string().min(1),
     posterUsername: z.string().min(1),
     city: z.string().min(1),

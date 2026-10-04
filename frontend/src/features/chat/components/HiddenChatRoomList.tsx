@@ -1,16 +1,11 @@
-import { Eye, LoaderCircle } from 'lucide-react';
+import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { useHiddenChatRooms } from '../hooks/useHiddenChatRooms';
 import { useUnhideChatRoom } from '../hooks/useUnhideChatRoom';
 import { ChatRoomRow } from './ChatRoomRow';
 
-export function HiddenChatRoomList({
-  pin,
-  selectedRoomId,
-}: {
-  pin: string;
-  selectedRoomId?: string;
-}) {
+export function HiddenChatRoomList({ pin }: { pin: string }) {
   const currentUser = useCurrentUser();
   const rooms = useHiddenChatRooms(pin);
   const unhideRoom = useUnhideChatRoom();
@@ -33,18 +28,17 @@ export function HiddenChatRoomList({
   }
 
   if (!rooms.data || rooms.data.length === 0) {
-    return <p className="text-muted-foreground text-base">No hidden chats.</p>;
+    return <EmptyState icon={EyeOff}>No hidden chats.</EmptyState>;
   }
 
   return (
     <div className="space-y-2">
-      <ul className="space-y-0.5">
+      <ul className="space-y-3">
         {rooms.data.map((room) => (
           <ChatRoomRow
             key={room.id}
             room={room}
             currentUserId={currentUser.data?.id}
-            isSelected={room.id === selectedRoomId}
             actions={
               <button
                 type="button"
@@ -52,7 +46,7 @@ export function HiddenChatRoomList({
                 disabled={unhideRoom.isPending}
                 aria-label="Unhide"
                 title="Unhide"
-                className="text-muted-foreground hover:bg-background hover:text-foreground flex size-8 items-center justify-center rounded-md disabled:opacity-50"
+                className="text-muted-foreground hover:bg-muted hover:text-foreground flex size-8 items-center justify-center rounded-md disabled:opacity-50"
               >
                 <Eye aria-hidden="true" className="size-4" />
               </button>

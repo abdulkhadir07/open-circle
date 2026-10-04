@@ -1,6 +1,8 @@
 import { FileText, Image as ImageIcon, LoaderCircle } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { Avatar } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ProfileAvatarLink } from '@/features/profile/components/ProfileLink';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '../api/contracts';
 import { useChatMessages } from '../hooks/useChatMessages';
@@ -17,9 +19,7 @@ function formatMessageTime(createdAt: string): string {
 function SystemMessage({ text }: { text: string }) {
   return (
     <div className="flex justify-center">
-      <span className="text-muted-foreground bg-muted/60 rounded-full px-3 py-1 text-xs">
-        {text}
-      </span>
+      <span className="text-muted-foreground bg-muted rounded-full px-3 py-1 text-xs">{text}</span>
     </div>
   );
 }
@@ -69,24 +69,36 @@ function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolea
   }
 
   return (
-    <div className={cn('flex flex-col gap-1', isOwn ? 'items-end' : 'items-start')}>
+    <div className={cn('animate-fade-up flex items-end gap-2', isOwn && 'flex-row-reverse')}>
+      {isOwn ? null : (
+        <ProfileAvatarLink
+          userId={message.senderId}
+          label={`View ${message.senderUsername}'s profile`}
+        >
+          <Avatar
+            name={message.senderUsername}
+            profileImage={message.senderProfileImage}
+            className="size-7 text-xs"
+          />
+        </ProfileAvatarLink>
+      )}
       <div
         className={cn(
-          'max-w-[75%] rounded-2xl px-3.5 py-2 text-base whitespace-pre-wrap',
+          'max-w-[75%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap',
           isOwn
-            ? 'bg-primary text-primary-foreground rounded-br-md'
-            : 'bg-muted text-foreground rounded-bl-md',
+            ? 'bg-primary text-primary-foreground rounded-br-sm'
+            : 'bg-card text-foreground rounded-bl-sm border',
         )}
       >
         {message.type === 'ATTACHMENT' ? <AttachmentContent message={message} /> : message.body}
-        <span
+        <div
           className={cn(
-            'ml-2 text-xs tabular-nums',
+            'mt-0.5 text-[10px] tabular-nums',
             isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground',
           )}
         >
           {formatMessageTime(message.createdAt)}
-        </span>
+        </div>
       </div>
     </div>
   );

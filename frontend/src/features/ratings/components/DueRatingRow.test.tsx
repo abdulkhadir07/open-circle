@@ -28,9 +28,18 @@ describe('DueRatingRow', () => {
     expect(screen.getByText('Expired')).toBeInTheDocument();
   });
 
-  it('offers a Rate action', () => {
+  it('offers star buttons to rate', () => {
     renderWithProviders(<DueRatingRow dueRating={dueRating} />);
 
-    expect(screen.getByRole('button', { name: 'Rate' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '5 out of 5' })).toBeInTheDocument();
+  });
+
+  it("links the other user's name to their profile", () => {
+    renderWithProviders(<DueRatingRow dueRating={dueRating} />);
+
+    expect(screen.getByRole('link', { name: dueRating.otherUsername })).toHaveAttribute(
+      'href',
+      `/profile/${dueRating.otherUserId}`,
+    );
   });
 });
