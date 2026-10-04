@@ -24,6 +24,11 @@ class ScoreService {
         return scores.findSummary(user.getId(), currentSeasonYear());
     }
 
+    @Transactional(readOnly = true)
+    Long getCurrentRank(AppUser user) {
+        return scores.findRank(user.getId(), currentSeasonYear());
+    }
+
     int currentSeasonYear() {
         return Instant.now(clock).atZone(ZoneOffset.UTC).getYear();
     }
