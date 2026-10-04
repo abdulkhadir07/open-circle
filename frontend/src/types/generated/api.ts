@@ -4,6 +4,86 @@
  */
 
 export interface paths {
+    "/api/banter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getBoard"];
+        put?: never;
+        post: operations["createBanter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/banter/{banterId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteBanter"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/banter/{banterId}/like": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["likeBanter"];
+        post?: never;
+        delete: operations["unlikeBanter"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/banter/{banterId}/replies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getReplies"];
+        put?: never;
+        post: operations["createReply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/banter/{banterId}/replies/{replyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteReply"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users/me/profile": {
         parameters: {
             query?: never;
@@ -744,6 +824,56 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CreateBanterRequest: {
+            content: string;
+        };
+        BanterResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            authorId?: string;
+            authorUsername?: string;
+            authorProfileImage?: components["schemas"]["ProfileImageResponse"];
+            content?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            likeCount?: number;
+            /** Format: int64 */
+            replyCount?: number;
+            likedByMe?: boolean;
+            mine?: boolean;
+        };
+        BanterPageResponse: {
+            items?: components["schemas"]["BanterResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        BanterLikeResponse: {
+            /** Format: int64 */
+            likeCount?: number;
+            likedByMe?: boolean;
+        };
+        BanterReplyResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            banterId?: string;
+            /** Format: uuid */
+            authorId?: string;
+            authorUsername?: string;
+            authorProfileImage?: components["schemas"]["ProfileImageResponse"];
+            content?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            mine?: boolean;
+        };
         UpdateUserProfileRequest: {
             displayName: string;
             bio?: string;
@@ -1225,6 +1355,187 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getBoard: {
+        parameters: {
+            query?: {
+                sort?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BanterPageResponse"];
+                };
+            };
+        };
+    };
+    createBanter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBanterRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BanterResponse"];
+                };
+            };
+        };
+    };
+    deleteBanter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    likeBanter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BanterLikeResponse"];
+                };
+            };
+        };
+    };
+    unlikeBanter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BanterLikeResponse"];
+                };
+            };
+        };
+    };
+    getReplies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BanterReplyResponse"][];
+                };
+            };
+        };
+    };
+    createReply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBanterRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BanterReplyResponse"];
+                };
+            };
+        };
+    };
+    deleteReply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banterId: string;
+                replyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getCurrentUserProfile: {
         parameters: {
             query?: never;

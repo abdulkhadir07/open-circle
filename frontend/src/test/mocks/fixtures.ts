@@ -1,5 +1,6 @@
 import type { Session } from '@/features/accountsettings/api/contracts';
 import type { AuthUser } from '@/features/auth/api/contracts';
+import type { Banter, BanterReply } from '@/features/banter/api/contracts';
 import type { ChatMessage, ChatRoom } from '@/features/chat/api/contracts';
 import type { EngagementRequest } from '@/features/engagement-requests/api/contracts';
 import type { InvitePost, InvitePostImage } from '@/features/invite-posts/api/contracts';
@@ -308,3 +309,27 @@ export const accountSessions: Session[] = [
     expiresAt: '2026-01-20T09:00:00Z',
   },
 ];
+
+export const banter: Banter = {
+  id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01',
+  authorId: engagementRequest.requesterId,
+  authorUsername: engagementRequest.requesterUsername,
+  authorProfileImage: null,
+  content: 'Anyone know a good coffee spot near the library?',
+  createdAt: new Date().toISOString(),
+  likeCount: 2,
+  replyCount: 1,
+  likedByMe: false,
+  mine: false,
+};
+
+export const banterReply: BanterReply = {
+  id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02',
+  banterId: banter.id,
+  authorId: authUser.id,
+  authorUsername: authUser.username,
+  authorProfileImage: null,
+  content: 'The quad, hands down.',
+  createdAt: new Date().toISOString(),
+  mine: false,
+};
