@@ -56,6 +56,11 @@ const NotificationsPage = lazy(() =>
     default: module.NotificationsPage,
   })),
 );
+const BanterPage = lazy(() =>
+  import('@/features/banter/pages/BanterPage').then((module) => ({
+    default: module.BanterPage,
+  })),
+);
 const RatingsPage = lazy(() =>
   import('@/features/ratings/pages/RatingsPage').then((module) => ({
     default: module.RatingsPage,
@@ -163,6 +168,14 @@ export function AppRoutes() {
             element={
               <AppLayout>
                 <NotificationsPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/banter"
+            element={
+              <AppLayout>
+                <BanterPage />
               </AppLayout>
             }
           />

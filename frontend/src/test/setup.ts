@@ -41,6 +41,7 @@ document.elementFromPoint = () => null;
 window.HTMLElement.prototype.hasPointerCapture ??= () => false;
 window.HTMLElement.prototype.releasePointerCapture ??= () => undefined;
 window.HTMLElement.prototype.scrollIntoView ??= () => undefined;
+window.scrollTo = () => undefined;
 
 // jsdom has no layout engine, so ResizeObserver doesn't exist — the custom
 // ScrollArea component only needs it to not throw in tests.

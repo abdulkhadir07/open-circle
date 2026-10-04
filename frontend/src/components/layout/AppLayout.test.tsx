@@ -44,6 +44,7 @@ describe('AppLayout', () => {
       ['Home', '/'],
       ['Requests', '/requests'],
       ['Chats', '/chats'],
+      ['Banter', '/banter'],
       ['Notifications', '/notifications'],
       ['Ratings', '/ratings'],
       ['Scoreboard', '/scoreboard'],
@@ -86,24 +87,52 @@ describe('AppLayout', () => {
   });
 
   it('links Start an invite to the new-post page', () => {
-    renderLayout();
+    renderLayout('/');
 
     for (const link of screen.getAllByRole('link', { name: 'Start an invite' })) {
       expect(link).toHaveAttribute('href', '/new');
     }
   });
 
-  it('shows the floating create button except on the new-post page and inside a chat room', () => {
-    const { unmount } = renderLayout('/requests');
+  it('shows Start an invite (sidebar and floating) on the Home page only', () => {
+    const home = renderLayout('/');
     expect(screen.getAllByRole('link', { name: 'Start an invite' })).toHaveLength(2);
-    unmount();
+    home.unmount();
 
-    const chat = renderLayout('/chats/room-1');
-    expect(screen.getAllByRole('link', { name: 'Start an invite' })).toHaveLength(1);
-    chat.unmount();
+    for (const path of [
+      '/requests',
+      '/chats',
+      '/chats/room-1',
+      '/ratings',
+      '/scoreboard',
+      '/notifications',
+      '/settings',
+      '/new',
+    ]) {
+      const page = renderLayout(path);
+      // `path` is in the failure output through the loop, so a regression names the page.
+      expect([path, screen.queryAllByRole('link', { name: 'Start an invite' }).length]).toEqual([
+        path,
+        0,
+      ]);
+      page.unmount();
+    }
+  });
 
-    renderLayout('/new');
-    expect(screen.getAllByRole('link', { name: 'Start an invite' })).toHaveLength(1);
+  it('turns the create buttons into "Create a post" on the Banter board and focuses the composer', async () => {
+    const { user } = renderLayout('/banter');
+
+    expect(screen.queryByRole('link', { name: 'Start an invite' })).not.toBeInTheDocument();
+    const buttons = screen.getAllByRole('button', { name: 'Create a post' });
+    expect(buttons).toHaveLength(2);
+
+    // The layout test has no composer on the page, so give it one to receive focus.
+    const composer = document.createElement('textarea');
+    composer.id = 'banter-text';
+    document.body.appendChild(composer);
+    await user.click(buttons[0]!);
+    expect(composer).toHaveFocus();
+    composer.remove();
   });
 
   it('logs out from the sidebar and returns to the login page', async () => {
