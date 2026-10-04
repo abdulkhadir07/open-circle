@@ -24,11 +24,7 @@ describe('SentRequestsList', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(engagementRequest.invitePost.content)).toBeInTheDocument();
     expect(screen.getByText(/^You asked to join/)).toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        `${engagementRequest.invitePost.city}, ${engagementRequest.invitePost.country}`,
-      ),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/San Francisco/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Withdraw Request' })).toBeInTheDocument();
   });
 

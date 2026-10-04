@@ -4,16 +4,6 @@ import type { ApiSchemas } from '@/types/api-types';
 
 export type CreateInvitePostRequest = ApiSchemas['CreateInvitePostRequest'];
 export type InviteType = CreateInvitePostRequest['inviteType'];
-export type LocationScope = CreateInvitePostRequest['locationScope'];
-/** GLOBAL is a distinct feed, not a filter within it — the local feed only ever takes these. */
-export type LocalFeedScope = Exclude<LocationScope, 'GLOBAL'>;
-
-export const SCOPE_LABELS: Record<LocationScope, string> = {
-  CITY: 'City',
-  STATE_REGION: 'State',
-  COUNTRY: 'Country',
-  GLOBAL: 'Global',
-};
 
 const profileImageSchema = z
   .object({
@@ -51,10 +41,13 @@ const invitePostSchema = z
     totalCapacity: z.number().int().positive(),
     acceptedCount: z.number().int().nonnegative(),
     invitesLeft: z.number().int().nonnegative(),
-    locationScope: z.enum(['CITY', 'STATE_REGION', 'COUNTRY', 'GLOBAL']),
-    city: z.string().min(1),
+    // Every invite belongs to its poster's campus. The old location fields are only present on
+    // posts made before campuses existed.
+    campus: z.string().nullish(),
+    locationScope: z.enum(['CAMPUS', 'CITY', 'STATE_REGION', 'COUNTRY', 'GLOBAL']).nullish(),
+    city: z.string().nullish(),
     stateRegion: z.string().nullish(),
-    country: z.string().min(1),
+    country: z.string().nullish(),
     status: z.enum(['ACTIVE', 'CLOSED']),
     expiresAt: z.string().min(1),
     createdAt: z.string().min(1),

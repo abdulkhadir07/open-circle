@@ -7,11 +7,8 @@ const validSignup = {
   firstName: 'Maya',
   lastName: 'Chen',
   dateOfBirth: '1994-05-12',
-  email: 'maya@example.com',
+  email: 'maya@student.sfsu.edu',
   phoneNumber: '+1 415 555 0100',
-  country: 'United States',
-  stateRegion: 'California',
-  city: 'San Francisco',
   password: 'open-circle-strong',
   confirmPassword: 'open-circle-strong',
 };
@@ -48,8 +45,22 @@ describe('auth schemas', () => {
     expect(signupSchema.safeParse({ ...validSignup, phoneNumber: '12345' }).success).toBe(false);
   });
 
-  it('allows state or region to be blank for countries without subdivisions', () => {
-    expect(signupSchema.safeParse({ ...validSignup, stateRegion: '' }).success).toBe(true);
+  it('requires a school (.edu) email and accepts subdomains', () => {
+    expect(signupSchema.safeParse({ ...validSignup, email: 'maya@sfsu.edu' }).success).toBe(true);
+    expect(signupSchema.safeParse({ ...validSignup, email: 'maya@mail.cs.sfsu.edu' }).success).toBe(
+      true,
+    );
+    expect(signupSchema.safeParse({ ...validSignup, email: 'Maya@SFSU.EDU' }).success).toBe(true);
+
+    for (const email of ['maya@gmail.com', 'maya@sfsu.edu.example.com', 'maya@edu']) {
+      expect(signupSchema.safeParse({ ...validSignup, email }).success).toBe(false);
+    }
+  });
+
+  it('no longer asks for a location', () => {
+    const result = signupSchema.safeParse(validSignup);
+    expect(result.success).toBe(true);
+    expect(Object.keys(result.data ?? {})).not.toContain('city');
   });
 
   it('matches login and verification boundaries', () => {

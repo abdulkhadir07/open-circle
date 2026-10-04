@@ -4,10 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "sync:location-data": "node scripts/sync-location-data.mjs",
-    "predev": "npm run sync:location-data",
     "dev": "vite",
-    "prebuild": "npm run sync:location-data",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
@@ -18,7 +15,6 @@
     "api:generate": "npx --yes openapi-typescript@7.13.0 http://localhost:8080/v3/api-docs -o src/types/generated/api.ts"
   },
   "dependencies": {
-    "@countrystatecity/countries-browser": "1.0.4",
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/inter": "^5.3.0",
     "@hookform/resolvers": "^5.9.1",

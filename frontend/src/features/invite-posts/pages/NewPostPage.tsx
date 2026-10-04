@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { LoaderCircle, RotateCw } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,6 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
-import { LocationVerificationPrompt } from '@/features/location/components/LocationVerificationPrompt';
-import { SCOPE_LABELS } from '../api/contracts';
 import { invitePostQueryKeys } from '../api/queryKeys';
 import { PostImagePicker } from '../components/PostImagePicker';
 import { TagPicker } from '../components/TagPicker';
@@ -77,20 +75,6 @@ export function NewPostPage() {
   const [failedUploads, setFailedUploads] = useState<FailedUpload[]>([]);
   const [retryingIndex, setRetryingIndex] = useState<number | null>(null);
 
-  const stateRegionAvailable = Boolean(currentUser.data?.verifiedStateRegion);
-  const scopeOptions = useMemo(
-    () =>
-      (['CITY', 'STATE_REGION', 'COUNTRY', 'GLOBAL'] as const)
-        .filter((scope) => scope !== 'STATE_REGION' || stateRegionAvailable)
-        .map((scope) => ({ value: scope, label: SCOPE_LABELS[scope] })),
-    [stateRegionAvailable],
-  );
-
-  const schema = useMemo(
-    () => createInvitePostSchema(stateRegionAvailable),
-    [stateRegionAvailable],
-  );
-
   const {
     register,
     control,
@@ -100,12 +84,11 @@ export function NewPostPage() {
     clearErrors,
     formState: { errors },
   } = useForm<CreateInvitePostFormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(createInvitePostSchema),
     defaultValues: {
       content: (searchParams.get('text') ?? '').slice(0, CONTENT_MAX_LENGTH),
       inviteType: 'SINGLE',
       totalCapacity: '',
-      locationScope: 'CITY',
       tags: initialTags(searchParams.get('tags')),
     },
   });
@@ -137,7 +120,6 @@ export function NewPostPage() {
         content: values.content,
         inviteType: values.inviteType,
         totalCapacity: values.inviteType === 'GROUP' ? Number(values.totalCapacity) : 1,
-        locationScope: values.locationScope,
         tags: values.tags,
       });
 
@@ -206,10 +188,6 @@ export function NewPostPage() {
         <LoaderCircle aria-hidden="true" className="text-muted-foreground size-6 animate-spin" />
       </div>
     );
-  }
-
-  if (!currentUser.data?.locationVerifiedAt) {
-    return <LocationVerificationPrompt />;
   }
 
   if (failedUploads.length > 0) {
@@ -419,38 +397,6 @@ export function NewPostPage() {
               ) : null}
             </div>
           ) : null}
-
-          <div>
-            <label htmlFor="post-location-scope" className={labelClass}>
-              Who can see it
-            </label>
-            <Controller
-              name="locationScope"
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger
-                    id="post-location-scope"
-                    aria-invalid={Boolean(errors.locationScope)}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {scopeOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.locationScope ? (
-              <p role="alert" className={`${errorClass} mt-1`}>
-                {errors.locationScope.message}
-              </p>
-            ) : null}
-          </div>
 
           <div>
             <span className={labelClass}>

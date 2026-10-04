@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -22,27 +22,32 @@ function renderHomePage() {
 }
 
 describe('HomePage feed', () => {
-  it('shows the local feed by default and switches to the global feed', async () => {
-    const { user } = renderHomePage();
+  it('shows one campus feed with no local/global or scope controls', async () => {
+    renderHomePage();
 
     expect(await screen.findByText(invitePost.content)).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Global' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Local' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'City' })).not.toBeInTheDocument();
+  });
 
-    await user.click(screen.getByRole('radio', { name: 'Global' }));
+  it('shows an empty state when the campus has no open invites', async () => {
+    server.use(http.get('*/api/invite-posts/campus', () => HttpResponse.json([])));
+    renderHomePage();
+
     expect(
       await screen.findByText('No invite posts here yet. Be the first to post one.'),
     ).toBeInTheDocument();
   });
 
-  it('greets the user and counts open invites near their verified location', async () => {
+  it('greets the user and counts open invites at their campus', async () => {
     renderHomePage();
 
     expect(
       await screen.findByRole('heading', { name: /^(Morning|Hey|Evening), Maya$/ }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText(
-        '1 open invite near San Francisco, United States right now. Jump in.',
-      ),
+      await screen.findByText('1 open invite at SFSU right now. Jump in.'),
     ).toBeInTheDocument();
   });
 });
@@ -64,7 +69,7 @@ describe('HomePage composer and search', () => {
 
     const href = screen.getByRole('link', { name: 'Grab food' }).getAttribute('href');
     expect(href).toBe(
-      `/new?text=${encodeURIComponent('Anyone want to grab lunch downtown at noon? 2 people')}&tags=food`,
+      `/new?text=${encodeURIComponent('Anyone want to grab lunch at the student center at noon? 2 people')}&tags=food`,
     );
   });
 
@@ -90,45 +95,6 @@ describe('HomePage composer and search', () => {
   });
 });
 
-describe('HomePage location gating', () => {
-  it('never requests the feed before location is verified, and loads it fresh once it is', async () => {
-    const requestedPaths: string[] = [];
-    const onRequestStart = ({ request }: { request: Request }) => {
-      requestedPaths.push(new URL(request.url).pathname);
-    };
-    server.events.on('request:start', onRequestStart);
-
-    const queryClient = createTestQueryClient();
-    queryClient.setQueryData(authQueryKeys.currentUser, {
-      ...authUser,
-      locationVerifiedAt: undefined,
-    });
-    useAuthStore.getState().setAuthenticated('access-token');
-    renderWithProviders(
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-      </Routes>,
-      { queryClient },
-    );
-
-    expect(
-      await screen.findByRole('heading', { name: 'Verify your location' }),
-    ).toBeInTheDocument();
-    expect(requestedPaths.some((path) => path.includes('/invite-posts/'))).toBe(false);
-
-    // Mirrors exactly what useVerifyLocation's onSuccess does — no feed
-    // request should have been made before this point.
-    queryClient.setQueryData(authQueryKeys.currentUser, authUser);
-
-    expect(await screen.findByText(invitePost.content)).toBeInTheDocument();
-    await waitFor(() => {
-      expect(requestedPaths.filter((path) => path.includes('/invite-posts/local')).length).toBe(1);
-    });
-
-    server.events.removeListener('request:start', onRequestStart);
-  });
-});
-
 describe('HomePage engagement requests', () => {
   it("shows no inline request management on the current user's own post", async () => {
     renderHomePage();
@@ -139,7 +105,7 @@ describe('HomePage engagement requests', () => {
 
   it("shows an Engage control for another user's post", async () => {
     server.use(
-      http.get('*/api/invite-posts/local', () =>
+      http.get('*/api/invite-posts/campus', () =>
         HttpResponse.json([
           {
             ...invitePost,
@@ -173,7 +139,9 @@ describe('HomePage topics', () => {
   };
 
   function useTaggedFeed() {
-    server.use(http.get('*/api/invite-posts/local', () => HttpResponse.json([walkPost, codePost])));
+    server.use(
+      http.get('*/api/invite-posts/campus', () => HttpResponse.json([walkPost, codePost])),
+    );
   }
 
   it('lists topic filters from the loaded feed', async () => {
@@ -243,14 +211,14 @@ describe('HomePage own invites', () => {
     createdAt: new Date(Date.now() + 60_000).toISOString(),
   };
 
-  it('puts your open invites first under their own heading, then everyone else under Nearby', async () => {
+  it('puts your open invites first under their own heading, then everyone else under On campus', async () => {
     server.use(
-      http.get('*/api/invite-posts/local', () => HttpResponse.json([othersPost, invitePost])),
+      http.get('*/api/invite-posts/campus', () => HttpResponse.json([othersPost, invitePost])),
     );
     renderHomePage();
 
     expect(await screen.findByRole('heading', { name: 'Your open invites' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Nearby' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'On campus' })).toBeInTheDocument();
 
     const mine = screen.getByText(invitePost.content);
     const theirs = screen.getByText("Sam's hike");
@@ -258,18 +226,18 @@ describe('HomePage own invites', () => {
   });
 
   it('adds no group headings when you have no open invites', async () => {
-    server.use(http.get('*/api/invite-posts/local', () => HttpResponse.json([othersPost])));
+    server.use(http.get('*/api/invite-posts/campus', () => HttpResponse.json([othersPost])));
     renderHomePage();
 
     await screen.findByText("Sam's hike");
     expect(screen.queryByRole('heading', { name: 'Your open invites' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Nearby' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'On campus' })).not.toBeInTheDocument();
   });
 
-  it('skips the Nearby heading when only your own invites are showing', async () => {
+  it('skips the On campus heading when only your own invites are showing', async () => {
     renderHomePage();
 
     expect(await screen.findByRole('heading', { name: 'Your open invites' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Nearby' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'On campus' })).not.toBeInTheDocument();
   });
 });

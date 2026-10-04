@@ -88,13 +88,10 @@ describe('NewPostPage', () => {
     expect(screen.getByRole('combobox', { name: 'How many people can join?' })).toBeInTheDocument();
   });
 
-  it('only offers State as a scope when the poster has a verified state/region', async () => {
-    const { user } = renderPage({ verifiedStateRegion: undefined });
+  it('has no audience choice, since every invite goes to your campus', async () => {
+    renderPage();
 
-    await user.click(screen.getByRole('combobox', { name: 'Who can see it' }));
-
-    expect(screen.getByRole('option', { name: 'City' })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'State' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Who can see it' })).not.toBeInTheDocument();
   });
 
   it('uploads a staged photo after creating the post and still returns to the feed', async () => {
@@ -260,15 +257,6 @@ describe('NewPostPage', () => {
     expect(screen.getByLabelText("What's the invite?")).toHaveValue(
       'Anyone up for coffee this afternoon?',
     );
-  });
-
-  it('asks for location verification before letting you post', async () => {
-    renderPage({ locationVerifiedAt: undefined });
-
-    expect(
-      await screen.findByRole('heading', { name: 'Verify your location' }),
-    ).toBeInTheDocument();
-    expect(screen.queryByLabelText("What's the invite?")).not.toBeInTheDocument();
   });
 
   it('sends the chosen topics with the new post', async () => {
