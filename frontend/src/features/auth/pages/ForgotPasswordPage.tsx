@@ -63,7 +63,7 @@ export function ForgotPasswordPage() {
         />
         <AuthSubmitButton
           type="submit"
-          className="h-11 w-full px-4"
+          className="w-full"
           pending={forgotPassword.isPending}
           pendingLabel="Sending"
         >

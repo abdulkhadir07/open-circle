@@ -31,7 +31,7 @@ function BootstrapFailure({ error, onRetry }: { error: BootstrapError; onRetry: 
         <div className="space-y-2">
           <p className="text-primary text-sm font-semibold">OpenCircle</p>
           <h1 className="text-foreground text-2xl font-semibold">
-            {securityFailure ? 'Session check blocked' : 'We could not reach OpenCircle'}
+            {securityFailure ? 'Session check blocked' : 'Could not reach OpenCircle'}
           </h1>
           <p className="text-muted-foreground leading-6">
             {securityFailure
