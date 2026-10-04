@@ -4,6 +4,8 @@ import {
   annualAward,
   attachmentChatMessage,
   authUser,
+  banter,
+  banterReply,
   chatMessage,
   chatRoom,
   engagementRequest,
@@ -176,4 +178,25 @@ export const handlers = [
   http.get('*/api/users/me/sessions', () => HttpResponse.json({ sessions: accountSessions })),
   http.delete('*/api/users/me/sessions/:sessionId', () => new HttpResponse(null, { status: 204 })),
   http.delete('*/api/users/me/sessions', () => new HttpResponse(null, { status: 204 })),
+  http.get('*/api/banter', () =>
+    HttpResponse.json({ items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }),
+  ),
+  http.post('*/api/banter', () =>
+    HttpResponse.json({ ...banter, mine: true, likeCount: 0, replyCount: 0 }, { status: 201 }),
+  ),
+  http.delete('*/api/banter/:banterId', () => new HttpResponse(null, { status: 204 })),
+  http.put('*/api/banter/:banterId/like', () =>
+    HttpResponse.json({ likeCount: banter.likeCount + 1, likedByMe: true }),
+  ),
+  http.delete('*/api/banter/:banterId/like', () =>
+    HttpResponse.json({ likeCount: Math.max(0, banter.likeCount - 1), likedByMe: false }),
+  ),
+  http.get('*/api/banter/:banterId/replies', () => HttpResponse.json([])),
+  http.post('*/api/banter/:banterId/replies', () =>
+    HttpResponse.json({ ...banterReply, mine: true }, { status: 201 }),
+  ),
+  http.delete(
+    '*/api/banter/:banterId/replies/:replyId',
+    () => new HttpResponse(null, { status: 204 }),
+  ),
 ];
