@@ -99,7 +99,10 @@ export function SearchableSelectField({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
+      <label htmlFor={id} className="text-muted-foreground mb-1 block text-xs font-medium">
+        {label}
+      </label>
       <div className="relative" ref={containerRef}>
         <Input
           id={id}
@@ -115,7 +118,6 @@ export function SearchableSelectField({
           aria-describedby={[errorId, hintId, statusId].filter(Boolean).join(' ') || undefined}
           autoComplete={autoComplete}
           disabled={unavailable}
-          placeholder=" "
           value={displayValue}
           onFocus={() => {
             setQuery('');
@@ -129,19 +131,8 @@ export function SearchableSelectField({
           }}
           onBlur={() => setOpen(false)}
           onKeyDown={handleKeyDown}
-          className="peer h-14 pt-4 pr-10 pb-1"
+          className="pr-10"
         />
-        <label
-          htmlFor={id}
-          className={cn(
-            'text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2',
-            'text-base transition-all duration-150 ease-out',
-            'peer-focus:text-primary peer-focus:top-3.5 peer-focus:translate-y-0 peer-focus:text-xs',
-            'peer-[:not(:placeholder-shown)]:top-3.5 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-xs',
-          )}
-        >
-          {label}
-        </label>
         <ChevronDown
           aria-hidden="true"
           className={cn(

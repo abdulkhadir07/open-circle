@@ -74,7 +74,7 @@ export function NewPasswordPage() {
 
         <AuthSubmitButton
           type="submit"
-          className="h-11 w-full px-4"
+          className="w-full"
           pending={resetPassword.isPending}
           pendingLabel="Resetting"
         >

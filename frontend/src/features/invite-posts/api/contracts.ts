@@ -60,6 +60,8 @@ const invitePostSchema = z
     createdAt: z.string().min(1),
     updatedAt: z.string().min(1),
     images: z.array(invitePostImageSchema),
+    // Absent on responses from a backend that predates topics.
+    tags: z.array(z.string()).default([]),
   })
   .passthrough();
 

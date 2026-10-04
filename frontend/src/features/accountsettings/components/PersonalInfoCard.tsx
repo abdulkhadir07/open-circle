@@ -21,7 +21,7 @@ export function PersonalInfoCard() {
   ];
 
   return (
-    <div className="border-border bg-card divide-y rounded-xl border">
+    <div className="bg-card divide-y overflow-hidden rounded-2xl border">
       {fields.map(({ label, value }) => (
         <div key={label} className="flex items-center justify-between gap-4 p-4">
           <span className="text-muted-foreground text-sm">{label}</span>

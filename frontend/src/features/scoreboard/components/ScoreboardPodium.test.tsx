@@ -52,7 +52,7 @@ describe('ScoreboardPodium', () => {
     );
 
     expect(container.querySelectorAll('svg.lucide-crown')).toHaveLength(1);
-    expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('#2')).toBeInTheDocument();
+    expect(screen.getByText('#3')).toBeInTheDocument();
   });
 });

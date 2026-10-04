@@ -1,10 +1,11 @@
-import { LoaderCircle } from 'lucide-react';
+import { EyeOff, LoaderCircle } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useState } from 'react';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { HiddenChatRoomList } from './HiddenChatRoomList';
 import { HiddenChatsPinPrompt } from './HiddenChatsPinPrompt';
 
-export function HiddenChatsPinGate({ selectedRoomId }: { selectedRoomId?: string }) {
+export function HiddenChatsPinGate() {
   const currentUser = useCurrentUser();
   const [unlockedPin, setUnlockedPin] = useState<string | null>(null);
 
@@ -18,11 +19,11 @@ export function HiddenChatsPinGate({ selectedRoomId }: { selectedRoomId?: string
   }
 
   if (!currentUser.data?.hasHiddenChatsPin) {
-    return <p className="text-muted-foreground text-base">No hidden chats.</p>;
+    return <EmptyState icon={EyeOff}>No hidden chats.</EmptyState>;
   }
 
   if (unlockedPin) {
-    return <HiddenChatRoomList pin={unlockedPin} selectedRoomId={selectedRoomId} />;
+    return <HiddenChatRoomList pin={unlockedPin} />;
   }
 
   return <HiddenChatsPinPrompt onUnlock={setUnlockedPin} />;

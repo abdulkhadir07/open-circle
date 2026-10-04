@@ -843,6 +843,7 @@ export interface components {
             totalCapacity?: number;
             /** @enum {string} */
             locationScope: "CITY" | "STATE_REGION" | "COUNTRY" | "GLOBAL";
+            tags?: string[];
         };
         InvitePostImageResponse: {
             /** Format: uuid */
@@ -889,6 +890,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             images?: components["schemas"]["InvitePostImageResponse"][];
+            tags?: string[];
         };
         EngagementRequestResponse: {
             /** Format: uuid */

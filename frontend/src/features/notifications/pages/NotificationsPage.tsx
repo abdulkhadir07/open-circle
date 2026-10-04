@@ -1,6 +1,7 @@
-import { ArrowLeft, LoaderCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Bell, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { NotificationRow } from '../components/NotificationRow';
 import { useMarkAllNotificationsRead } from '../hooks/useMarkAllNotificationsRead';
 import { useNotificationInbox } from '../hooks/useNotificationInbox';
@@ -15,24 +16,14 @@ export function NotificationsPage() {
   const count = unreadCount.data ?? 0;
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <Link
-        to="/"
-        className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-base font-medium"
-      >
-        <ArrowLeft aria-hidden="true" className="size-4" />
-        Back
-      </Link>
-
-      <div className="mt-4 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-primary text-sm font-semibold">Your circle</p>
-          <h1 className="text-foreground text-3xl font-semibold">Notifications</h1>
-        </div>
+    <div>
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader title="Notifications" sub="Requests, accepted invites, and ratings." />
         {count > 0 ? (
           <Button
             type="button"
             variant="outline"
+            className="shrink-0"
             onClick={() => markAllRead.mutate()}
             disabled={markAllRead.isPending}
           >
@@ -41,7 +32,7 @@ export function NotificationsPage() {
         ) : null}
       </div>
 
-      <div className="mt-6">
+      <div>
         {inbox.isLoading ? (
           <LoaderCircle
             aria-hidden="true"
@@ -52,9 +43,9 @@ export function NotificationsPage() {
             {inbox.error instanceof Error ? inbox.error.message : 'Unable to load notifications.'}
           </p>
         ) : notifications.length === 0 ? (
-          <p className="text-muted-foreground text-base">You&apos;re all caught up.</p>
+          <EmptyState icon={Bell}>You&apos;re all caught up.</EmptyState>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-2">
             {notifications.map((notification) => (
               <NotificationRow key={notification.id} notification={notification} />
             ))}

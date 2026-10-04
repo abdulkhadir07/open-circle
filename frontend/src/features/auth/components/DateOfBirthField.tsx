@@ -207,7 +207,7 @@ export function DateOfBirthField({ label, value, onChange, error }: DateOfBirthF
 
   return (
     <div className="space-y-2">
-      <span className="text-foreground block text-sm font-medium">{label}</span>
+      <span className="text-muted-foreground mb-1 block text-xs font-medium">{label}</span>
       <div className="relative">
         <div
           aria-hidden="true"

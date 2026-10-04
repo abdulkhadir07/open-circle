@@ -22,8 +22,8 @@ export function NotificationRow({ notification, onNavigate }: NotificationRowPro
   }
 
   const className = cn(
-    'flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted',
-    !notification.read && 'bg-primary/5',
+    'bg-card hover:border-primary/40 flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition',
+    !notification.read && 'border-primary/30 bg-primary/5',
   );
 
   const content = (
@@ -32,7 +32,7 @@ export function NotificationRow({ notification, onNavigate }: NotificationRowPro
         aria-hidden="true"
         name={notification.actor?.username ?? '?'}
         profileImage={notification.actor?.profileImage}
-        className="bg-accent/20 text-accent mt-0.5 size-8 text-sm"
+        className="size-8 text-sm"
       />
       <div className="min-w-0 flex-1">
         <p className="text-foreground text-sm leading-5">{messageFor(notification)}</p>

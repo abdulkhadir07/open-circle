@@ -62,7 +62,10 @@ export function SetHiddenChatsPinForm({
         className="mt-1 w-full max-w-64 space-y-2 text-left"
       >
         <div className="space-y-1">
-          <label htmlFor="hidden-chats-pin-new" className="text-foreground text-sm font-medium">
+          <label
+            htmlFor="hidden-chats-pin-new"
+            className="text-muted-foreground mb-1 block text-xs font-medium"
+          >
             New PIN
           </label>
           <Input
@@ -78,7 +81,10 @@ export function SetHiddenChatsPinForm({
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="hidden-chats-pin-confirm" className="text-foreground text-sm font-medium">
+          <label
+            htmlFor="hidden-chats-pin-confirm"
+            className="text-muted-foreground mb-1 block text-xs font-medium"
+          >
             Confirm PIN
           </label>
           <Input

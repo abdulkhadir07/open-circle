@@ -103,7 +103,10 @@ export function VerifyEmailPage() {
         />
 
         <div className="space-y-2">
-          <label htmlFor="verification-code" className="text-foreground block text-sm font-medium">
+          <label
+            htmlFor="verification-code"
+            className="text-muted-foreground mb-1 block text-xs font-medium"
+          >
             Verification code
           </label>
           <Controller
@@ -124,7 +127,7 @@ export function VerifyEmailPage() {
 
         <AuthSubmitButton
           type="submit"
-          className="h-11 w-full px-4"
+          className="w-full"
           disabled={verify.isPending || resend.isPending}
           pending={verify.isPending}
           pendingLabel="Verifying"

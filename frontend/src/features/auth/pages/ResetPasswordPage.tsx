@@ -79,7 +79,7 @@ export function ResetPasswordPage() {
         <div className="space-y-2">
           <label
             htmlFor="reset-password-code"
-            className="text-foreground block text-sm font-medium"
+            className="text-muted-foreground mb-1 block text-xs font-medium"
           >
             Reset code
           </label>
@@ -101,7 +101,7 @@ export function ResetPasswordPage() {
 
         <AuthSubmitButton
           type="submit"
-          className="h-11 w-full px-4"
+          className="w-full"
           disabled={resend.isPending}
           pending={false}
           pendingLabel="Continuing"

@@ -30,6 +30,16 @@ function apiError(status: number, message: string, path: string) {
 }
 
 async function mockAuthApi(page: Page) {
+  // The authenticated shell fires a few background requests after sign-in. Answer them here so
+  // the journey never depends on whether a real backend happens to be listening (a real one
+  // would reject the fake token with a 401 and sign the test user back out).
+  await page.route(/\/api\/(?:notifications|invite-posts|engagements)\//, async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    await route.fulfill({
+      status: 200,
+      json: path === '/api/notifications/unread-count' ? { unreadCount: 0 } : [],
+    });
+  });
   await page.route(/\/api\/(?:auth|users)\//, async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -109,7 +119,7 @@ test('login remains usable without horizontal overflow', async ({ page }, testIn
   await mockAuthApi(page);
   await page.goto('/login');
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
-  await expect(page.getByRole('img')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'OpenCircle home' })).toBeVisible();
   await expect(page.locator('[data-slot="auth-content"]')).toHaveCSS('opacity', '1');
 
   const widths = await page.evaluate(() => ({

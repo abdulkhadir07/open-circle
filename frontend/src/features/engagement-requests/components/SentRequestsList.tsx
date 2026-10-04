@@ -1,4 +1,6 @@
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, Send } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useMyEngagementRequests } from '../hooks/useMyEngagementRequests';
 import { useWithdrawEngagementRequest } from '../hooks/useWithdrawEngagementRequest';
 import { EngagementRequestRow } from './EngagementRequestRow';
@@ -25,9 +27,7 @@ export function SentRequestsList() {
   }
 
   if (!requests.data || requests.data.length === 0) {
-    return (
-      <p className="text-muted-foreground text-base">You haven't requested to join anything yet.</p>
-    );
+    return <EmptyState icon={Send}>You haven't requested to join anything yet.</EmptyState>;
   }
 
   return (
@@ -39,17 +39,19 @@ export function SentRequestsList() {
             <EngagementRequestRow
               key={request.id}
               request={request}
+              direction="sent"
               personName={request.invitePost.posterUsername}
+              otherUserId={request.invitePost.posterId ?? undefined}
               actions={
                 canWithdraw ? (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={() => withdrawRequest.mutate(request.id)}
                     disabled={withdrawRequest.isPending}
-                    className="rounded-full bg-red-800 px-3 py-1 text-sm font-bold text-white hover:bg-red-900 disabled:opacity-50"
                   >
                     {withdrawRequest.isPending ? 'Withdrawing…' : 'Withdraw Request'}
-                  </button>
+                  </Button>
                 ) : null
               }
             />

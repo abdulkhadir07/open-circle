@@ -4,7 +4,7 @@ import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { authQueryKeys } from '@/features/auth/api/queryKeys';
 import { useAuthStore } from '@/stores/authStore';
-import { authUser, userProfile } from '@/test/mocks/fixtures';
+import { authUser, scoreSummary, userProfile } from '@/test/mocks/fixtures';
 import { server } from '@/test/mocks/server';
 import { createTestQueryClient, renderWithProviders } from '@/test/render';
 import { ProfilePage } from './ProfilePage';
@@ -156,5 +156,59 @@ describe('ProfilePage', () => {
     expect(await screen.findByText('Interests must be unique ignoring case')).toBeInTheDocument();
     // The form should still be open so the user can fix it.
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
+  });
+
+  it('shows your season points and rank on your own profile only', async () => {
+    server.use(
+      http.get('*/api/users/:userId/profile', () => HttpResponse.json(userProfile)),
+      http.get('*/api/users/me/score', () => HttpResponse.json({ ...scoreSummary, rank: 3 })),
+    );
+
+    renderProfilePage(authUser.id);
+
+    expect(await screen.findByText('Season points')).toBeInTheDocument();
+    expect(await screen.findByText('#3')).toBeInTheDocument();
+  });
+
+  it("doesn't show season points or the completion card on someone else's profile", async () => {
+    const otherProfile = {
+      ...userProfile,
+      userId: 'someone-else',
+      username: 'someone_else',
+      bio: null,
+      interests: [],
+    };
+    server.use(http.get('*/api/users/:userId/profile', () => HttpResponse.json(otherProfile)));
+
+    renderProfilePage('someone-else');
+
+    await screen.findByText(otherProfile.displayName);
+    expect(screen.queryByText('Season points')).not.toBeInTheDocument();
+    expect(screen.queryByText('Complete your profile')).not.toBeInTheDocument();
+    expect(screen.getByText('No bio yet.')).toBeInTheDocument();
+  });
+
+  it('prompts you to finish a sparse profile and opens editing from the prompt', async () => {
+    server.use(
+      http.get('*/api/users/:userId/profile', () =>
+        HttpResponse.json({ ...userProfile, bio: null, interests: [] }),
+      ),
+    );
+
+    const { user } = renderProfilePage(authUser.id);
+
+    expect(await screen.findByText('Complete your profile')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add a bio' }));
+
+    expect(screen.getByLabelText('Bio')).toBeInTheDocument();
+    expect(screen.queryByText('Complete your profile')).not.toBeInTheDocument();
+  });
+
+  it('shows the profile link copy button for everyone', async () => {
+    server.use(http.get('*/api/users/:userId/profile', () => HttpResponse.json(userProfile)));
+
+    renderProfilePage(authUser.id);
+
+    expect(await screen.findByRole('button', { name: 'Copy link' })).toBeInTheDocument();
   });
 });

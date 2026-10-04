@@ -1,6 +1,5 @@
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Clock, MapPin, Quote } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Clock, MapPin } from 'lucide-react';
+import { Avatar } from '@/components/ui/avatar';
 
 // Real example invite posts from the product brief, with plausible poster
 // details layered on top so this reads as an actual invite post rather
@@ -8,7 +7,7 @@ import { useEffect, useState } from 'react';
 // ("a user in San Francisco, California, United States").
 const posts = [
   {
-    name: 'Fatou',
+    name: 'Khadir',
     location: 'San Francisco, CA',
     hoursLeft: 22,
     content: 'I just moved to San Francisco from The Gambia. Any Gambians here want to hang out?',
@@ -27,82 +26,44 @@ const posts = [
   },
 ] as const;
 
-const cardShape = 'rounded-tl-[2.75rem] rounded-tr-lg rounded-br-[2.75rem] rounded-bl-lg';
-
-export function RotatingPrompts() {
-  const [index, setIndex] = useState(0);
-  const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setIndex((value) => (value + 1) % posts.length);
-    }, 4200);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const post = posts[index] ?? posts[0];
-
+/** A few example invites shown on the signed-out landing page. */
+export function SampleInvites() {
   return (
-    <div className="relative">
-      {/* Ghost cards behind the active one, same silhouette, purely decorative. */}
-      <div
-        aria-hidden="true"
-        className={`border-primary/10 bg-card absolute inset-x-6 top-4 h-full -rotate-2 border opacity-30 ${cardShape}`}
-      />
-      <div
-        aria-hidden="true"
-        className={`border-primary/10 bg-card absolute inset-x-3 top-2 h-full rotate-1 border opacity-50 ${cardShape}`}
-      />
-
-      <div
-        className={`from-card to-primary/[0.07] border-primary/15 relative min-h-64 overflow-hidden border bg-gradient-to-br p-7 shadow-lg ${cardShape}`}
-      >
-        <Quote
-          aria-hidden="true"
-          className="text-primary/10 pointer-events-none absolute -top-3 -right-3 size-28 rotate-12"
-          strokeWidth={1}
-        />
-
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={index}
-            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
-            transition={{ duration: reduceMotion ? 0 : 0.35, ease: 'easeOut' }}
-            className="relative flex h-full flex-col justify-between"
+    <div className="mt-10">
+      <p className="mb-3 flex items-center gap-2 text-sm font-medium">
+        <span className="relative flex size-2">
+          <span className="bg-primary absolute inline-flex size-full animate-ping rounded-full opacity-75" />
+          <span className="bg-primary relative inline-flex size-2 rounded-full" />
+        </span>
+        People are already posting
+      </p>
+      <div className="space-y-2">
+        {posts.map((post, index) => (
+          <div
+            key={post.name}
+            className="animate-fade-up bg-card flex items-center gap-3 rounded-2xl border p-3 transition hover:-translate-y-0.5 hover:shadow-md"
+            style={{ animationDelay: `${160 + index * 80}ms` }}
           >
-            <div>
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="bg-accent/20 text-accent flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
-                    {post.name[0]}
-                  </span>
-                  <div>
-                    <p className="text-foreground text-sm font-semibold">{post.name}</p>
-                    <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                      <MapPin aria-hidden="true" className="size-3" />
-                      {post.location}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs">
+            <Avatar name={post.name} className="size-8 text-xs" />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-semibold">{post.content}</div>
+              <div className="text-muted-foreground flex gap-3 truncate text-xs">
+                <span className="flex items-center gap-1">
+                  <MapPin aria-hidden="true" className="size-3" />
+                  {post.location}
+                </span>
+                <span className="flex items-center gap-1">
                   <Clock aria-hidden="true" className="size-3" />
                   {post.hoursLeft}h left
                 </span>
               </div>
-
-              <p className="text-foreground text-xl leading-7 font-medium text-balance">
-                {post.content}
-              </p>
             </div>
-
-            <span className="bg-primary text-primary-foreground mt-5 inline-flex w-fit items-center rounded-full px-4 py-1.5 text-xs font-semibold">
-              Engage
-            </span>
-          </motion.div>
-        </AnimatePresence>
+          </div>
+        ))}
       </div>
+      <p className="text-muted-foreground mt-3 text-center text-xs">
+        Sign up to see them all and ask to join.
+      </p>
     </div>
   );
 }
