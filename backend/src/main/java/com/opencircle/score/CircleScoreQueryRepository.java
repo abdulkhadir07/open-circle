@@ -14,7 +14,7 @@ import java.util.UUID;
 @Repository
 class CircleScoreQueryRepository {
 
-    private static final String RANKED_SCORES_QUERY = """
+    private static final String RANKED_SCORES_CTE = """
             ranked_scores AS (
                 SELECT
                     annual_score.user_id,
@@ -35,6 +35,9 @@ class CircleScoreQueryRepository {
                 WHERE annual_score.season_year = :seasonYear
                   AND annual_score.circle_score > 0
             )
+            """;
+
+    private static final String TOP_RANKS_SELECT = """
             SELECT
                 score_rank,
                 user_id,
@@ -47,7 +50,9 @@ class CircleScoreQueryRepository {
             ORDER BY score_rank, user_id
             """;
 
-    private static final String LIVE_RANKING_QUERY = """
+    private static final String RANKED_SCORES_QUERY = RANKED_SCORES_CTE + TOP_RANKS_SELECT;
+
+    private static final String LIVE_LIFETIME_REPUTATION_CTE = """
             WITH lifetime_reputation AS (
                 SELECT
                     rated_user_id AS user_id,
@@ -56,7 +61,19 @@ class CircleScoreQueryRepository {
                 WHERE lifetime_position = 1
                 GROUP BY rated_user_id
             ),
-            """ + RANKED_SCORES_QUERY;
+            """;
+
+    private static final String LIVE_RANKING_QUERY =
+            LIVE_LIFETIME_REPUTATION_CTE + RANKED_SCORES_QUERY;
+
+    // Same ordering and tie-breakers as the public scoreboard, but looks up one
+    // user at any position instead of only the top ranks.
+    private static final String LIVE_RANK_LOOKUP_QUERY =
+            LIVE_LIFETIME_REPUTATION_CTE + RANKED_SCORES_CTE + """
+            SELECT score_rank
+            FROM ranked_scores
+            WHERE user_id = :userId
+            """;
 
     private static final String CLOSED_SEASON_RANKING_QUERY = """
             WITH cutoff_contributions AS (
@@ -107,6 +124,20 @@ class CircleScoreQueryRepository {
                         resultSet.getLong("annual_score"),
                         resultSet.getLong("lifetime_score")
                 )
+        );
+    }
+
+    /**
+     * The user's current-season rank, or {@code null} when they have no positive score
+     * this season and so are not ranked. Tied users share a rank.
+     */
+    Long findRank(UUID userId, int seasonYear) {
+        return jdbc.query(
+                LIVE_RANK_LOOKUP_QUERY,
+                new MapSqlParameterSource()
+                        .addValue("userId", userId)
+                        .addValue("seasonYear", seasonYear),
+                resultSet -> resultSet.next() ? resultSet.getLong("score_rank") : null
         );
     }
 
