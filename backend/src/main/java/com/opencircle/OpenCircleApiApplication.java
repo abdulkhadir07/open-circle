@@ -1,5 +1,6 @@
 package com.opencircle;
 
+import com.opencircle.ai.AiProperties;
 import com.opencircle.campus.CampusProperties;
 import com.opencircle.location.LocationProperties;
 import com.opencircle.invitepost.image.InvitePostImageProperties;
@@ -29,7 +30,8 @@ import com.opencircle.storage.StorageProperties;
         SessionProperties.class,
         StorageProperties.class,
         HiddenChatsPinProperties.class,
-        CampusProperties.class})
+        CampusProperties.class,
+        AiProperties.class})
 @EnableScheduling
 public class OpenCircleApiApplication {
 
