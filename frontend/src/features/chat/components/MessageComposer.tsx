@@ -1,3 +1,5 @@
+import { SafetyBlockedNotice } from '@/features/ai/components/SafetyBlockedNotice';
+import { isContentBlockedError } from '@/lib/api/errors';
 import { LoaderCircle, Paperclip, Send } from 'lucide-react';
 import { type ChangeEvent, type KeyboardEvent, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -54,6 +56,9 @@ export function MessageComposer({
       { onSuccess: () => setBody('') },
     );
   }
+
+  // A message Safety Guardian refused gets a friendly notice instead of plain error text.
+  const blockedError = [sendMessage.error, sendAttachment.error].find(isContentBlockedError);
 
   const errorMessage =
     attachmentError ??
@@ -122,7 +127,11 @@ export function MessageComposer({
           )}
         </Button>
       </form>
-      {errorMessage ? (
+      {blockedError ? (
+        <div className="mt-1.5">
+          <SafetyBlockedNotice message={blockedError.message} />
+        </div>
+      ) : errorMessage ? (
         <p role="alert" className="text-destructive mt-1.5 text-sm">
           {errorMessage}
         </p>
