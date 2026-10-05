@@ -102,4 +102,17 @@ describe('InvitePostCard', () => {
       `/profile/${invitePost.posterId}`,
     );
   });
+
+  it('shows why an invite suits you, but never on your own invite', () => {
+    const { unmount } = renderWithProviders(
+      <InvitePostCard post={invitePost} reason="Matches your interest in coffee" />,
+    );
+    expect(screen.getByText('Matches your interest in coffee')).toBeInTheDocument();
+    unmount();
+
+    renderWithProviders(
+      <InvitePostCard post={invitePost} isOwnPost reason="Matches your interest in coffee" />,
+    );
+    expect(screen.queryByText('Matches your interest in coffee')).not.toBeInTheDocument();
+  });
 });

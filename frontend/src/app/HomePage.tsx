@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/ui/avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
+import { FeedDigestCard } from '@/features/ai/components/FeedDigestCard';
+import { useFeedInsights } from '@/features/ai/hooks/useFeedInsights';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { InvitePostCard } from '@/features/invite-posts/components/InvitePostCard';
 import { useCampusFeed } from '@/features/invite-posts/hooks/useCampusFeed';
@@ -58,6 +60,12 @@ export function HomePage() {
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const feed = useCampusFeed();
+  // Optional extra: if the AI digest is slow or fails, Home simply shows no digest.
+  const insights = useFeedInsights(Boolean(currentUser.data));
+  const reasonsByPostId = useMemo(
+    () => new Map(insights.data?.reasons.map((item) => [item.invitePostId, item.reason])),
+    [insights.data],
+  );
   const search = query.trim().toLowerCase();
   const visiblePosts = useMemo(
     () =>
@@ -120,6 +128,7 @@ export function HomePage() {
           post={post}
           isOwnPost={post.posterId === viewerId}
           myRequest={myRequestsByPostId.get(post.id)}
+          reason={reasonsByPostId.get(post.id)}
           onTagClick={(tag) => setActiveTag(activeTag === tag ? null : tag)}
         />
       </motion.div>
@@ -161,6 +170,10 @@ export function HomePage() {
           ))}
         </div>
       </div>
+
+      {insights.data ? (
+        <FeedDigestCard digest={insights.data.digest} aiGenerated={insights.data.aiGenerated} />
+      ) : null}
 
       <div className="relative mb-3">
         <Search
