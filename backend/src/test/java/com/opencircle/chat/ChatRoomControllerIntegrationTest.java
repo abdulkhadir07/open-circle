@@ -215,6 +215,32 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void sendMessageRejectsUnsafeContentBeforeSavingIt() throws Exception {
+        AppUser poster = verifiedUser("poster.unsafe@example.com");
+        AppUser requester = verifiedUser("requester.unsafe@example.com");
+        ChatRoom room = chatRoom(poster, requester, "Unsafe chat");
+
+        mockMvc.perform(post("/api/chat-rooms/{roomId}/messages", room.getId())
+                        .header("Authorization", "Bearer " + loginToken(requester.getEmail()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "body": "Meet me behind the gym after dark, come alone"
+                                }
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.message").value("That sounds like an unsafe way to meet. Suggest a public spot on campus instead."));
+
+        inTransaction(() -> {
+            ChatRoom managedRoom = rooms.findById(room.getId()).orElseThrow();
+
+            assertThat(messages.findByChatRoomOrderByCreatedAtAscIdAsc(managedRoom)).isEmpty();
+
+            return null;
+        });
+    }
+
+    @Test
     void sendMessageRejectsNonParticipant() throws Exception {
         AppUser poster = verifiedUser("poster.forbidden@example.com");
         AppUser requester = verifiedUser("requester.forbidden@example.com");

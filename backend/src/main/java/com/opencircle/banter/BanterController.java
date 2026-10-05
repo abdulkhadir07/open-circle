@@ -1,5 +1,7 @@
 package com.opencircle.banter;
 
+import com.opencircle.ai.ContentKind;
+import com.opencircle.ai.SafetyGuard;
 import com.opencircle.profileimage.ProfileImageQueryService;
 import com.opencircle.profileimage.ProfileImageResponse;
 import com.opencircle.security.CurrentUserProvider;
@@ -32,15 +34,18 @@ public class BanterController {
     private final CurrentUserProvider currentUserProvider;
     private final BanterService banterService;
     private final ProfileImageQueryService profileImageQueryService;
+    private final SafetyGuard safetyGuard;
 
     BanterController(
             CurrentUserProvider currentUserProvider,
             BanterService banterService,
-            ProfileImageQueryService profileImageQueryService
+            ProfileImageQueryService profileImageQueryService,
+            SafetyGuard safetyGuard
     ) {
         this.currentUserProvider = currentUserProvider;
         this.banterService = banterService;
         this.profileImageQueryService = profileImageQueryService;
+        this.safetyGuard = safetyGuard;
     }
 
     @GetMapping
@@ -71,6 +76,7 @@ public class BanterController {
             @Valid @RequestBody CreateBanterRequest request
     ) {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+        safetyGuard.requireSafe(currentUser.getId(), request.content(), ContentKind.BANTER);
         BanterView view = banterService.create(currentUser, request.content());
 
         return BanterResponse.from(
@@ -118,6 +124,7 @@ public class BanterController {
             @Valid @RequestBody CreateBanterRequest request
     ) {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+        safetyGuard.requireSafe(currentUser.getId(), request.content(), ContentKind.BANTER);
         BanterReply reply = banterService.reply(currentUser, banterId, request.content());
 
         return BanterReplyResponse.from(
