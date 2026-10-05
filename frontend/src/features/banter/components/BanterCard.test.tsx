@@ -91,4 +91,43 @@ describe('BanterCard', () => {
 
     expect(screen.getAllByRole('button', { name: 'Delete reply' })).toHaveLength(1);
   });
+
+  it('shows the Safety Guardian notice when a reply is refused', async () => {
+    server.use(
+      http.post('*/api/banter/:banterId/replies', () =>
+        HttpResponse.json(
+          {
+            timestamp: new Date().toISOString(),
+            status: 422,
+            error: 'UNPROCESSABLE_ENTITY',
+            message: 'That reads like a threat. Please rephrase.',
+            path: '/x',
+            fieldErrors: {},
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const { user } = renderWithProviders(<BanterCard banter={banter} />);
+
+    await user.click(screen.getByRole('button', { name: '1 reply' }));
+    await user.type(await screen.findByLabelText('Write a reply'), 'rude reply');
+    await user.click(screen.getByRole('button', { name: 'Send reply' }));
+
+    expect(await screen.findByText('Safety Guardian paused this')).toBeInTheDocument();
+    expect(screen.getByLabelText('Write a reply')).toHaveValue('rude reply');
+  });
+
+  it('reads the reply count in words beside the comment icon', () => {
+    const { unmount } = renderWithProviders(<BanterCard banter={{ ...banter, replyCount: 0 }} />);
+    expect(screen.getByRole('button', { name: 'Reply' })).toBeInTheDocument();
+    unmount();
+
+    const one = renderWithProviders(<BanterCard banter={{ ...banter, replyCount: 1 }} />);
+    expect(screen.getByRole('button', { name: '1 reply' })).toBeInTheDocument();
+    one.unmount();
+
+    renderWithProviders(<BanterCard banter={{ ...banter, replyCount: 3 }} />);
+    expect(screen.getByRole('button', { name: '3 replies' })).toBeInTheDocument();
+  });
 });

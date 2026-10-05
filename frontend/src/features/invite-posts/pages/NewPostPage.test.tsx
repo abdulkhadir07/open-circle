@@ -1,10 +1,10 @@
-import { screen } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { screen, waitFor } from '@testing-library/react';
+import { delay, http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { authQueryKeys } from '@/features/auth/api/queryKeys';
 import { useAuthStore } from '@/stores/authStore';
-import { authUser, invitePost } from '@/test/mocks/fixtures';
+import { authUser, invitePost, inviteDraft } from '@/test/mocks/fixtures';
 import { server } from '@/test/mocks/server';
 import { createTestQueryClient, renderWithProviders } from '@/test/render';
 import { NewPostPage } from './NewPostPage';
@@ -284,5 +284,155 @@ describe('NewPostPage', () => {
     expect(screen.getByRole('button', { name: '#coffee', pressed: true })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '#food', pressed: true })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '#walk', pressed: false })).toBeInTheDocument();
+  });
+
+  it('keeps Draft with AI disabled until there is some text', async () => {
+    const { user } = renderPage();
+    const button = screen.getByRole('button', { name: 'Draft with AI' });
+    expect(button).toBeDisabled();
+
+    await user.type(screen.getByLabelText("What's the invite?"), 'study tonight');
+
+    expect(button).toBeEnabled();
+  });
+
+  it('fills the form from an AI draft: wording, group size, and topics', async () => {
+    const { user } = renderPage();
+
+    await user.type(screen.getByLabelText("What's the invite?"), 'study tonight');
+    await user.click(screen.getByRole('button', { name: 'Draft with AI' }));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("What's the invite?")).toHaveValue(inviteDraft.content),
+    );
+    expect(screen.getByRole('radio', { name: 'Group' })).toBeChecked();
+    expect(screen.getByRole('combobox', { name: 'How many people can join?' })).toHaveTextContent(
+      '4 people',
+    );
+    expect(screen.getByRole('button', { name: '#study', pressed: true })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '#code', pressed: true })).toBeInTheDocument();
+  });
+
+  it('switches to Single and clears the group size when the draft is for one person', async () => {
+    server.use(
+      http.post('*/api/ai/invite-draft', () =>
+        HttpResponse.json({
+          content: 'Coffee at 3?',
+          inviteType: 'SINGLE',
+          totalCapacity: null,
+          tags: ['coffee'],
+          aiGenerated: false,
+        }),
+      ),
+    );
+    const { user } = renderPage();
+
+    await user.click(screen.getByRole('radio', { name: 'Group' }));
+    await user.type(screen.getByLabelText("What's the invite?"), 'coffee');
+    await user.click(screen.getByRole('button', { name: 'Draft with AI' }));
+
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Single' })).toBeChecked());
+    expect(
+      screen.queryByRole('combobox', { name: 'How many people can join?' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText("What's the invite?")).toHaveValue('Coffee at 3?');
+  });
+
+  it('opens the custom number box for a group bigger than the dropdown offers', async () => {
+    server.use(
+      http.post('*/api/ai/invite-draft', () =>
+        HttpResponse.json({
+          content: 'Big meetup',
+          inviteType: 'GROUP',
+          totalCapacity: 30,
+          tags: [],
+          aiGenerated: true,
+        }),
+      ),
+    );
+    const { user } = renderPage();
+
+    await user.type(screen.getByLabelText("What's the invite?"), 'big meetup');
+    await user.click(screen.getByRole('button', { name: 'Draft with AI' }));
+
+    expect(
+      await screen.findByRole('spinbutton', { name: 'How many people can join?' }),
+    ).toHaveValue(30);
+  });
+
+  it('ignores a draft that arrives after you kept typing', async () => {
+    server.use(
+      http.post('*/api/ai/invite-draft', async () => {
+        await delay(100);
+        return HttpResponse.json(inviteDraft);
+      }),
+    );
+    const { user } = renderPage();
+
+    await user.type(screen.getByLabelText("What's the invite?"), 'study');
+    await user.click(screen.getByRole('button', { name: 'Draft with AI' }));
+    await user.type(screen.getByLabelText("What's the invite?"), ' tonight at 7');
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Draft with AI' })).toBeEnabled(),
+    );
+    expect(screen.getByLabelText("What's the invite?")).toHaveValue('study tonight at 7');
+  });
+
+  it('shows a message when drafting fails, without touching the form', async () => {
+    server.use(
+      http.post('*/api/ai/invite-draft', () =>
+        HttpResponse.json(
+          {
+            timestamp: new Date().toISOString(),
+            status: 429,
+            error: 'TOO_MANY_REQUESTS',
+            message: "You're doing that a lot. Please wait a moment and try again.",
+            path: '/api/ai/invite-draft',
+            fieldErrors: {},
+          },
+          { status: 429 },
+        ),
+      ),
+    );
+    const { user } = renderPage();
+
+    await user.type(screen.getByLabelText("What's the invite?"), 'study');
+    await user.click(screen.getByRole('button', { name: 'Draft with AI' }));
+
+    expect(
+      await screen.findByText("You're doing that a lot. Please wait a moment and try again."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("What's the invite?")).toHaveValue('study');
+  });
+
+  it('shows the Safety Guardian notice when the invite is refused, and stays on the page', async () => {
+    server.use(
+      http.post('*/api/invite-posts', () =>
+        HttpResponse.json(
+          {
+            timestamp: new Date().toISOString(),
+            status: 422,
+            error: 'UNPROCESSABLE_ENTITY',
+            message: 'That looks like a request for money. Please keep payments out of OpenCircle.',
+            path: '*/api/invite-posts',
+            fieldErrors: {},
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const { user } = renderPage();
+
+    await user.type(screen.getByLabelText("What's the invite?"), 'Send me a gift card');
+    await user.click(screen.getByRole('button', { name: 'Post invite' }));
+
+    expect(await screen.findByText('Safety Guardian paused this')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'That looks like a request for money. Please keep payments out of OpenCircle.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Home feed')).not.toBeInTheDocument();
   });
 });

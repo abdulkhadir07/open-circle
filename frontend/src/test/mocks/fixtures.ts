@@ -1,4 +1,5 @@
 import type { Session } from '@/features/accountsettings/api/contracts';
+import type { FeedInsights, InviteDraft } from '@/features/ai/api/contracts';
 import type { AuthUser } from '@/features/auth/api/contracts';
 import type { Banter, BanterReply } from '@/features/banter/api/contracts';
 import type { ChatMessage, ChatRoom } from '@/features/chat/api/contracts';
@@ -332,4 +333,18 @@ export const banterReply: BanterReply = {
   content: 'The quad, hands down.',
   createdAt: new Date().toISOString(),
   mine: false,
+};
+
+export const inviteDraft: InviteDraft = {
+  content: 'Anyone up for a study session at the library tonight?',
+  inviteType: 'GROUP',
+  totalCapacity: 4,
+  tags: ['study', 'code'],
+  aiGenerated: true,
+};
+
+export const feedInsights: FeedInsights = {
+  digest: '2 open invites on your campus today. A coffee chat looks like a good fit for you.',
+  reasons: [{ invitePostId: invitePost.id, reason: 'Matches your interest in coffee' }],
+  aiGenerated: true,
 };

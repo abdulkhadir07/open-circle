@@ -6,6 +6,7 @@ import {
   authUser,
   banter,
   banterReply,
+  inviteDraft,
   chatMessage,
   chatRoom,
   engagementRequest,
@@ -178,6 +179,21 @@ export const handlers = [
   http.get('*/api/users/me/sessions', () => HttpResponse.json({ sessions: accountSessions })),
   http.delete('*/api/users/me/sessions/:sessionId', () => new HttpResponse(null, { status: 204 })),
   http.delete('*/api/users/me/sessions', () => new HttpResponse(null, { status: 204 })),
+  // The digest is optional, so by default it's "unavailable" and Home shows none; tests that care override it.
+  http.get('*/api/ai/feed-insights', () =>
+    HttpResponse.json(
+      {
+        timestamp: new Date().toISOString(),
+        status: 503,
+        error: 'SERVICE_UNAVAILABLE',
+        message: 'AI is unavailable',
+        path: '/api/ai/feed-insights',
+        fieldErrors: {},
+      },
+      { status: 503 },
+    ),
+  ),
+  http.post('*/api/ai/invite-draft', () => HttpResponse.json(inviteDraft)),
   http.get('*/api/banter', () =>
     HttpResponse.json({ items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }),
   ),

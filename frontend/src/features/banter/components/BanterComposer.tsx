@@ -4,7 +4,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
-import { AnimatedError } from '@/features/auth/components/AnimatedError';
+import { ContentError } from '@/features/ai/components/ContentError';
 import { cn } from '@/lib/utils';
 import { useCreateBanter } from '../hooks/useCreateBanter';
 
@@ -39,12 +39,6 @@ export function BanterComposer() {
   }
 
   const user = currentUser.data;
-  const errorMessage = createBanter.isError
-    ? createBanter.error instanceof Error
-      ? createBanter.error.message
-      : 'Unable to post your banter.'
-    : undefined;
-
   return (
     <Card className="border-primary/30 mb-5 border-2 p-4">
       <div className="flex gap-3">
@@ -103,7 +97,7 @@ export function BanterComposer() {
             </Button>
           </div>
           <div className="mt-2">
-            <AnimatedError message={errorMessage} />
+            <ContentError error={createBanter.error} fallback="Unable to post your banter." />
           </div>
         </div>
       </div>

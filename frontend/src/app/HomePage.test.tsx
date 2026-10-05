@@ -4,7 +4,7 @@ import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { authQueryKeys } from '@/features/auth/api/queryKeys';
 import { useAuthStore } from '@/stores/authStore';
-import { authUser, invitePost } from '@/test/mocks/fixtures';
+import { authUser, feedInsights, invitePost } from '@/test/mocks/fixtures';
 import { server } from '@/test/mocks/server';
 import { createTestQueryClient, renderWithProviders } from '@/test/render';
 import { HomePage } from './HomePage';
@@ -239,5 +239,46 @@ describe('HomePage own invites', () => {
 
     expect(await screen.findByRole('heading', { name: 'Your open invites' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'On campus' })).not.toBeInTheDocument();
+  });
+
+  describe('HomePage AI digest', () => {
+    it('shows the digest card and a reason on the matching invite', async () => {
+      server.use(http.get('*/api/ai/feed-insights', () => HttpResponse.json(feedInsights)));
+      const other = {
+        ...invitePost,
+        id: feedInsights.reasons[0]!.invitePostId,
+        posterId: 'sam-id',
+      };
+      server.use(http.get('*/api/invite-posts/campus', () => HttpResponse.json([other])));
+      renderHomePage();
+
+      expect(await screen.findByText(feedInsights.digest)).toBeInTheDocument();
+      expect(screen.getByText('AI')).toBeInTheDocument();
+      expect(screen.getByText('Matches your interest in coffee')).toBeInTheDocument();
+    });
+
+    it('shows no digest, and no error, when the AI endpoint is unavailable', async () => {
+      renderHomePage();
+      await screen.findByText(invitePost.content);
+
+      expect(screen.queryByText('AI')).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('shows a rule-based digest without the AI marker', async () => {
+      server.use(
+        http.get('*/api/ai/feed-insights', () =>
+          HttpResponse.json({
+            digest: '1 open invite on your campus today.',
+            reasons: [],
+            aiGenerated: false,
+          }),
+        ),
+      );
+      renderHomePage();
+
+      expect(await screen.findByText('1 open invite on your campus today.')).toBeInTheDocument();
+      expect(screen.queryByText('AI')).not.toBeInTheDocument();
+    });
   });
 });

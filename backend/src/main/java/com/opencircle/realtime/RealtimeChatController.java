@@ -1,5 +1,7 @@
 package com.opencircle.realtime;
 
+import com.opencircle.ai.ContentKind;
+import com.opencircle.ai.SafetyGuard;
 import com.opencircle.chat.ChatMessage;
 import com.opencircle.chat.ChatMessageBroadcaster;
 import com.opencircle.chat.ChatMessageResponse;
@@ -22,17 +24,20 @@ class RealtimeChatController {
     private final WebSocketPrincipalResolver principalResolver;
     private final ChatMessageBroadcaster messageBroadcaster;
     private final ProfileImageQueryService profileImageQueryService;
+    private final SafetyGuard safetyGuard;
 
     RealtimeChatController(
             ChatRoomService chatRoomService,
             WebSocketPrincipalResolver principalResolver,
             ChatMessageBroadcaster messageBroadcaster,
-            ProfileImageQueryService profileImageQueryService
+            ProfileImageQueryService profileImageQueryService,
+            SafetyGuard safetyGuard
     ) {
         this.chatRoomService = chatRoomService;
         this.principalResolver = principalResolver;
         this.messageBroadcaster = messageBroadcaster;
         this.profileImageQueryService = profileImageQueryService;
+        this.safetyGuard = safetyGuard;
     }
 
     @MessageMapping("/chat-rooms/{roomId}/messages")
@@ -42,6 +47,7 @@ class RealtimeChatController {
             @Valid @Payload RealtimeSendMessageRequest request
     ) {
         AppUser sender = principalResolver.resolve(principal);
+        safetyGuard.requireSafe(sender.getId(), request.body(), ContentKind.MESSAGE);
 
         // Reuses the REST message path so realtime messages keep the same room rules and persistence behavior.
         ChatMessage message = chatRoomService.sendMessage(sender, roomId, request.body());

@@ -118,6 +118,10 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/banter/*/replies").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/banter/*/replies/*").authenticated()
 
+
+                        .requestMatchers(HttpMethod.POST, "/api/ai/invite-draft").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/ai/feed-insights").authenticated()
+
                         .anyRequest().authenticated()
                 )
 

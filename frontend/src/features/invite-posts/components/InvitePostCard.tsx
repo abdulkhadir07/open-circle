@@ -1,4 +1,4 @@
-import { Clock, Users } from 'lucide-react';
+import { Clock, Sparkles, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
@@ -22,6 +22,8 @@ type InvitePostCardProps = {
   myRequest?: EngagementRequest;
   /** When given, topic chips become buttons that call it (the Home feed filters by topic). */
   onTagClick?: (tag: string) => void;
+  /** Why this invite suits the viewer (from the AI feed insights), when there is a match. */
+  reason?: string;
 };
 
 /** Visualizes group capacity as filled (taken) vs. open seats — falls back to a plain count past a certain size. */
@@ -52,6 +54,7 @@ export function InvitePostCard({
   isOwnPost = false,
   myRequest,
   onTagClick,
+  reason,
 }: InvitePostCardProps) {
   const [now, setNow] = useState(() => Date.now());
 
@@ -96,6 +99,13 @@ export function InvitePostCard({
       </div>
 
       <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{post.content}</p>
+
+      {reason && !isOwnPost ? (
+        <p className="text-primary mt-2 flex items-center gap-1 text-xs font-medium">
+          <Sparkles aria-hidden="true" className="size-3 shrink-0" />
+          {reason}
+        </p>
+      ) : null}
 
       <PostImageCarousel images={post.images} />
 

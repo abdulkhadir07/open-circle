@@ -61,3 +61,8 @@ export function normalizeApiError(error: unknown): ApiError {
     fieldErrors: {},
   });
 }
+
+/** Safety Guardian answers 422 with a message saying what to change (the only 422 the API sends). */
+export function isContentBlockedError(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 422;
+}
