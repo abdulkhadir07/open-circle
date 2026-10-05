@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_TAG_LENGTH, normalizeTag } from './tags';
+import { MAX_TAG_LENGTH, normalizeTag, parseTagList } from './tags';
 
 describe('normalizeTag', () => {
   it('lowercases and strips leading hashes', () => {
@@ -22,5 +22,16 @@ describe('normalizeTag', () => {
 
   it('caps the length', () => {
     expect(normalizeTag('a'.repeat(50))).toHaveLength(MAX_TAG_LENGTH);
+  });
+});
+
+describe('parseTagList', () => {
+  it('normalises, drops blanks and duplicates, and keeps at most five', () => {
+    expect(parseTagList(['#Walk', ' study ', '', 'walk', 'Board Games'])).toEqual([
+      'walk',
+      'study',
+      'board-games',
+    ]);
+    expect(parseTagList(['a', 'b', 'c', 'd', 'e', 'f'])).toHaveLength(5);
   });
 });
