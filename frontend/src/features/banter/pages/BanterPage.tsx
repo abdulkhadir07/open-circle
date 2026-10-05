@@ -1,4 +1,4 @@
-import { LoaderCircle, MessageSquareText } from 'lucide-react';
+import { Clock, Flame, LoaderCircle, MessageSquareText } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -9,8 +9,8 @@ import { BanterComposer } from '../components/BanterComposer';
 import { useBanterFeed } from '../hooks/useBanterFeed';
 
 const TAB_ITEMS = [
-  { key: 'new', to: '/banter', label: 'New' },
-  { key: 'hot', to: '/banter?sort=hot', label: 'Hot' },
+  { key: 'new', to: '/banter', label: 'New', icon: Clock },
+  { key: 'hot', to: '/banter?sort=hot', label: 'Hot', icon: Flame },
 ];
 
 export function BanterPage() {
@@ -28,7 +28,7 @@ export function BanterPage() {
 
       <BanterComposer />
 
-      <Tabs items={TAB_ITEMS} active={sort} />
+      <Tabs items={TAB_ITEMS} active={sort} compact />
 
       {feed.isLoading ? (
         <LoaderCircle
