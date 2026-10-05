@@ -129,4 +129,31 @@ describe('MessageComposer', () => {
       await screen.findByText('You are not an active participant in this chat'),
     ).toBeInTheDocument();
   });
+
+  it('shows the Safety Guardian notice, and keeps the text, when a message is refused', async () => {
+    server.use(
+      http.post('*/api/chat-rooms/:roomId/messages', () =>
+        HttpResponse.json(
+          {
+            timestamp: new Date().toISOString(),
+            status: 422,
+            error: 'UNPROCESSABLE_ENTITY',
+            message: 'That reads like a threat. Please rephrase.',
+            path: '/x',
+            fieldErrors: {},
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const { user } = renderWithProviders(<MessageComposer roomId={chatRoom.id} />);
+
+    const input = screen.getByRole('textbox', { name: 'Message' });
+    await user.type(input, 'meet me alone');
+    await user.click(screen.getByRole('button', { name: 'Send message' }));
+
+    expect(await screen.findByText('Safety Guardian paused this')).toBeInTheDocument();
+    expect(screen.getByText('That reads like a threat. Please rephrase.')).toBeInTheDocument();
+    expect(input).toHaveValue('meet me alone');
+  });
 });

@@ -1,6 +1,11 @@
+import { SafetyBlockedNotice } from '@/features/ai/components/SafetyBlockedNotice';
+import type { InviteDraft } from '@/features/ai/api/contracts';
+import { useInviteDraft } from '@/features/ai/hooks/useInviteDraft';
+import { AnimatedError } from '@/features/auth/components/AnimatedError';
+import { isContentBlockedError } from '@/lib/api/errors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
-import { LoaderCircle, RotateCw } from 'lucide-react';
+import { LoaderCircle, RotateCw, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -23,7 +28,7 @@ import { PostImagePicker } from '../components/PostImagePicker';
 import { TagPicker } from '../components/TagPicker';
 import { useCreateInvitePost } from '../hooks/useCreateInvitePost';
 import { useUploadInvitePostImage } from '../hooks/useUploadInvitePostImage';
-import { MAX_TAGS, normalizeTag } from '../lib/tags';
+import { MAX_TAGS, parseTagList } from '../lib/tags';
 import {
   createInvitePostSchema,
   type CreateInvitePostFormValues,
@@ -56,9 +61,7 @@ type FailedUpload = { file: File; error: string };
 
 /** Topics prefilled by the Home page idea chips (`?tags=coffee,food`). */
 function initialTags(param: string | null): string[] {
-  if (!param) return [];
-  const tags = param.split(',').map(normalizeTag).filter(Boolean);
-  return [...new Set(tags)].slice(0, MAX_TAGS);
+  return param ? parseTagList(param.split(',')) : [];
 }
 
 export function NewPostPage() {
@@ -67,6 +70,7 @@ export function NewPostPage() {
   const currentUser = useCurrentUser();
   const queryClient = useQueryClient();
   const createInvitePost = useCreateInvitePost();
+  const draftInvite = useInviteDraft();
   const uploadImage = useUploadInvitePostImage();
   const [isCustomCapacity, setIsCustomCapacity] = useState(false);
   const [stagedImages, setStagedImages] = useState<File[]>([]);
@@ -80,6 +84,7 @@ export function NewPostPage() {
     control,
     handleSubmit,
     setValue,
+    getValues,
     setError,
     clearErrors,
     formState: { errors },
@@ -145,10 +150,36 @@ export function NewPostPage() {
       setFailedUploads(failures);
     } catch (error) {
       setError('root', {
+        // Safety Guardian refusals get a friendlier notice than a plain error line.
+        type: isContentBlockedError(error) ? 'content-blocked' : 'server',
         message: error instanceof Error ? error.message : 'Unable to create your post.',
       });
     }
   });
+
+  // Fills the form from the AI draft. A reply that arrives after the person kept typing is ignored.
+  function applyDraft(requestedText: string, draft: InviteDraft) {
+    if (getValues('content').trim() !== requestedText) return;
+    if (createInvitePost.isPending || uploadingImages) return;
+
+    const options = { shouldDirty: true, shouldValidate: true } as const;
+    const capacity = draft.inviteType === 'GROUP' ? (draft.totalCapacity ?? 3) : null;
+
+    setValue('content', draft.content.slice(0, CONTENT_MAX_LENGTH), options);
+    setValue('inviteType', draft.inviteType, options);
+    setValue('tags', parseTagList(draft.tags), options);
+    setValue('totalCapacity', capacity === null ? '' : String(capacity), options);
+    // The size dropdown only lists up to 20; larger sizes need the custom number box.
+    setIsCustomCapacity(capacity !== null && capacity > CAPACITY_OPTIONS.length + 1);
+    clearErrors('root');
+  }
+
+  function handleDraft() {
+    const text = getValues('content').trim();
+    if (!text || draftInvite.isPending) return;
+
+    draftInvite.mutate(text, { onSuccess: (draft) => applyDraft(text, draft) });
+  }
 
   async function retryUpload(index: number) {
     if (!createdPostId) return;
@@ -245,9 +276,13 @@ export function NewPostPage() {
 
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         {errors.root?.message ? (
-          <p role="alert" className={errorClass}>
-            {errors.root.message}
-          </p>
+          errors.root.type === 'content-blocked' ? (
+            <SafetyBlockedNotice message={errors.root.message} />
+          ) : (
+            <p role="alert" className={errorClass}>
+              {errors.root.message}
+            </p>
+          )
         ) : null}
 
         <Card className="animate-fade-up">
@@ -272,7 +307,35 @@ export function NewPostPage() {
               {content.length}/{CONTENT_MAX_LENGTH}
             </span>
           </div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDraft}
+              disabled={content.trim() === '' || draftInvite.isPending}
+            >
+              {draftInvite.isPending ? (
+                <LoaderCircle aria-hidden="true" className="animate-spin" />
+              ) : (
+                <Sparkles aria-hidden="true" />
+              )}
+              {draftInvite.isPending ? 'Drafting…' : 'Draft with AI'}
+            </Button>
+            <span className="text-muted-foreground text-xs">
+              Turns your sentence into a clean invite with a size and topics.
+            </span>
+          </div>
+          <AnimatedError
+            message={
+              draftInvite.isError
+                ? draftInvite.error instanceof Error
+                  ? draftInvite.error.message
+                  : 'Unable to draft that right now.'
+                : undefined
+            }
+          />
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {EXAMPLES.map((example) => (
               <button
                 key={example}

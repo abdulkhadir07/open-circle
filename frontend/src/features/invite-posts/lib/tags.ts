@@ -29,3 +29,8 @@ export function normalizeTag(raw: string): string {
     .replace(/^[-_]+/, '')
     .slice(0, MAX_TAG_LENGTH);
 }
+
+/** Cleans a list of raw topics (typed, from a link, or suggested by the AI): normalised, unique, at most MAX_TAGS. */
+export function parseTagList(values: readonly string[]): string[] {
+  return [...new Set(values.map(normalizeTag).filter(Boolean))].slice(0, MAX_TAGS);
+}

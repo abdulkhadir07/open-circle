@@ -118,4 +118,30 @@ describe('BanterComposer', () => {
     expect(await screen.findByText('Content must not exceed 280 characters')).toBeInTheDocument();
     expect(screen.getByLabelText("What's on your mind?")).toHaveValue('Something');
   });
+
+  it('shows the Safety Guardian notice when the banter is refused', async () => {
+    server.use(
+      http.post('*/api/banter', () =>
+        HttpResponse.json(
+          {
+            timestamp: new Date().toISOString(),
+            status: 422,
+            error: 'UNPROCESSABLE_ENTITY',
+            message: 'That reads like a threat. Please rephrase.',
+            path: '/x',
+            fieldErrors: {},
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const { user } = renderComposer();
+
+    await user.type(screen.getByLabelText("What's on your mind?"), 'something nasty');
+    await user.click(screen.getByRole('button', { name: 'Post' }));
+
+    expect(await screen.findByText('Safety Guardian paused this')).toBeInTheDocument();
+    expect(screen.getByText('That reads like a threat. Please rephrase.')).toBeInTheDocument();
+    expect(screen.getByLabelText("What's on your mind?")).toHaveValue('something nasty');
+  });
 });
