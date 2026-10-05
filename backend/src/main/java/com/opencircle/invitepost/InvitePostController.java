@@ -1,5 +1,7 @@
 package com.opencircle.invitepost;
 
+import com.opencircle.ai.ContentKind;
+import com.opencircle.ai.SafetyGuard;
 import com.opencircle.invitepost.image.InvitePostImageResponse;
 import com.opencircle.invitepost.image.InvitePostImageService;
 import com.opencircle.profileimage.ProfileImageQueryService;
@@ -26,17 +28,20 @@ public class InvitePostController {
     private final InvitePostService invitePostService;
     private final InvitePostImageService imageService;
     private final ProfileImageQueryService profileImageQueryService;
+    private final SafetyGuard safetyGuard;
 
     InvitePostController(
             CurrentUserProvider currentUserProvider,
             InvitePostService invitePostService,
             InvitePostImageService imageService,
-            ProfileImageQueryService profileImageQueryService
+            ProfileImageQueryService profileImageQueryService,
+            SafetyGuard safetyGuard
     ) {
         this.currentUserProvider = currentUserProvider;
         this.invitePostService = invitePostService;
         this.imageService = imageService;
         this.profileImageQueryService = profileImageQueryService;
+        this.safetyGuard = safetyGuard;
     }
 
     @PostMapping
@@ -46,6 +51,7 @@ public class InvitePostController {
             @Valid @RequestBody CreateInvitePostRequest request
     ) {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+        safetyGuard.requireSafe(currentUser.getId(), screenedText(request), ContentKind.INVITE);
         InvitePost post = invitePostService.createPost(currentUser, request);
 
         return InvitePostResponse.from(
@@ -94,5 +100,14 @@ public class InvitePostController {
                         imagesByPost.getOrDefault(post.getId(), List.of())
                 ))
                 .toList();
+    }
+
+    // The invite text and its topics are screened together.
+    private String screenedText(CreateInvitePostRequest request) {
+        if (request.tags() == null || request.tags().isEmpty()) {
+            return request.content();
+        }
+
+        return request.content() + "\n" + String.join(" ", request.tags());
     }
 }

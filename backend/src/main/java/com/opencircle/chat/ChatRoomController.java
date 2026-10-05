@@ -1,5 +1,7 @@
 package com.opencircle.chat;
 
+import com.opencircle.ai.ContentKind;
+import com.opencircle.ai.SafetyGuard;
 import com.opencircle.profileimage.ProfileImageQueryService;
 import com.opencircle.profileimage.ProfileImageResponse;
 import com.opencircle.security.CurrentUserProvider;
@@ -40,6 +42,7 @@ public class ChatRoomController {
     private final ChatMessageBroadcaster messageBroadcaster;
     private final ProfileImageQueryService profileImageQueryService;
     private final HiddenChatsPinService hiddenChatsPinService;
+    private final SafetyGuard safetyGuard;
 
     ChatRoomController(
             CurrentUserProvider currentUserProvider,
@@ -47,13 +50,15 @@ public class ChatRoomController {
             ChatAttachmentService chatAttachmentService,
             ChatMessageBroadcaster messageBroadcaster,
             ProfileImageQueryService profileImageQueryService,
-            HiddenChatsPinService hiddenChatsPinService
+            HiddenChatsPinService hiddenChatsPinService,
+            SafetyGuard safetyGuard
     ) {
         this.currentUserProvider = currentUserProvider;
         this.chatRoomService = chatRoomService;
         this.chatAttachmentService = chatAttachmentService;
         this.messageBroadcaster = messageBroadcaster;
         this.profileImageQueryService = profileImageQueryService;
+        this.safetyGuard = safetyGuard;
         this.hiddenChatsPinService = hiddenChatsPinService;
     }
 
@@ -120,6 +125,7 @@ public class ChatRoomController {
             @Valid @RequestBody SendMessageRequest request
     ) {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+        safetyGuard.requireSafe(currentUser.getId(), request.body(), ContentKind.MESSAGE);
 
         // Creates a text message as the authenticated active participant, then broadcasts it
         // so every subscribed participant (including the sender's other sessions) sees it live.
@@ -139,6 +145,7 @@ public class ChatRoomController {
             @RequestParam(value = "caption", required = false) String caption
     ) {
         AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+        safetyGuard.requireSafe(currentUser.getId(), caption, ContentKind.MESSAGE);
 
         try {
             ChatAttachmentUpload upload = new ChatAttachmentUpload(
