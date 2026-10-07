@@ -106,7 +106,7 @@ export function BanterCard({ banter }: { banter: Banter }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this banter?</AlertDialogTitle>
             <AlertDialogDescription>
-              It will disappear for everyone on your campus, along with its replies and likes.
+              It will disappear for everyone, along with its replies and likes.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -23,7 +23,7 @@ export function BanterPage() {
     <div>
       <PageHeader
         title="Banter"
-        sub="Say whatever's on your mind. Hot takes, class rants, random thoughts. All fair game."
+        sub="Say whatever's on your mind. Hot takes, rants, random thoughts. All fair game."
       />
 
       <BanterComposer />
