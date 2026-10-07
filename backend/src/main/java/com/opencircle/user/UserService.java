@@ -23,7 +23,6 @@ public class UserService {
         this.usernameGenerator = usernameGenerator;
     }
 
-    // Creates a campus account: no location is collected, the campus comes from the email domain.
     @Transactional
     public AppUser createUser(
             String firstName,

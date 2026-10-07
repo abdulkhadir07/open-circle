@@ -16,12 +16,11 @@ interface BanterRepository extends JpaRepository<Banter, UUID> {
             value = """
                     select banter
                     from Banter banter
-                    where banter.campus = :campus
                     order by banter.createdAt desc, banter.id desc
                     """,
-            countQuery = "select count(banter) from Banter banter where banter.campus = :campus"
+            countQuery = "select count(banter) from Banter banter"
     )
-    Page<Banter> findNewest(String campus, Pageable pageable);
+    Page<Banter> findNewest(Pageable pageable);
 
     // "Hot" weighs a reply as two likes; ties fall back to newest so paging stays stable.
     @EntityGraph(attributePaths = "author")
@@ -29,19 +28,17 @@ interface BanterRepository extends JpaRepository<Banter, UUID> {
             value = """
                     select banter
                     from Banter banter
-                    where banter.campus = :campus
                     order by
                         ((select count(bl) from BanterLike bl where bl.banter = banter)
                             + 2 * (select count(reply) from BanterReply reply where reply.banter = banter)) desc,
                         banter.createdAt desc,
                         banter.id desc
                     """,
-            countQuery = "select count(banter) from Banter banter where banter.campus = :campus"
+            countQuery = "select count(banter) from Banter banter"
     )
-    Page<Banter> findHot(String campus, Pageable pageable);
+    Page<Banter> findHot(Pageable pageable);
 
-    // Banters from another campus are treated as if they don't exist.
     @EntityGraph(attributePaths = "author")
-    @Query("select banter from Banter banter where banter.id = :id and banter.campus = :campus")
-    Optional<Banter> findInCampus(UUID id, String campus);
+    @Query("select banter from Banter banter where banter.id = :id")
+    Optional<Banter> findWithAuthor(UUID id);
 }

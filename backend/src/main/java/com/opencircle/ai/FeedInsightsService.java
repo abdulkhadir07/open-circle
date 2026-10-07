@@ -1,6 +1,6 @@
 package com.opencircle.ai;
 
-import com.opencircle.invitepost.CampusFeedQuery;
+import com.opencircle.invitepost.LocalGlobalFeedQuery;
 import com.opencircle.invitepost.FeedInvite;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.ProfileInterests;
@@ -25,7 +25,7 @@ class FeedInsightsService {
     private static final int MAX_DIGEST_LENGTH = 220;
     private static final int MAX_REASON_LENGTH = 90;
 
-    private final CampusFeedQuery feed;
+    private final LocalGlobalFeedQuery feed;
     private final ProfileInterestsQuery profiles;
     private final AiClient aiClient;
     private final AiRateLimiter rateLimiter;
@@ -33,7 +33,7 @@ class FeedInsightsService {
     private final TtlCache<String, FeedInsightsResponse> cache;
 
     FeedInsightsService(
-            CampusFeedQuery feed,
+            LocalGlobalFeedQuery feed,
             ProfileInterestsQuery profiles,
             AiClient aiClient,
             AiRateLimiter rateLimiter,
@@ -133,12 +133,12 @@ class FeedInsightsService {
         }
 
         return """
-                You power the home feed of OpenCircle, a campus app where students post open invites to do things together.
+                You power the home feed of OpenCircle, an app where people post open invites to do things together.
                 Tone: warm, brief, no emojis, no exclamation overload.
-                Student interests: %s. Bio: %s.
+                Their interests: %s. Bio: %s.
                 Open invites:
                 %s
-                Return JSON: {"digest": 1 or 2 sentences (max 200 characters) saying what is happening on campus today and pointing out the best fit for this student,
+                Return JSON: {"digest": 1 or 2 sentences (max 200 characters) saying what is happening around them today and pointing out the best fit for this person,
                 "reasons": [{"id": the invite id, "reason": one short sentence (max 80 characters) on why it fits them}] only for invites that really fit, using only the ids above}.
                 """.formatted(
                 profile.interests().isEmpty() ? "unknown" : String.join(", ", profile.interests()),
@@ -165,8 +165,8 @@ class FeedInsightsService {
 
         String count = invites.size() + (invites.size() == 1 ? " open invite" : " open invites");
         String digest = best == null
-                ? count + " on your campus today."
-                : count + " on your campus today. \"" + truncate(best.content(), 60) + "\" looks like a good fit for you.";
+                ? count + " around you today."
+                : count + " around you today. \"" + truncate(best.content(), 60) + "\" looks like a good fit for you.";
 
         return new FeedInsightsResponse(digest, List.copyOf(reasons), false);
     }

@@ -32,13 +32,25 @@ describe('ProfileOpenInvites', () => {
 
   it("shows only that person's invites on someone else's profile", async () => {
     server.use(
-      http.get('*/api/invite-posts/campus', () => HttpResponse.json([invitePost, samPost])),
+      http.get('*/api/invite-posts/local', () => HttpResponse.json([invitePost, samPost])),
     );
     renderInvites({ userId: 'sam-id', isOwnProfile: false, displayName: 'Sam' });
 
     expect(await screen.findByText("Sam's hike")).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: "Sam's open invites" })).toBeInTheDocument();
     expect(screen.queryByText(invitePost.content)).not.toBeInTheDocument();
+  });
+
+  it('includes global invites and does not repeat a post that is in both feeds', async () => {
+    const globalPost = { ...samPost, id: 'sam-global', content: 'Global meetup' };
+    server.use(
+      http.get('*/api/invite-posts/local', () => HttpResponse.json([samPost])),
+      http.get('*/api/invite-posts/global', () => HttpResponse.json([samPost, globalPost])),
+    );
+    renderInvites({ userId: 'sam-id', isOwnProfile: false, displayName: 'Sam' });
+
+    expect(await screen.findByText('Global meetup')).toBeInTheDocument();
+    expect(screen.getAllByText("Sam's hike")).toHaveLength(1);
   });
 
   it('shows only the three newest open invites', async () => {
@@ -48,7 +60,7 @@ describe('ProfileOpenInvites', () => {
       content: `Sam invite ${index}`,
       createdAt: new Date(Date.now() + index * 60_000).toISOString(),
     }));
-    server.use(http.get('*/api/invite-posts/campus', () => HttpResponse.json(many)));
+    server.use(http.get('*/api/invite-posts/local', () => HttpResponse.json(many)));
     renderInvites({ userId: 'sam-id', isOwnProfile: false, displayName: 'Sam' });
 
     expect(await screen.findByText('Sam invite 4')).toBeInTheDocument();
@@ -59,7 +71,7 @@ describe('ProfileOpenInvites', () => {
   });
 
   it('links to the new-post page when you have nothing open', async () => {
-    server.use(http.get('*/api/invite-posts/campus', () => HttpResponse.json([])));
+    server.use(http.get('*/api/invite-posts/local', () => HttpResponse.json([])));
     renderInvites({ userId: authUser.id, isOwnProfile: true, displayName: 'Maya' });
 
     expect(await screen.findByText(/Nothing open right now\./)).toBeInTheDocument();
@@ -71,5 +83,14 @@ describe('ProfileOpenInvites', () => {
 
     expect(await screen.findByText('Nothing open right now.')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Start an invite' })).not.toBeInTheDocument();
+  });
+
+  it('renders nothing until the viewer has a verified location', () => {
+    const { container } = renderInvites(
+      { userId: authUser.id, isOwnProfile: true, displayName: 'Maya' },
+      { ...authUser, locationVerifiedAt: undefined },
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

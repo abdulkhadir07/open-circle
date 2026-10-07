@@ -22,10 +22,13 @@ class InvitePostService {
         this.clock = clock;
     }
 
-    // Creates an invite post for the poster's campus.
+    // Creates an invite post using the poster's verified location.
     @Transactional
     InvitePost createPost(AppUser poster, CreateInvitePostRequest request) {
+        requireVerifiedLocation(poster);
+
         int totalCapacity = totalCapacityFor(request);
+        validateLocationScope(poster, request.locationScope());
 
         InvitePost post;
         try {
@@ -34,6 +37,10 @@ class InvitePostService {
                     request.content(),
                     request.inviteType(),
                     totalCapacity,
+                    request.locationScope(),
+                    poster.getVerifiedCity(),
+                    poster.getVerifiedStateRegion(),
+                    poster.getVerifiedCountry(),
                     Instant.now(clock),
                     request.tags()
             );
@@ -42,12 +49,6 @@ class InvitePostService {
         }
 
         return posts.save(post);
-    }
-
-    // Returns the open invite posts from the viewer's campus, newest first.
-    @Transactional(readOnly = true)
-    List<InvitePost> getCampusFeed(AppUser viewer) {
-        return posts.findCampusFeed(InvitePostStatus.ACTIVE, Instant.now(clock), viewer.getCampus());
     }
 
     // Returns local posts that match the viewer's verified location.
@@ -105,6 +106,10 @@ class InvitePostService {
     }
 
     private void validateLocationScope(AppUser user, LocationScope scope) {
+        if (scope == LocationScope.CAMPUS) {
+            throw new InvalidInvitePostRequestException("Campus scope is no longer available");
+        }
+
         if (scope == LocationScope.STATE_REGION && !hasText(user.getVerifiedStateRegion())) {
             throw new InvalidInvitePostRequestException("State/region scope is not available for your verified location");
         }

@@ -5,6 +5,7 @@ import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.invitepost.InviteType;
 import com.opencircle.invitepost.LocationScope;
+import com.opencircle.location.LocationNotVerifiedException;
 import com.opencircle.notification.NotificationCommand;
 import com.opencircle.notification.NotificationPublisher;
 import com.opencircle.notification.NotificationResourceType;
@@ -112,17 +113,13 @@ class EngagementRequestServiceTest {
     }
 
     @Test
-    void createRequestRejectsAPostFromAnotherCampus() {
-        AppUser poster = verifiedUser("poster.campus@sfsu.edu");
-        AppUser requester = verifiedUser("requester.campus@stanford.edu");
-        InvitePost post = invitePost(poster);
+    void createRequestRejectsUnverifiedLocation() {
+        AppUser requester = user("requester.unverified@example.com");
 
-        when(posts.findByIdWithPoster(post.getId())).thenReturn(Optional.of(post));
+        assertThatThrownBy(() -> service.createRequest(requester, UUID.randomUUID()))
+                .isInstanceOf(LocationNotVerifiedException.class);
 
-        assertThatThrownBy(() -> service.createRequest(requester, post.getId()))
-                .isInstanceOf(CampusMismatchException.class)
-                .hasMessage("This invite is only open to people on the poster's campus");
-
+        verify(posts, never()).findByIdWithPoster(any());
         verify(requests, never()).save(any());
     }
 

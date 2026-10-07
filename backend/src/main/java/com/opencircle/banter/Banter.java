@@ -14,7 +14,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-// A short public post on a campus board.
+// A short public post on the shared board.
 @Entity
 @Table(name = "banters")
 class Banter {

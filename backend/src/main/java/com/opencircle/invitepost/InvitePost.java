@@ -147,30 +147,6 @@ public class InvitePost {
         applyTags(tags);
     }
 
-    // A campus invite: visible to the poster's campus, with no location of its own.
-    public InvitePost(
-            AppUser poster,
-            String content,
-            InviteType inviteType,
-            int totalCapacity,
-            Instant createdAt,
-            List<String> tags
-    ) {
-        validateCore(poster, content, inviteType, totalCapacity, createdAt);
-
-        this.poster = poster;
-        this.campus = poster.getCampus();
-        this.content = content.trim();
-        this.inviteType = inviteType;
-        this.totalCapacity = totalCapacity;
-        this.locationScope = LocationScope.CAMPUS;
-        this.createdAt = createdAt;
-        this.updatedAt = createdAt;
-        this.expiresAt = createdAt.plusSeconds(EXPIRATION_HOURS * 60L * 60L);
-
-        applyTags(tags);
-    }
-
     private static void validateCore(
             AppUser poster,
             String content,

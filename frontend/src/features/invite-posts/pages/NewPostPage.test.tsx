@@ -88,10 +88,41 @@ describe('NewPostPage', () => {
     expect(screen.getByRole('combobox', { name: 'How many people can join?' })).toBeInTheDocument();
   });
 
-  it('has no audience choice, since every invite goes to your campus', async () => {
-    renderPage();
+  it("names the audience after the poster's place and hides State when there is none", async () => {
+    const { user } = renderPage({ verifiedStateRegion: undefined });
 
-    expect(screen.queryByRole('combobox', { name: 'Who can see it' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('combobox', { name: 'Who can see it' }));
+
+    expect(screen.getByRole('option', { name: 'San Francisco · your city' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'United States · your country' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Worldwide · anyone' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /your state/ })).not.toBeInTheDocument();
+  });
+
+  it('offers the state when the poster has one', async () => {
+    const { user } = renderPage();
+
+    await user.click(screen.getByRole('combobox', { name: 'Who can see it' }));
+
+    expect(screen.getByRole('option', { name: 'California · your state' })).toBeInTheDocument();
+  });
+
+  it("starts on the audience chosen from Home's empty state", () => {
+    renderPage({}, '/new?audience=GLOBAL');
+
+    expect(screen.getByRole('combobox', { name: 'Who can see it' })).toHaveTextContent(
+      'Worldwide · anyone',
+    );
+  });
+
+  it('starts on your city when the audience in the link is not available', () => {
+    renderPage({ verifiedStateRegion: undefined }, '/new?audience=STATE_REGION');
+
+    expect(screen.getByRole('combobox', { name: 'Who can see it' })).toHaveTextContent(
+      'San Francisco · your city',
+    );
   });
 
   it('uploads a staged photo after creating the post and still returns to the feed', async () => {
@@ -257,6 +288,15 @@ describe('NewPostPage', () => {
     expect(screen.getByLabelText("What's the invite?")).toHaveValue(
       'Anyone up for coffee this afternoon?',
     );
+  });
+
+  it('asks for location verification before letting you post', async () => {
+    renderPage({ locationVerifiedAt: undefined });
+
+    expect(
+      await screen.findByRole('heading', { name: 'Verify your location' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("What's the invite?")).not.toBeInTheDocument();
   });
 
   it('sends the chosen topics with the new post', async () => {

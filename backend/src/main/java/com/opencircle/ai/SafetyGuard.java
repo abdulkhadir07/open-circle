@@ -65,7 +65,7 @@ public class SafetyGuard {
 
     private String prompt(String text, ContentKind kind) {
         return """
-                You are "Safety Guardian" for a student meetup app. Review this %s.
+                You are "Safety Guardian" for a meetup app. Review this %s.
                 Flag it (ok=false) only if it clearly contains: harassment or hate, sexual content, threats,
                 scams or requests for money, gift cards or crypto, or pressure to meet somewhere isolated or secret.
                 Casual language, slang, jokes and normal plans to meet in public are fine (ok=true).

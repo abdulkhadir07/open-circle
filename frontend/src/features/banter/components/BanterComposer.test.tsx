@@ -30,7 +30,7 @@ describe('BanterComposer', () => {
     const post = screen.getByRole('button', { name: 'Post' });
     expect(post).toBeDisabled();
 
-    await user.type(screen.getByLabelText("What's on your mind?"), 'Hello campus');
+    await user.type(screen.getByLabelText("What's on your mind?"), 'Hello people');
 
     expect(post).toBeEnabled();
     expect(screen.getByText('268')).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('BanterComposer', () => {
             id: 'new-id',
             authorId: authUser.id,
             authorUsername: authUser.username,
-            content: 'Hello campus',
+            content: 'Hello people',
             createdAt: new Date().toISOString(),
             likeCount: 0,
             replyCount: 0,
@@ -59,11 +59,11 @@ describe('BanterComposer', () => {
     );
     const { user } = renderComposer();
 
-    await user.type(screen.getByLabelText("What's on your mind?"), '  Hello campus  ');
+    await user.type(screen.getByLabelText("What's on your mind?"), '  Hello people  ');
     await user.click(screen.getByRole('button', { name: 'Post' }));
 
     await waitFor(() => expect(screen.getByLabelText("What's on your mind?")).toHaveValue(''));
-    expect(body).toEqual({ content: 'Hello campus' });
+    expect(body).toEqual({ content: 'Hello people' });
   });
 
   it('posts with Ctrl+Enter', async () => {

@@ -55,7 +55,7 @@ class BanterControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void createBanterReturnsTheNewPostForTheAuthorsCampus() throws Exception {
+    void createBanterReturnsTheNewPostForTheAuthor() throws Exception {
         AppUser author = user("author@student.sfsu.edu");
 
         mockMvc.perform(postBanter("author@student.sfsu.edu", "  Best study spot on campus?  "))
@@ -81,23 +81,25 @@ class BanterControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void boardListsOnlyTheViewersCampusNewestFirst() throws Exception {
+    void boardListsEveryonesBantersNewestFirst() throws Exception {
         AppUser viewer = user("viewer@student.sfsu.edu");
         AppUser poster = user("poster@mail.sfsu.edu");
         AppUser stranger = user("stranger@stanford.edu");
 
         banters.save(new Banter(poster, "older", BASE));
         banters.save(new Banter(viewer, "newer", BASE.plusSeconds(60)));
-        banters.save(new Banter(stranger, "other campus", BASE.plusSeconds(120)));
+        banters.save(new Banter(stranger, "from far away", BASE.plusSeconds(120)));
 
         mockMvc.perform(getBoard("viewer@student.sfsu.edu", "new", 0, 20))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items", hasSize(2)))
-                .andExpect(jsonPath("$.items[0].content").value("newer"))
-                .andExpect(jsonPath("$.items[0].mine").value(true))
-                .andExpect(jsonPath("$.items[1].content").value("older"))
-                .andExpect(jsonPath("$.items[1].mine").value(false))
-                .andExpect(jsonPath("$.totalElements").value(2));
+                .andExpect(jsonPath("$.items", hasSize(3)))
+                .andExpect(jsonPath("$.items[0].content").value("from far away"))
+                .andExpect(jsonPath("$.items[0].mine").value(false))
+                .andExpect(jsonPath("$.items[1].content").value("newer"))
+                .andExpect(jsonPath("$.items[1].mine").value(true))
+                .andExpect(jsonPath("$.items[2].content").value("older"))
+                .andExpect(jsonPath("$.items[2].mine").value(false))
+                .andExpect(jsonPath("$.totalElements").value(3));
     }
 
     @Test
@@ -264,25 +266,21 @@ class BanterControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void banterFromAnotherCampusLooksLikeItDoesNotExist() throws Exception {
-        AppUser author = user("author@sfsu.edu");
-        user("outsider@stanford.edu");
-        Banter banter = banters.save(new Banter(author, "sfsu only", BASE));
-        String outsider = bearer("outsider@stanford.edu");
+    void anyoneCanLikeAndReplyToAnyonesBanter() throws Exception {
+        AppUser author = user("author@example.com");
+        user("visitor@example.org");
+        Banter banter = banters.save(new Banter(author, "open to everyone", BASE));
+        String visitor = bearer("visitor@example.org");
 
-        mockMvc.perform(put("/api/banter/{id}/like", banter.getId()).header("Authorization", outsider))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/banter/{id}/replies", banter.getId()).header("Authorization", outsider))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/banter/{id}/like", banter.getId()).header("Authorization", visitor))
+                .andExpect(status().isOk());
         mockMvc.perform(post("/api/banter/{id}/replies", banter.getId())
-                        .header("Authorization", outsider)
+                        .header("Authorization", visitor)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\": \"hi\"}"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(delete("/api/banter/{id}", banter.getId()).header("Authorization", outsider))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(getBoard("outsider@stanford.edu", "new", 0, 20))
-                .andExpect(jsonPath("$.items", hasSize(0)));
+                .andExpect(status().isCreated());
+        mockMvc.perform(get("/api/banter/{id}/replies", banter.getId()).header("Authorization", visitor))
+                .andExpect(jsonPath("$", hasSize(1)));
     }
 
     @Test
@@ -330,7 +328,10 @@ class BanterControllerIntegrationTest extends AbstractIntegrationTest {
                 email,
                 passwordEncoder.encode("Password123!"),
                 "+1415555" + Math.abs(email.hashCode() % 10000),
-                LocalDate.of(2000, 1, 1)
+                LocalDate.of(2000, 1, 1),
+                "San Francisco",
+                "California",
+                "USA"
         );
         user.markEmailVerified(VERIFIED_AT);
         return user;

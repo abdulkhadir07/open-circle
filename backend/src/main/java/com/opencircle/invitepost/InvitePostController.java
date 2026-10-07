@@ -61,13 +61,6 @@ public class InvitePostController {
         );
     }
 
-    @GetMapping("/campus")
-    public List<InvitePostResponse> getCampusFeed(@AuthenticationPrincipal Jwt jwt) {
-        AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
-
-        return responsesFor(invitePostService.getCampusFeed(currentUser));
-    }
-
     @GetMapping("/local")
     public List<InvitePostResponse> getLocalFeed(
             @AuthenticationPrincipal Jwt jwt,

@@ -2,7 +2,7 @@ import { Sparkles } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { AiBadge } from './AiBadge';
 
-/** A one-glance summary of what's open on campus today, above the feed. */
+/** A one-glance summary of what's open near you today, above the feed. */
 export function FeedDigestCard({ digest, aiGenerated }: { digest: string; aiGenerated: boolean }) {
   return (
     <Card className="border-primary/30 bg-primary/5 animate-fade-up mb-6 flex items-start gap-3 p-4">

@@ -28,9 +28,9 @@ const engagementInvitePostSummarySchema = z
     posterId: z.string().nullish(),
     content: z.string().min(1),
     posterUsername: z.string().min(1),
-    city: z.string().nullish(),
+    city: z.string().min(1),
     stateRegion: z.string().nullish(),
-    country: z.string().nullish(),
+    country: z.string().min(1),
   })
   .passthrough();
 

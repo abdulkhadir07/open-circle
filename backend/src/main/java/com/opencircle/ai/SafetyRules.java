@@ -27,7 +27,7 @@ final class SafetyRules {
                     "That reads like a threat or encouragement of harm. Please rephrase."),
             Rule.of("\\bcome\\s+alone\\b|\\bdon'?t\\s+tell\\s+anyone\\b|\\bafter\\s+dark\\b.*\\b(alone|behind)\\b"
                             + "|\\bbehind\\s+the\\s+\\w+\\b.*\\balone\\b",
-                    "That sounds like an unsafe way to meet. Suggest a public spot on campus instead."),
+                    "That sounds like an unsafe way to meet. Suggest a public place instead."),
             Rule.of("\\b(send|share)\\s+(me\\s+)?(nudes?|nude\\s+pics?|explicit\\s+pics?)\\b"
                             + "|\\bsugar\\s+(daddy|baby|mama)\\b|\\bhook\\s?up\\s+for\\s+(money|cash)\\b",
                     "That looks like sexual solicitation, which isn't allowed here.")

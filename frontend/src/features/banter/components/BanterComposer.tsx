@@ -12,10 +12,10 @@ export const BANTER_MAX_LENGTH = 280;
 const COUNTER_WARNING_AT = 250;
 
 const PROMPTS = [
-  'Best study spot on campus?',
+  'Best coffee spot nearby?',
   'Hot take:',
-  'Overheard in the library...',
-  'Who else is stressed about midterms?',
+  'Overheard at the coffee shop...',
+  'Who else is up too late?',
 ];
 
 export function BanterComposer() {

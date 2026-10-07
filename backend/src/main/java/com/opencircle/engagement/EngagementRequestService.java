@@ -3,6 +3,7 @@ package com.opencircle.engagement;
 import com.opencircle.chat.ChatRoomService;
 import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InvitePostRepository;
+import com.opencircle.location.LocationNotVerifiedException;
 import com.opencircle.notification.NotificationCommand;
 import com.opencircle.notification.NotificationPublisher;
 import com.opencircle.notification.NotificationResourceType;
@@ -46,10 +47,10 @@ class EngagementRequestService {
     // Creates a pending engagement request when the requester is eligible for the invite post.
     @Transactional
     EngagementRequest createRequest(AppUser requester, UUID invitePostId) {
+        requireVerifiedLocation(requester);
+
         InvitePost post = posts.findByIdWithPoster(invitePostId)
                 .orElseThrow(() -> new EngagementRequestNotActionableException("Invite post is not available"));
-
-        requireSameCampus(post, requester);
 
         Instant now = Instant.now(clock);
 
@@ -226,10 +227,9 @@ class EngagementRequestService {
                 .orElseThrow(EngagementRequestNotFoundException::new);
     }
 
-    // Invites are only open to people on the poster's campus.
-    private void requireSameCampus(InvitePost post, AppUser requester) {
-        if (!post.getCampus().equals(requester.getCampus())) {
-            throw new CampusMismatchException();
+    private void requireVerifiedLocation(AppUser user) {
+        if (!user.hasVerifiedLocation()) {
+            throw new LocationNotVerifiedException();
         }
     }
 

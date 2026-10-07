@@ -8,27 +8,38 @@ import { PageHeader } from '@/components/ui/page-header';
 import { FeedDigestCard } from '@/features/ai/components/FeedDigestCard';
 import { useFeedInsights } from '@/features/ai/hooks/useFeedInsights';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
+import { LocationVerificationPrompt } from '@/features/location/components/LocationVerificationPrompt';
+import { PlaceLabel } from '@/features/location/components/PlaceLabel';
+import { FeedAudienceChips } from '@/features/invite-posts/components/FeedAudienceChips';
 import { InvitePostCard } from '@/features/invite-posts/components/InvitePostCard';
-import { useCampusFeed } from '@/features/invite-posts/hooks/useCampusFeed';
-import { formatCampusName } from '@/lib/campus';
+import { useGlobalFeed } from '@/features/invite-posts/hooks/useGlobalFeed';
+import { useLocalFeed } from '@/features/invite-posts/hooks/useLocalFeed';
+import {
+  feedAudienceOptions,
+  placeLine,
+  readStoredAudience,
+  scopeNames,
+  storeAudience,
+  type FeedAudience,
+} from '@/features/invite-posts/lib/audience';
 import { cn } from '@/lib/utils';
 import { useMyEngagementRequests } from '@/features/engagement-requests/hooks/useMyEngagementRequests';
 
 const IDEAS = [
   {
     label: 'Coffee chat',
-    text: 'Coffee and a chat on campus this afternoon, 1 person',
+    text: 'Coffee and a chat near the park this afternoon, 1 person',
     tags: ['coffee'],
   },
   {
     label: 'Grab food',
-    text: 'Anyone want to grab lunch at the student center at noon? 2 people',
+    text: 'Anyone want to grab lunch downtown at noon? 2 people',
     tags: ['food'],
   },
   { label: 'Pickup game', text: 'Need 4 players for pickup soccer at 5pm', tags: ['games'] },
   {
     label: 'Walk and talk',
-    text: 'Walk around campus after class at 4pm, 2 or 3 people',
+    text: 'Walk around the neighborhood after work at 6pm, 2 or 3 people',
     tags: ['walk'],
   },
 ];
@@ -56,12 +67,40 @@ function greeting() {
 export function HomePage() {
   const reduceMotion = useReducedMotion();
   const currentUser = useCurrentUser();
+  const [pickedAudience, setPickedAudience] = useState<FeedAudience>(
+    () => readStoredAudience() ?? 'NEARBY',
+  );
   const [query, setQuery] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
-  const feed = useCampusFeed();
+  const locationVerified = Boolean(currentUser.data?.locationVerifiedAt);
+  const audienceOptions = useMemo(
+    () => feedAudienceOptions(currentUser.data ?? {}),
+    [currentUser.data],
+  );
+  // A remembered choice that doesn't exist for this place (e.g. State, after moving somewhere
+  // without states) falls back to Nearby.
+  const audience = audienceOptions.some((option) => option.value === pickedAudience)
+    ? pickedAudience
+    : 'NEARBY';
+
+  function pickAudience(next: FeedAudience) {
+    setPickedAudience(next);
+    storeAudience(next);
+  }
+
+  // These run on every render regardless of the early returns below (Rules
+  // of Hooks), including while the location-verification prompt is still
+  // showing — `enabled` is what actually stops them from hitting the API
+  // (and caching a 403) before there's a verified location to query with.
+  const localFeed = useLocalFeed(
+    audience === 'NEARBY' || audience === 'GLOBAL' ? undefined : audience,
+    { enabled: locationVerified && audience !== 'GLOBAL' },
+  );
+  const globalFeed = useGlobalFeed({ enabled: locationVerified && audience === 'GLOBAL' });
+  const activeFeed = audience === 'GLOBAL' ? globalFeed : localFeed;
   // Optional extra: if the AI digest is slow or fails, Home simply shows no digest.
-  const insights = useFeedInsights(Boolean(currentUser.data));
+  const insights = useFeedInsights(locationVerified);
   const reasonsByPostId = useMemo(
     () => new Map(insights.data?.reasons.map((item) => [item.invitePostId, item.reason])),
     [insights.data],
@@ -69,27 +108,30 @@ export function HomePage() {
   const search = query.trim().toLowerCase();
   const visiblePosts = useMemo(
     () =>
-      (feed.data ?? []).filter((post) => {
+      (activeFeed.data ?? []).filter((post) => {
         if (activeTag && !post.tags.includes(activeTag)) return false;
         return (
           !search ||
-          [post.content, post.posterUsername, ...post.tags].join(' ').toLowerCase().includes(search)
+          [post.content, post.posterUsername, post.city, post.country, ...post.tags]
+            .join(' ')
+            .toLowerCase()
+            .includes(search)
         );
       }),
-    [feed.data, search, activeTag],
+    [activeFeed.data, search, activeTag],
   );
   // Topics in the loaded feed, most-used first.
   const feedTags = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const post of feed.data ?? []) {
+    for (const post of activeFeed.data ?? []) {
       for (const tag of post.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
     }
     return [...counts.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .slice(0, MAX_TAG_FILTERS)
       .map(([tag]) => tag);
-  }, [feed.data]);
-  const myRequests = useMyEngagementRequests();
+  }, [activeFeed.data]);
+  const myRequests = useMyEngagementRequests({ enabled: locationVerified });
   const myRequestsByPostId = useMemo(
     () => new Map(myRequests.data?.map((request) => [request.invitePostId, request])),
     [myRequests.data],
@@ -103,14 +145,24 @@ export function HomePage() {
     );
   }
 
-  const user = currentUser.data;
-  if (!user) return null;
-  const campusName = formatCampusName(user.campus);
-  const openCount = feed.data?.length ?? 0;
+  if (!currentUser.data?.locationVerifiedAt) {
+    return <LocationVerificationPrompt />;
+  }
 
-  const viewerId = user.id;
-  const myPosts = visiblePosts.filter((post) => post.posterId === viewerId);
-  const otherPosts = visiblePosts.filter((post) => post.posterId !== viewerId);
+  const user = currentUser.data;
+  const place = placeLine(user);
+  const names = scopeNames(user);
+  const inWords: Record<FeedAudience, string> = {
+    NEARBY: 'near you',
+    CITY: `in ${names.CITY}`,
+    STATE_REGION: `in ${names.STATE_REGION}`,
+    COUNTRY: `in ${names.COUNTRY}`,
+    GLOBAL: 'worldwide',
+  };
+  const openCount = activeFeed.data?.length ?? 0;
+
+  const myPosts = visiblePosts.filter((post) => post.posterId === user.id);
+  const otherPosts = visiblePosts.filter((post) => post.posterId !== user.id);
 
   function renderPost(post: (typeof visiblePosts)[number], index: number) {
     return (
@@ -126,7 +178,7 @@ export function HomePage() {
       >
         <InvitePostCard
           post={post}
-          isOwnPost={post.posterId === viewerId}
+          isOwnPost={post.posterId === user.id}
           myRequest={myRequestsByPostId.get(post.id)}
           reason={reasonsByPostId.get(post.id)}
           onTagClick={(tag) => setActiveTag(activeTag === tag ? null : tag)}
@@ -140,13 +192,14 @@ export function HomePage() {
       <PageHeader
         title={`${greeting()}${user.firstName ? `, ${user.firstName}` : ''}`}
         sub={
-          feed.isLoading
-            ? `Invites at ${campusName}.`
+          activeFeed.isLoading
+            ? `Invites ${inWords[audience]}.`
             : openCount > 0
-              ? `${openCount} open invite${openCount === 1 ? '' : 's'} at ${campusName} right now. Jump in.`
-              : `Nothing open at ${campusName} yet. What are you up to today?`
+              ? `${openCount} open invite${openCount === 1 ? '' : 's'} ${inWords[audience]} right now. Jump in.`
+              : `Nothing open ${inWords[audience]} yet. What are you up to today?`
         }
       />
+      <PlaceLabel place={place} />
 
       <div className="border-primary/30 bg-card mb-6 rounded-2xl border-2 p-4 shadow-sm">
         <Link to="/new" className="group flex items-center gap-3">
@@ -184,7 +237,7 @@ export function HomePage() {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search invites, topics, people..."
+          placeholder="Search invites, places, people..."
           aria-label="Search invites"
           className="bg-card focus:ring-primary/40 w-full rounded-xl border py-2.5 pr-9 pl-9 text-sm transition outline-none focus:ring-2"
         />
@@ -224,8 +277,10 @@ export function HomePage() {
         </fieldset>
       ) : null}
 
+      <FeedAudienceChips options={audienceOptions} value={audience} onChange={pickAudience} />
+
       <AnimatePresence mode="wait" initial={false}>
-        {feed.isLoading ? (
+        {activeFeed.isLoading ? (
           <motion.div
             key="loading"
             exit={reduceMotion ? undefined : { opacity: 0 }}
@@ -236,25 +291,29 @@ export function HomePage() {
               className="text-muted-foreground size-5 animate-spin"
             />
           </motion.div>
-        ) : feed.isError ? (
+        ) : activeFeed.isError ? (
           <motion.p
             key="error"
             role="alert"
             exit={reduceMotion ? undefined : { opacity: 0 }}
             className="text-destructive text-base"
           >
-            {feed.error instanceof Error ? feed.error.message : 'Unable to load invite posts.'}
+            {activeFeed.error instanceof Error
+              ? activeFeed.error.message
+              : 'Unable to load invite posts.'}
           </motion.p>
         ) : visiblePosts.length > 0 ? (
           <motion.div
-            key="posts"
+            key={audience}
             exit={reduceMotion ? undefined : { opacity: 0 }}
             className="flex flex-col gap-4"
           >
             {myPosts.length > 0 ? <FeedHeading>Your open invites</FeedHeading> : null}
             {myPosts.map((post, index) => renderPost(post, index))}
             {myPosts.length > 0 && otherPosts.length > 0 ? (
-              <FeedHeading className="mt-2">On campus</FeedHeading>
+              <FeedHeading className="mt-2">
+                {audience === 'GLOBAL' ? 'Everywhere' : 'Nearby'}
+              </FeedHeading>
             ) : null}
             {otherPosts.map((post, index) => renderPost(post, myPosts.length + index))}
           </motion.div>
@@ -263,8 +322,24 @@ export function HomePage() {
             {search || activeTag ? (
               <EmptyState icon={Search}>No invites match that. Try another word.</EmptyState>
             ) : (
-              <EmptyState icon={Sparkles}>
-                No invite posts here yet. Be the first to post one.
+              <EmptyState
+                icon={Sparkles}
+                action={
+                  <Link
+                    to={`/new?audience=${audience === 'NEARBY' ? 'CITY' : audience}`}
+                    className="bg-primary text-primary-foreground mt-1 rounded-full px-4 py-1.5 text-xs font-medium transition hover:opacity-90 active:scale-95"
+                  >
+                    {audience === 'NEARBY'
+                      ? 'Start an invite'
+                      : audience === 'GLOBAL'
+                        ? 'Post for everyone'
+                        : `Post for ${names[audience]}`}
+                  </Link>
+                }
+              >
+                {audience === 'NEARBY'
+                  ? 'Nothing open nearby yet. Be the first to post one.'
+                  : `No invites ${inWords[audience]} yet. Be the first to post one.`}
               </EmptyState>
             )}
           </motion.div>
