@@ -1,6 +1,6 @@
 package com.opencircle.ai;
 
-import com.opencircle.invitepost.CampusFeedQuery;
+import com.opencircle.invitepost.LocalGlobalFeedQuery;
 import com.opencircle.invitepost.FeedInvite;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.ProfileInterests;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 
 class FeedInsightsServiceTest {
 
-    private final CampusFeedQuery feed = mock(CampusFeedQuery.class);
+    private final LocalGlobalFeedQuery feed = mock(LocalGlobalFeedQuery.class);
     private final ProfileInterestsQuery profiles = mock(ProfileInterestsQuery.class);
     private final AiClient aiClient = mock(AiClient.class);
     private final AiProperties properties = new AiProperties();
@@ -41,7 +41,8 @@ class FeedInsightsServiceTest {
     );
 
     private final AppUser viewer = new AppUser(
-            "viewer_1234", "Maya", "Chen", "maya@student.sfsu.edu", "hash", "+14155550123", LocalDate.of(2000, 1, 1));
+            "viewer_1234", "Maya", "Chen", "maya@example.com", "hash", "+14155550123", LocalDate.of(2000, 1, 1),
+            "San Francisco", "California", "USA");
     private final UUID viewerId = UUID.randomUUID();
 
     private FeedInvite invite(String content, List<String> tags) {
@@ -91,7 +92,7 @@ class FeedInsightsServiceTest {
         assertThat(response.aiGenerated()).isFalse();
         assertThat(response.reasons()).extracting(FeedReason::invitePostId).containsExactly(coffee.id());
         assertThat(response.reasons().get(0).reason()).isEqualTo("Matches your interest in coffee");
-        assertThat(response.digest()).startsWith("3 open invites on your campus today.").contains("Coffee chat");
+        assertThat(response.digest()).startsWith("3 open invites around you today.").contains("Coffee chat");
     }
 
     @Test

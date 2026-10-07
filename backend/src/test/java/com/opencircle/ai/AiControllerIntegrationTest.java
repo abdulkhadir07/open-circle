@@ -4,6 +4,7 @@ import com.opencircle.AbstractIntegrationTest;
 import com.opencircle.invitepost.InvitePost;
 import com.opencircle.invitepost.InvitePostRepository;
 import com.opencircle.invitepost.InviteType;
+import com.opencircle.invitepost.LocationScope;
 import com.opencircle.profileimage.ProfileImageQueryService;
 import com.opencircle.user.AppUser;
 import com.opencircle.user.UserService;
@@ -127,37 +128,46 @@ class AiControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void feedInsightsExplainsWhichInvitesMatchYourInterests() throws Exception {
-        AppUser viewer = user("viewer@student.sfsu.edu");
-        AppUser poster = user("poster@mail.sfsu.edu");
-        AppUser stranger = user("stranger@stanford.edu");
+        AppUser viewer = user("viewer@example.com");
+        AppUser poster = user("poster@example.com");
+        AppUser stranger = user("stranger@example.com", "London", null, "United Kingdom");
         mockMvc.perform(put("/api/users/me/profile")
-                        .header("Authorization", bearer("viewer@student.sfsu.edu"))
+                        .header("Authorization", bearer("viewer@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"displayName\": \"Viewer\", \"bio\": \"Student\", \"interests\": [\"coffee\"]}"))
                 .andExpect(status().isOk());
 
         Instant now = Instant.now();
-        posts.save(new InvitePost(poster, "Coffee and a chat at the student center", InviteType.GROUP, 3, now.minusSeconds(60), List.of("coffee")));
-        posts.save(new InvitePost(poster, "Chess in the library", InviteType.GROUP, 3, now.minusSeconds(30), List.of("games")));
-        posts.save(new InvitePost(stranger, "Stanford coffee meetup", InviteType.GROUP, 3, now.minusSeconds(10), List.of("coffee")));
-        posts.save(new InvitePost(viewer, "My own coffee invite", InviteType.GROUP, 3, now.minusSeconds(5), List.of("coffee")));
+        posts.save(invite(poster, "Coffee and a chat near the park", List.of("coffee"), now.minusSeconds(60)));
+        posts.save(invite(poster, "Chess downtown", List.of("games"), now.minusSeconds(30)));
+        posts.save(invite(stranger, "London coffee meetup", List.of("coffee"), now.minusSeconds(10)));
+        posts.save(invite(viewer, "My own coffee invite", List.of("coffee"), now.minusSeconds(5)));
 
-        mockMvc.perform(get("/api/ai/feed-insights").header("Authorization", bearer("viewer@student.sfsu.edu")))
+        mockMvc.perform(get("/api/ai/feed-insights").header("Authorization", bearer("viewer@example.com")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.aiGenerated").value(false))
                 .andExpect(jsonPath("$.reasons", hasSize(1)))
                 .andExpect(jsonPath("$.reasons[0].reason").value("Matches your interest in coffee"))
-                .andExpect(jsonPath("$.digest").value(org.hamcrest.Matchers.startsWith("2 open invites on your campus today.")));
+                .andExpect(jsonPath("$.digest").value(org.hamcrest.Matchers.startsWith("2 open invites around you today.")));
     }
 
     @Test
-    void feedInsightsOnAnEmptyCampusSaysSo() throws Exception {
-        user("lonely@sfsu.edu");
+    void feedInsightsWhenNothingIsOpenSaysSo() throws Exception {
+        user("lonely@example.com");
 
-        mockMvc.perform(get("/api/ai/feed-insights").header("Authorization", bearer("lonely@sfsu.edu")))
+        mockMvc.perform(get("/api/ai/feed-insights").header("Authorization", bearer("lonely@example.com")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.digest").value("Quiet day so far. Be the first to start something."))
                 .andExpect(jsonPath("$.reasons", hasSize(0)));
+    }
+
+    @Test
+    void feedInsightsDoNotFailForSomeoneWithoutAVerifiedLocation() throws Exception {
+        unverifiedLocationUser("new@example.com");
+
+        mockMvc.perform(get("/api/ai/feed-insights").header("Authorization", bearer("new@example.com")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.digest").value("Quiet day so far. Be the first to start something."));
     }
 
     // ---- Safety Guardian ----
@@ -170,7 +180,7 @@ class AiControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/invite-posts")
                         .header("Authorization", bearer("poster@sfsu.edu"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\": \"Buy me a gift card and I'll hang out\", \"inviteType\": \"SINGLE\"}"))
+                        .content("{\"content\": \"Buy me a gift card and I'll hang out\", \"inviteType\": \"SINGLE\", \"locationScope\": \"GLOBAL\"}"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.message").value("That looks like a request for money or gift cards. Please keep payments out of OpenCircle."));
 
@@ -187,7 +197,7 @@ class AiControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/invite-posts")
                         .header("Authorization", bearer("poster2@sfsu.edu"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\": \"anyone who disagrees is an idiot\", \"inviteType\": \"SINGLE\"}"))
+                        .content("{\"content\": \"anyone who disagrees is an idiot\", \"inviteType\": \"SINGLE\", \"locationScope\": \"GLOBAL\"}"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.message").value("Please keep it friendly."));
     }
@@ -199,7 +209,7 @@ class AiControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/invite-posts")
                         .header("Authorization", bearer("poster3@sfsu.edu"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\": \"Coffee at the student center at 3?\", \"inviteType\": \"SINGLE\", \"tags\": [\"coffee\"]}"))
+                        .content("{\"content\": \"Coffee at the student center at 3?\", \"inviteType\": \"SINGLE\", \"locationScope\": \"CITY\", \"tags\": [\"coffee\"]}"))
                 .andExpect(status().isCreated());
     }
 
@@ -242,16 +252,37 @@ class AiControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     private AppUser user(String email) {
+        return user(email, "San Francisco", "California", "USA");
+    }
+
+    private AppUser user(String email, String city, String stateRegion, String country) {
+        AppUser user = unverifiedLocationUser(email);
+        user.verifyLocation(city, stateRegion, country, VERIFIED_AT);
+        return user;
+    }
+
+    private AppUser unverifiedLocationUser(String email) {
         AppUser user = users.createUser(
                 "Test",
                 "User",
                 email,
                 passwordEncoder.encode("Password123!"),
                 "+1415555" + Math.abs(email.hashCode() % 10000),
-                LocalDate.of(2000, 1, 1)
+                LocalDate.of(2000, 1, 1),
+                "San Francisco",
+                "California",
+                "USA"
         );
         user.markEmailVerified(VERIFIED_AT);
         return user;
+    }
+
+    private InvitePost invite(AppUser poster, String content, List<String> tags, Instant createdAt) {
+        return new InvitePost(
+                poster, content, InviteType.GROUP, 3, LocationScope.CITY,
+                poster.getVerifiedCity(), poster.getVerifiedStateRegion(), poster.getVerifiedCountry(),
+                createdAt, tags
+        );
     }
 
     private String bearer(String email) throws Exception {
