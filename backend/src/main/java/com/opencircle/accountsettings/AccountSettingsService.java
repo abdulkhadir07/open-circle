@@ -1,6 +1,5 @@
 package com.opencircle.accountsettings;
 
-import com.opencircle.campus.CampusEmailPolicy;
 import com.opencircle.common.OtpCodeGenerator;
 import com.opencircle.mail.MailService;
 import com.opencircle.passwordreset.PasswordResetService;
@@ -40,7 +39,6 @@ public class AccountSettingsService {
     private final MailService mailService;
     private final JwtService jwtService;
     private final Clock clock;
-    private final CampusEmailPolicy campusEmailPolicy;
 
     AccountSettingsService(
             UserService userService,
@@ -53,8 +51,7 @@ public class AccountSettingsService {
             EmailVerificationProperties verificationProperties,
             MailService mailService,
             JwtService jwtService,
-            Clock clock,
-            CampusEmailPolicy campusEmailPolicy
+            Clock clock
     ) {
         this.userService = userService;
         this.emailChanges = emailChanges;
@@ -67,7 +64,6 @@ public class AccountSettingsService {
         this.mailService = mailService;
         this.jwtService = jwtService;
         this.clock = clock;
-        this.campusEmailPolicy = campusEmailPolicy;
     }
 
     @Transactional
@@ -101,7 +97,6 @@ public class AccountSettingsService {
         verifyCurrentPassword(user, currentPassword);
 
         String normalizedEmail = normalizeEmail(newEmail);
-        campusEmailPolicy.requireCampusEmail(normalizedEmail);
         if (normalizedEmail.equals(user.getEmail())) {
             throw new EmailUnchangedException();
         }

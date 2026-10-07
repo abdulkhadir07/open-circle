@@ -100,7 +100,6 @@ public class AppUser {
     protected AppUser() {
     }
 
-    // A campus account: no location is collected, the campus comes from the email domain.
     public AppUser(
             String username,
             String firstName,
