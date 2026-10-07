@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -87,10 +86,10 @@ class InvitePostControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.totalCapacity").value(4))
                 .andExpect(jsonPath("$.acceptedCount").value(0))
                 .andExpect(jsonPath("$.invitesLeft").value(4))
-                .andExpect(jsonPath("$.locationScope").value("CAMPUS"))
-                .andExpect(jsonPath("$.campus").value("example.com"))
-                .andExpect(jsonPath("$.city").doesNotExist())
-                .andExpect(jsonPath("$.country").doesNotExist())
+                .andExpect(jsonPath("$.locationScope").value("CITY"))
+                .andExpect(jsonPath("$.city").value("San Francisco"))
+                .andExpect(jsonPath("$.stateRegion").value("California"))
+                .andExpect(jsonPath("$.country").value("USA"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.images", hasSize(0)));
     }
@@ -118,7 +117,7 @@ class InvitePostControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.tags[0]").value("walk"))
                 .andExpect(jsonPath("$.tags[1]").value("outdoors"));
 
-        mockMvc.perform(get("/api/invite-posts/campus")
+        mockMvc.perform(get("/api/invite-posts/local")
                         .header("Authorization", "Bearer " + loginToken("viewer.tags@example.com")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -179,50 +178,35 @@ class InvitePostControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void createPostDoesNotRequireAVerifiedLocation() throws Exception {
+    void createPostReturnsForbiddenWhenLocationIsNotVerified() throws Exception {
         AppUser user = users.createUser(
                 "Jane",
                 "Doe",
-                "no.location@example.com",
+                "unverified.location@example.com",
                 passwordEncoder.encode("Password123!"),
                 "+14155550110",
-                LocalDate.of(2000, 1, 1)
+                LocalDate.of(2000, 1, 1),
+                "San Francisco",
+                "California",
+                "USA"
         );
         user.markEmailVerified(VERIFIED_AT);
 
-        String token = loginToken("no.location@example.com");
+        String token = loginToken("unverified.location@example.com");
 
         mockMvc.perform(post("/api/invite-posts")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "content": "Study group at the library",
-                                  "inviteType": "SINGLE"
+                                  "content": "This should not post yet",
+                                  "inviteType": "SINGLE",
+                                  "totalCapacity": 1,
+                                  "locationScope": "GLOBAL"
                                 }
                                 """))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.locationScope").value("CAMPUS"))
-                .andExpect(jsonPath("$.campus").value("example.com"));
-    }
-
-    @Test
-    void campusFeedReturnsOnlyPostsFromTheViewersCampus() throws Exception {
-        Instant feedNow = Instant.now();
-
-        verifiedUser("viewer.campus@students.sfsu.edu", "San Francisco", "California", "USA");
-        AppUser sameCampusPoster = verifiedUser("poster.campus@mail.sfsu.edu", "San Francisco", "California", "USA");
-        AppUser otherCampusPoster = verifiedUser("poster.other@stanford.edu", "San Francisco", "California", "USA");
-
-        posts.save(new InvitePost(sameCampusPoster, "SFSU invite", InviteType.GROUP, 3, feedNow.minusSeconds(60), List.of()));
-        posts.save(new InvitePost(otherCampusPoster, "Stanford invite", InviteType.GROUP, 3, feedNow.minusSeconds(30), List.of()));
-
-        mockMvc.perform(get("/api/invite-posts/campus")
-                        .header("Authorization", "Bearer " + loginToken("viewer.campus@students.sfsu.edu")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].content").value("SFSU invite"))
-                .andExpect(jsonPath("$[0].campus").value("sfsu.edu"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Please verify your location before using this feature"));
     }
 
     @Test

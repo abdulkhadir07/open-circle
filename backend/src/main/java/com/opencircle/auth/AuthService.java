@@ -1,6 +1,5 @@
 package com.opencircle.auth;
 
-import com.opencircle.campus.CampusEmailPolicy;
 import com.opencircle.passwordreset.PasswordResetService;
 import com.opencircle.profileimage.ProfileImageQueryService;
 import com.opencircle.security.JwtService;
@@ -27,7 +26,6 @@ class AuthService {
     private final PasswordResetService passwordResetService;
     private final ProfileImageQueryService profileImageQueryService;
     private final SessionService sessionService;
-    private final CampusEmailPolicy campusEmailPolicy;
 
     AuthService(
             UserService userService,
@@ -36,8 +34,7 @@ class AuthService {
             EmailVerificationService emailVerificationService,
             PasswordResetService passwordResetService,
             ProfileImageQueryService profileImageQueryService,
-            SessionService sessionService,
-            CampusEmailPolicy campusEmailPolicy
+            SessionService sessionService
     ) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
@@ -46,14 +43,10 @@ class AuthService {
         this.passwordResetService = passwordResetService;
         this.profileImageQueryService = profileImageQueryService;
         this.sessionService = sessionService;
-        this.campusEmailPolicy = campusEmailPolicy;
     }
 
     @Transactional
     SignupResponse signup(SignupRequest request) {
-        // Accounts belong to a campus, so only campus (.edu) email addresses can sign up.
-        campusEmailPolicy.requireCampusEmail(request.email());
-
         // Check if the submitted email already belongs to an existing user.
         if (userService.emailExists(request.email())) {
             throw new EmailAlreadyExistsException();
@@ -65,27 +58,17 @@ class AuthService {
         }
 
         // Create the user with a hashed password.
-        boolean hasLocation = hasText(request.city()) && hasText(request.country());
-        AppUser user = hasLocation
-                ? userService.createUser(
-                        request.firstName(),
-                        request.lastName(),
-                        request.email(),
-                        passwordEncoder.encode(request.password()),
-                        request.phoneNumber(),
-                        request.dateOfBirth(),
-                        request.city(),
-                        request.stateRegion(),
-                        request.country()
-                )
-                : userService.createUser(
-                        request.firstName(),
-                        request.lastName(),
-                        request.email(),
-                        passwordEncoder.encode(request.password()),
-                        request.phoneNumber(),
-                        request.dateOfBirth()
-                );
+        AppUser user = userService.createUser(
+                request.firstName(),
+                request.lastName(),
+                request.email(),
+                passwordEncoder.encode(request.password()),
+                request.phoneNumber(),
+                request.dateOfBirth(),
+                request.city(),
+                request.stateRegion(),
+                request.country()
+        );
 
         // Send the email verification code after the user is created.
         emailVerificationService.issueCode(user);
@@ -184,9 +167,5 @@ class AuthService {
                         profileImageQueryService.getProfileImageByUserId(user.getId())
                 )
         );
-    }
-
-    private boolean hasText(String value) {
-        return value != null && !value.isBlank();
     }
 }

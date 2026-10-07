@@ -83,6 +83,42 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void signupIsOpenToAnyEmailButNeedsACityAndCountry() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "firstName": "Sam",
+                                  "lastName": "Public",
+                                  "email": "sam.public@gmail.com",
+                                  "password": "Password123!",
+                                  "phoneNumber": "+14155550777",
+                                  "dateOfBirth": "2000-01-01"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.city").value("City is required"))
+                .andExpect(jsonPath("$.fieldErrors.country").value("Country is required"));
+
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "firstName": "Sam",
+                                  "lastName": "Public",
+                                  "email": "sam.public@gmail.com",
+                                  "password": "Password123!",
+                                  "phoneNumber": "+14155550777",
+                                  "dateOfBirth": "2000-01-01",
+                                  "city": "Austin",
+                                  "stateRegion": "Texas",
+                                  "country": "USA"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void loginRejectsUnverifiedUser() throws Exception {
         mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)

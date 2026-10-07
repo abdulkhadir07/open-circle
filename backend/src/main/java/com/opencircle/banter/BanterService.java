@@ -39,7 +39,7 @@ class BanterService {
         this.clock = clock;
     }
 
-    // Returns one page of the viewer's campus board with like and reply counts.
+    // Returns one page of the shared board with like and reply counts.
     @Transactional(readOnly = true)
     BanterBoard getBoard(AppUser viewer, String sortValue, int page, int size) {
         BanterSort sort = BanterSort.parse(sortValue);
@@ -54,8 +54,8 @@ class BanterService {
 
         PageRequest pageRequest = PageRequest.of(page, size);
         Page<Banter> result = sort == BanterSort.HOT
-                ? banters.findHot(viewer.getCampus(), pageRequest)
-                : banters.findNewest(viewer.getCampus(), pageRequest);
+                ? banters.findHot(pageRequest)
+                : banters.findNewest(pageRequest);
 
         List<UUID> ids = result.getContent().stream().map(Banter::getId).toList();
         Map<UUID, Long> likeCounts = counts(ids, likes.countByBanterIds(ids));
@@ -151,7 +151,7 @@ class BanterService {
     }
 
     private Banter requireBanter(AppUser viewer, UUID banterId) {
-        return banters.findInCampus(banterId, viewer.getCampus())
+        return banters.findWithAuthor(banterId)
                 .orElseThrow(BanterNotFoundException::new);
     }
 

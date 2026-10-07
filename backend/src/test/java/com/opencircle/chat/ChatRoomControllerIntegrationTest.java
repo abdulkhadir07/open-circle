@@ -229,7 +229,7 @@ class ChatRoomControllerIntegrationTest extends AbstractIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.message").value("That sounds like an unsafe way to meet. Suggest a public spot on campus instead."));
+                .andExpect(jsonPath("$.message").value("That sounds like an unsafe way to meet. Suggest a public place instead."));
 
         inTransaction(() -> {
             ChatRoom managedRoom = rooms.findById(room.getId()).orElseThrow();

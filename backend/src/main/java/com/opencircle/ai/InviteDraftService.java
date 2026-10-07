@@ -95,7 +95,7 @@ class InviteDraftService {
 
     private String prompt(String input) {
         return """
-                You turn a student's casual idea for meeting people into a structured invite for a campus meetup app.
+                You turn a casual idea for meeting people into a structured invite for a meetup app.
                 Return JSON: {"content": the invite rewritten as one friendly, clear message (max 400 characters, keep their meaning, no hashtags),
                 "inviteType": "SINGLE" if they want exactly one other person, otherwise "GROUP",
                 "totalCapacity": for GROUP, how many OTHER people they want (integer 2 to 50, 3 if unclear), null for SINGLE,

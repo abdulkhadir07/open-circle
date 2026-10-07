@@ -14,7 +14,7 @@ class BanterTest {
     private static final Instant NOW = Instant.parse("2026-10-04T12:00:00Z");
 
     @Test
-    void banterTakesTheAuthorsCampusAndTrimsContent() {
+    void banterTrimsContentAndKeepsTheAuthor() {
         Banter banter = new Banter(user("jane@student.sfsu.edu"), "  Best study spot on campus?  ", NOW);
 
         assertThat(banter.getContent()).isEqualTo("Best study spot on campus?");
@@ -88,7 +88,10 @@ class BanterTest {
                 email,
                 "hashed-password",
                 "+14155550123",
-                LocalDate.of(2000, 1, 1)
+                LocalDate.of(2000, 1, 1),
+                "San Francisco",
+                "California",
+                "USA"
         );
     }
 }
