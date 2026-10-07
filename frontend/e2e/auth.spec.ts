@@ -5,10 +5,12 @@ const user = {
   username: 'maya.chen',
   firstName: 'Maya',
   lastName: 'Chen',
-  email: 'maya@student.sfsu.edu',
-  campus: 'sfsu.edu',
+  email: 'maya@example.com',
   phoneNumber: '+1 415 555 0100',
   dateOfBirth: '1994-05-12',
+  city: 'San Francisco',
+  stateRegion: 'California',
+  country: 'United States',
   role: 'USER',
   emailVerified: true,
   hasHiddenChatsPin: false,
@@ -77,8 +79,16 @@ test('signup and email verification complete the browser auth journey', async ({
   await page.getByRole('option', { name: '1994', exact: true }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  await page.getByLabel('Email').fill('maya@student.sfsu.edu');
+  await page.getByLabel('Email').fill('maya@example.com');
   await page.getByLabel('Phone number').fill('+1 415 555 0100');
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await page.getByLabel('Country').fill('United States');
+  await page.getByRole('option', { name: 'United States', exact: true }).click();
+  await page.getByLabel('State or region').fill('California');
+  await page.getByRole('option', { name: 'California', exact: true }).click();
+  await page.getByLabel('City').fill('San Francisco');
+  await page.getByRole('option', { name: 'San Francisco', exact: true }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await page.getByLabel('Password', { exact: true }).fill('open-circle-strong');
@@ -91,15 +101,17 @@ test('signup and email verification complete the browser auth journey', async ({
   await page.getByLabel('Verification code').fill('123456');
   await page.getByRole('button', { name: 'Verify email' }).click();
 
-  // A fresh campus account goes straight to its campus feed; no location step.
-  await expect(page.getByRole('heading', { name: /^(Morning|Hey|Evening), Maya$/ })).toBeVisible();
+  // The mocked user has no locationVerifiedAt — matching a real fresh
+  // signup, where location verification is a separate, later action — so
+  // the authenticated landing state is this prompt, not the feed itself.
+  await expect(page.getByRole('heading', { name: 'Verify your location' })).toBeVisible();
   const widths = await page.evaluate(() => ({
     scroll: document.documentElement.scrollWidth,
     client: document.documentElement.clientWidth,
   }));
   expect(widths.scroll).toBeLessThanOrEqual(widths.client);
   await page.screenshot({
-    path: testInfo.outputPath('authenticated-home.png'),
+    path: testInfo.outputPath('authenticated-location-prompt.png'),
     fullPage: true,
   });
 });
