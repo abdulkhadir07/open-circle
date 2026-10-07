@@ -38,11 +38,6 @@ function isValidCalendarDate(value: string) {
   );
 }
 
-/** Campus accounts are tied to a school, so only .edu addresses can sign up. */
-export function isCampusEmail(email: string) {
-  return /@[^@\s]+\.edu$/i.test(email.trim());
-}
-
 export const signupSchema = z
   .object({
     firstName: personName('First name'),
@@ -52,14 +47,11 @@ export const signupSchema = z
       .min(1, 'Date of birth is required')
       .refine(isValidCalendarDate, 'Enter a valid date')
       .refine((value) => value < todayAsLocalDate(), 'Date of birth must be in the past'),
-    email: z
-      .string()
-      .trim()
-      .min(1, 'Email is required')
-      .max(160)
-      .email('Enter a valid email')
-      .refine(isCampusEmail, 'Use your school email address (it must end in .edu)'),
+    email: z.string().trim().min(1, 'Email is required').max(160).email('Enter a valid email'),
     phoneNumber,
+    country: requiredText('Country', 80),
+    stateRegion: z.string().trim().max(80, 'State or region is too long'),
+    city: requiredText('City', 80),
     password: z
       .string()
       .min(8, 'Password must be at least 8 characters')
@@ -76,5 +68,6 @@ export type SignupFormValues = z.infer<typeof signupSchema>;
 export const signupStepFields = [
   ['firstName', 'lastName', 'dateOfBirth'],
   ['email', 'phoneNumber'],
+  ['country', 'stateRegion', 'city'],
   ['password', 'confirmPassword'],
 ] as const satisfies readonly (readonly (keyof SignupFormValues)[])[];

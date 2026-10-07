@@ -1,25 +1,26 @@
-import { Clock, GraduationCap } from 'lucide-react';
+import { Clock, MapPin } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 
 // Real example invite posts from the product brief, with plausible poster
 // details layered on top so this reads as an actual invite post rather
-// than a floating quote. Every invite belongs to a campus.
+// than a floating quote. Location matches the brief's own worked example
+// ("a user in San Francisco, California, United States").
 const posts = [
   {
     name: 'Khadir',
-    campus: 'SFSU',
+    location: 'San Francisco, CA',
     hoursLeft: 22,
     content: 'I just moved to San Francisco from The Gambia. Any Gambians here want to hang out?',
   },
   {
     name: 'Jordan',
-    campus: 'SFSU',
+    location: 'San Francisco, CA',
     hoursLeft: 6,
     content: 'Wanna hang out next Saturday at the beach?',
   },
   {
     name: 'Priya',
-    campus: 'SFSU',
+    location: 'San Francisco, CA',
     hoursLeft: 14,
     content: 'Anyone studying Java at SFSU tonight?',
   },
@@ -48,8 +49,8 @@ export function SampleInvites() {
               <div className="truncate text-sm font-semibold">{post.content}</div>
               <div className="text-muted-foreground flex gap-3 truncate text-xs">
                 <span className="flex items-center gap-1">
-                  <GraduationCap aria-hidden="true" className="size-3" />
-                  {post.campus}
+                  <MapPin aria-hidden="true" className="size-3" />
+                  {post.location}
                 </span>
                 <span className="flex items-center gap-1">
                   <Clock aria-hidden="true" className="size-3" />

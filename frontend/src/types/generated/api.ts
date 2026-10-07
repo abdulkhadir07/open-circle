@@ -1026,7 +1026,7 @@ export interface components {
             /** Format: int32 */
             totalCapacity?: number;
             /** @enum {string} */
-            locationScope?: "CAMPUS" | "CITY" | "STATE_REGION" | "COUNTRY" | "GLOBAL";
+            locationScope: "CAMPUS" | "CITY" | "STATE_REGION" | "COUNTRY" | "GLOBAL";
             tags?: string[];
         };
         InvitePostImageResponse: {
@@ -1163,9 +1163,9 @@ export interface components {
             phoneNumber: string;
             /** Format: date */
             dateOfBirth: string;
-            city?: string;
+            city: string;
             stateRegion?: string;
-            country?: string;
+            country: string;
         };
         SignupResponse: {
             user?: components["schemas"]["UserResponse"];
