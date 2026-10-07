@@ -3,8 +3,10 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import type { InvitePost } from '@/features/invite-posts/api/contracts';
-import { useCampusFeed } from '@/features/invite-posts/hooks/useCampusFeed';
+import { useGlobalFeed } from '@/features/invite-posts/hooks/useGlobalFeed';
+import { useLocalFeed } from '@/features/invite-posts/hooks/useLocalFeed';
 import { formatTimeRemaining } from '@/features/invite-posts/lib/formatTimeRemaining';
 
 const MAX_OPEN_INVITES = 3;
@@ -22,24 +24,32 @@ function spotsLeft(post: InvitePost): string {
 
 /**
  * A person's latest open invites, as compact rows (like openSFSU's profile). There's no
- * per-user endpoint, so this reads the same campus feed as Home and keeps the posts they
- * wrote — which is also exactly the set the viewer is allowed to see.
+ * per-user endpoint, so this reads the same local and global feeds as Home and keeps the
+ * posts they wrote — which is also exactly the set the viewer is allowed to see.
  */
 export function ProfileOpenInvites({ userId, isOwnProfile, displayName }: ProfileOpenInvitesProps) {
+  const currentUser = useCurrentUser();
   const [now] = useState(() => Date.now());
-  const feed = useCampusFeed();
+  const locationVerified = Boolean(currentUser.data?.locationVerifiedAt);
+  const localFeed = useLocalFeed(undefined, { enabled: locationVerified });
+  const globalFeed = useGlobalFeed({ enabled: locationVerified });
 
-  const posts = useMemo(
-    () =>
-      (feed.data ?? [])
+  const posts = useMemo(() => {
+    const byId = new Map(
+      [...(localFeed.data ?? []), ...(globalFeed.data ?? [])]
         .filter((post) => post.posterId === userId)
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-        .slice(0, MAX_OPEN_INVITES),
-    [feed.data, userId],
-  );
+        .map((post) => [post.id, post]),
+    );
+    return [...byId.values()]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, MAX_OPEN_INVITES);
+  }, [localFeed.data, globalFeed.data, userId]);
 
-  const loading = feed.isLoading;
-  const failed = feed.isError;
+  // Without a verified location the feeds can't be queried, so there's nothing honest to show.
+  if (!locationVerified) return null;
+
+  const loading = localFeed.isLoading || globalFeed.isLoading;
+  const failed = localFeed.isError || globalFeed.isError;
 
   return (
     <section>
