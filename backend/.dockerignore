@@ -1,0 +1,12 @@
+target/
+.idea/
+.mvn/
+.git/
+.gitignore
+*.iml
+*.log
+application-local.properties
+docker-compose*.yml
+HELP.md
+mvnw
+mvnw.cmd
