@@ -1,10 +1,12 @@
 package com.opencircle.mail;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Service
+@ConditionalOnProperty(name = "app.mail.provider", havingValue = "smtp", matchIfMissing = true)
 class SmtpMailService implements MailService {
 
     private final JavaMailSender mailSender;
@@ -17,70 +19,30 @@ class SmtpMailService implements MailService {
 
     @Override
     public void sendEmailVerificationCode(String to, String code) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(mailProperties.getFrom());
-        message.setTo(to);
-        message.setSubject("Verify your OpenCircle account");
-
-        // Intentionally kept the email plain text so it works consistently across local Mailpit and real SMTP providers.
-        message.setText("""
-                Welcome to OpenCircle!
-
-                Your verification code is: %s
-
-                This code will expire soon. If you did not create an OpenCircle account, you can ignore this email.
-                """.formatted(code));
-
-        mailSender.send(message);
+        send(OpenCircleMailMessages.emailVerification(to, code));
     }
 
     @Override
     public void sendPasswordResetCode(String to, String code) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(mailProperties.getFrom());
-        message.setTo(to);
-        message.setSubject("Reset your OpenCircle password");
-
-        // Kept reset email text-only so local Mailpit and future SMTP providers behave the same way.
-        message.setText("""
-            We received a request to reset your OpenCircle password.
-
-            Your password reset code is: %s
-
-            This code will expire soon. If you did not request a password reset, you can ignore this email.
-            """.formatted(code));
-
-        mailSender.send(message);
+        send(OpenCircleMailMessages.passwordReset(to, code));
     }
 
     @Override
     public void sendEmailChangeCode(String to, String code) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(mailProperties.getFrom());
-        message.setTo(to);
-        message.setSubject("Verify your new OpenCircle email address");
-        message.setText("""
-                We received a request to use this email address for an OpenCircle account.
-
-                Your email change code is: %s
-
-                This code will expire soon. If you did not request this change, you can ignore this email.
-                """.formatted(code));
-
-        mailSender.send(message);
+        send(OpenCircleMailMessages.emailChange(to, code));
     }
 
     @Override
     public void sendEmailChangedNotice(String oldEmail, String newEmail) {
+        send(OpenCircleMailMessages.emailChangedNotice(oldEmail, newEmail));
+    }
+
+    private void send(OutboundMail outboundMail) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(mailProperties.getFrom());
-        message.setTo(oldEmail);
-        message.setSubject("Your OpenCircle email address was changed");
-        message.setText("""
-                The email address on your OpenCircle account was changed to %s.
-
-                If you did not make this change, reset your password immediately.
-                """.formatted(newEmail));
+        message.setTo(outboundMail.recipient());
+        message.setSubject(outboundMail.subject());
+        message.setText(outboundMail.text());
 
         mailSender.send(message);
     }
