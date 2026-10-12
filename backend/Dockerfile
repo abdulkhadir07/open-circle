@@ -5,12 +5,10 @@ FROM maven:3.9.11-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 COPY pom.xml ./
-RUN --mount=type=cache,id=opencircle-backend-m2,target=/root/.m2 \
-    mvn -B -ntp dependency:go-offline
+RUN mvn -B -ntp dependency:go-offline
 
 COPY src ./src
-RUN --mount=type=cache,id=opencircle-backend-m2,target=/root/.m2 \
-    mvn -B -ntp package -DskipTests && \
+RUN mvn -B -ntp package -DskipTests && \
     cp target/open-circle-api-*.jar application.jar
 
 FROM eclipse-temurin:21-jre-jammy AS runtime
