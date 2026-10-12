@@ -1,5 +1,6 @@
 package com.opencircle.security;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -43,6 +44,16 @@ class SecurityConfigIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Test
+    void healthEndpointIsPublicAndDoesNotExposeComponentDetails() throws Exception {
+        mockMvc.perform(get("/actuator/health")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.components").doesNotExist());
+    }
+
     @ParameterizedTest
     @MethodSource("protectedRoutes")
     void protectedRoutesReturnCustomUnauthorizedErrorWhenMissingToken(HttpMethod method, String path) throws Exception {
@@ -70,6 +81,7 @@ class SecurityConfigIntegrationTest {
     private static Stream<Arguments> protectedRoutes() {
         return Stream.of(
                 Arguments.of(HttpMethod.GET, "/api/protected-test"),
+                Arguments.of(HttpMethod.GET, "/actuator/info"),
                 Arguments.of(HttpMethod.GET, "/api/users/me"),
                 Arguments.of(HttpMethod.PUT, "/api/users/me/location"),
 
