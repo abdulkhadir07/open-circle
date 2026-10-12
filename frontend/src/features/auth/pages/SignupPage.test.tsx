@@ -174,15 +174,21 @@ describe('SignupPage', () => {
     expect(screen.getByText('Step 2 of 4')).toBeInTheDocument();
   });
 
-  it('rejects non-letter characters in first and last name', async () => {
+  it('rejects unsupported characters in first and last name', async () => {
     const { user } = renderSignup();
 
     await user.type(screen.getByLabelText('First name'), 'Maya1');
-    await user.type(screen.getByLabelText('Last name'), 'Chen-Lee');
+    await user.type(screen.getByLabelText('Last name'), 'Chen_Lee');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
 
-    expect(await screen.findByText('First name can only contain letters')).toBeInTheDocument();
-    expect(screen.getByText('Last name can only contain letters')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'First name can only contain letters, spaces, apostrophes, and hyphens',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Last name can only contain letters, spaces, apostrophes, and hyphens'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Step 1 of 4')).toBeInTheDocument();
   });
 
