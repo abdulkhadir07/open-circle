@@ -1,6 +1,7 @@
 package com.opencircle.auth;
 
 import com.opencircle.AbstractIntegrationTest;
+import com.opencircle.mail.MailDeliveryException;
 import com.opencircle.mail.MailService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -16,6 +17,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -60,6 +63,42 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                 org.mockito.Mockito.eq("jane.controller@example.com"),
                 org.mockito.Mockito.anyString()
         );
+    }
+
+    @Test
+    void signupReturnsServiceUnavailableAndRollsBackWhenVerificationEmailFails() throws Exception {
+        doThrow(new MailDeliveryException(new IllegalStateException("Brevo unavailable")))
+                .doNothing()
+                .when(mailService).sendEmailVerificationCode(anyString(), anyString());
+
+        String request = """
+                {
+                  "firstName": "Amina",
+                  "lastName": "Khan",
+                  "email": "mail.failure@example.com",
+                  "password": "Password123!",
+                  "phoneNumber": "+14155550188",
+                  "dateOfBirth": "2000-01-01",
+                  "city": "San Francisco",
+                  "stateRegion": "California",
+                  "country": "USA"
+                }
+                """;
+
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.error").value("SERVICE_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message")
+                        .value("Email service is temporarily unavailable. Please try again later."))
+                .andExpect(jsonPath("$.path").value("/api/auth/signup"));
+
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated());
     }
 
     @Test

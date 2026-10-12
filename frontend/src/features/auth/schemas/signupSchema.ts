@@ -3,10 +3,13 @@ import { z } from 'zod';
 const requiredText = (label: string, maximum: number) =>
   z.string().trim().min(1, `${label} is required`).max(maximum, `${label} is too long`);
 
-const LETTERS_ONLY = /^[\p{L}]+$/u;
+const PERSON_NAME = /^[\p{L}\p{M}]+(?:[ '\u2018\u2019\p{Pd}][\p{L}\p{M}]+)*$/u;
 
 const personName = (label: string) =>
-  requiredText(label, 80).regex(LETTERS_ONLY, `${label} can only contain letters`);
+  requiredText(label, 80).regex(
+    PERSON_NAME,
+    `${label} can only contain letters, spaces, apostrophes, and hyphens`,
+  );
 
 const phoneNumber = requiredText('Phone number', 30)
   .regex(/^\+?[0-9](?:[0-9\s()-]*[0-9])?$/, 'Enter a valid phone number')

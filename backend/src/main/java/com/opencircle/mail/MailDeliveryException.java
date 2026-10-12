@@ -1,8 +1,8 @@
 package com.opencircle.mail;
 
-class MailDeliveryException extends RuntimeException {
+public class MailDeliveryException extends RuntimeException {
 
-    MailDeliveryException(Throwable cause) {
+    public MailDeliveryException(Throwable cause) {
         super("Unable to send email", cause);
     }
 }

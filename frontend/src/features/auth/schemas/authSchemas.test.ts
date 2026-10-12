@@ -48,6 +48,24 @@ describe('auth schemas', () => {
     expect(signupSchema.safeParse({ ...validSignup, phoneNumber: '12345' }).success).toBe(false);
   });
 
+  it('accepts multi-part Unicode names with spaces, apostrophes, and hyphens', () => {
+    for (const firstName of [
+      'Abdul Khadir',
+      "D'Angelo",
+      'D\u2019Arcy',
+      'Anne-Marie',
+      'Jose\u0301',
+    ]) {
+      expect(signupSchema.safeParse({ ...validSignup, firstName }).success).toBe(true);
+    }
+  });
+
+  it('rejects names with leading, trailing, or repeated separators', () => {
+    for (const firstName of ['-Maya', 'Maya-', 'Maya  Chen', "Maya''Chen", 'Maya_Chen']) {
+      expect(signupSchema.safeParse({ ...validSignup, firstName }).success).toBe(false);
+    }
+  });
+
   it('allows state or region to be blank for countries without subdivisions', () => {
     expect(signupSchema.safeParse({ ...validSignup, stateRegion: '' }).success).toBe(true);
   });
