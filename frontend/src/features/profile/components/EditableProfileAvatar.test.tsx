@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { authQueryKeys } from '@/features/auth/api/queryKeys';
 import { useAuthStore } from '@/stores/authStore';
 import { authUser, profileImage } from '@/test/mocks/fixtures';
@@ -43,6 +43,20 @@ describe('EditableProfileAvatar', () => {
 
     expect(screen.getByRole('menuitem', { name: 'Change photo' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Remove photo' })).toBeInTheDocument();
+  });
+
+  it('offers to view an existing photo', async () => {
+    const onView = vi.fn<() => void>();
+    const queryClient = createTestQueryClient();
+    const { user } = renderWithProviders(
+      <EditableProfileAvatar name="Maya Chen" profileImage={profileImage} onView={onView} />,
+      { queryClient },
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Edit profile photo' }));
+    await user.click(screen.getByRole('menuitem', { name: 'View photo' }));
+
+    expect(onView).toHaveBeenCalledOnce();
   });
 
   it('removes the photo when Remove photo is selected', async () => {
