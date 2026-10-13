@@ -41,6 +41,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "username": "jane.doe",
                                   "firstName": "Jane",
                                   "lastName": "Doe",
                                   "email": "jane.controller@example.com",
@@ -57,12 +58,42 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE))
                 .andExpect(jsonPath("$.user.email").value("jane.controller@example.com"))
                 .andExpect(jsonPath("$.user.emailVerified").value(false))
-                .andExpect(jsonPath("$.user.username", notNullValue()));
+                .andExpect(jsonPath("$.user.username").value("jane.doe"));
 
         verify(mailService).sendEmailVerificationCode(
                 org.mockito.Mockito.eq("jane.controller@example.com"),
                 org.mockito.Mockito.anyString()
         );
+    }
+
+    @Test
+    void signupRejectsAUsernameThatIsAlreadyInUse() throws Exception {
+        String template = """
+                {
+                  "username": "shared.name",
+                  "firstName": "Jane",
+                  "lastName": "Doe",
+                  "email": "%s",
+                  "password": "Password123!",
+                  "phoneNumber": "%s",
+                  "dateOfBirth": "2000-01-01",
+                  "city": "San Francisco",
+                  "stateRegion": "California",
+                  "country": "USA"
+                }
+                """;
+
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(template.formatted("first.username@example.com", "+14155550170")))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(template.formatted("second.username@example.com", "+14155550171")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Username is already in use"))
+                .andExpect(jsonPath("$.fieldErrors.username").value("Username is already in use"));
     }
 
     @Test
@@ -73,6 +104,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
 
         String request = """
                 {
+                  "username": "amina.khan",
                   "firstName": "Amina",
                   "lastName": "Khan",
                   "email": "mail.failure@example.com",
@@ -107,6 +139,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "username": "paolo.rossi",
                                   "firstName": "Paolo",
                                   "lastName": "Rossi",
                                   "email": "paolo.controller@example.com",
@@ -127,6 +160,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "username": "sam.public",
                                   "firstName": "Sam",
                                   "lastName": "Public",
                                   "email": "sam.public@gmail.com",
@@ -143,6 +177,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "username": "sam.public",
                                   "firstName": "Sam",
                                   "lastName": "Public",
                                   "email": "sam.public@gmail.com",
@@ -163,6 +198,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "username": "john.doe",
                                   "firstName": "John",
                                   "lastName": "Doe",
                                   "email": "john.controller@example.com",
@@ -194,6 +230,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "username": "invalid_user",
                                   "firstName": "",
                                   "lastName": "Doe",
                                   "email": "not-an-email",
@@ -220,6 +257,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "username": "invalid.phone",
                                   "firstName": "Jane",
                                   "lastName": "Doe",
                                   "email": "invalid.phone@example.com",
@@ -256,6 +294,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "username": "amina.sowe",
                                   "firstName": "Amina",
                                   "lastName": "Sowe",
                                   "email": "amina.controller@example.com",
@@ -307,6 +346,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "username": "musa.bah",
                                   "firstName": "Musa",
                                   "lastName": "Bah",
                                   "email": "musa.controller@example.com",
@@ -350,6 +390,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {
+                              "username": "fatou.jallow",
                               "firstName": "Fatou",
                               "lastName": "Jallow",
                               "email": "fatou.controller@example.com",
@@ -532,6 +573,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {
+                              "username": "%s",
                               "firstName": "Reset",
                               "lastName": "User",
                               "email": "%s",
@@ -542,7 +584,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                               "stateRegion": "California",
                               "country": "USA"
                             }
-                            """.formatted(email, phoneNumber)))
+                            """.formatted(usernameFor(email), email, phoneNumber)))
                 .andExpect(status().isCreated());
 
         String verificationCode = latestEmailVerificationCode();
@@ -556,6 +598,10 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                             }
                             """.formatted(email, verificationCode)))
                 .andExpect(status().isOk());
+    }
+
+    private String usernameFor(String email) {
+        return email.substring(0, email.indexOf('@')).replace('.', '_');
     }
 
     private String latestEmailVerificationCode() {

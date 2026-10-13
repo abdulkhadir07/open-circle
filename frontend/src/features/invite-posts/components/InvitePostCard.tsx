@@ -8,6 +8,7 @@ import type { EngagementRequest } from '@/features/engagement-requests/api/contr
 import { EngageControl } from '@/features/engagement-requests/components/EngageControl';
 import type { InvitePost } from '../api/contracts';
 import { formatTimeRemaining } from '../lib/formatTimeRemaining';
+import { InvitePostOwnerActions } from './InvitePostOwnerActions';
 import { PostImageCarousel } from './PostImageCarousel';
 
 const REFRESH_INTERVAL_MS = 60_000;
@@ -96,6 +97,7 @@ export function InvitePostCard({
           <Clock aria-hidden="true" className="size-3" />
           {timeRemaining}
         </span>
+        {isOwnPost ? <InvitePostOwnerActions post={post} /> : null}
       </div>
 
       <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{post.content}</p>

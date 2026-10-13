@@ -57,8 +57,16 @@ class AuthService {
             throw new PhoneNumberAlreadyExistsException();
         }
 
+        if (userService.usernameExists(request.username())) {
+            throw new com.opencircle.common.FieldConflictException(
+                    "username",
+                    "Username is already in use"
+            );
+        }
+
         // Create the user with a hashed password.
         AppUser user = userService.createUser(
+                request.username(),
                 request.firstName(),
                 request.lastName(),
                 request.email(),

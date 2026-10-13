@@ -156,12 +156,14 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "username": "curious.neighbor",
                                   "displayName": "  Curious Neighbor  ",
                                   "bio": "  Always up for something new.  ",
                                   "interests": ["  Hiking  ", "Coffee", "Live Music"]
                                 }
                                 """))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("curious.neighbor"))
                 .andExpect(jsonPath("$.displayName").value("Curious Neighbor"))
                 .andExpect(jsonPath("$.bio").value("Always up for something new."))
                 .andExpect(jsonPath("$.interests[0]").value("Hiking"))
@@ -169,6 +171,7 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.interests[2]").value("Live Music"));
 
         UserProfile saved = profiles.findForDisplay(user.getId()).orElseThrow();
+        assertThat(saved.getUser().getUsername()).isEqualTo("curious.neighbor");
         assertThat(saved.getInterests()).containsExactly("Hiking", "Coffee", "Live Music");
 
         mockMvc.perform(put("/api/users/me/profile")
@@ -184,6 +187,27 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.bio").isEmpty())
                 .andExpect(jsonPath("$.interests").isEmpty());
+    }
+
+    @Test
+    void profileReplacementRejectsAUsernameOwnedByAnotherUser() throws Exception {
+        AppUser user = user("username-update");
+        AppUser other = user("username-taken");
+
+        mockMvc.perform(put("/api/users/me/profile")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(user))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "%s",
+                                  "displayName": "Profile",
+                                  "bio": null,
+                                  "interests": []
+                                }
+                                """.formatted(other.getUsername())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Username is already in use"))
+                .andExpect(jsonPath("$.fieldErrors.username").value("Username is already in use"));
     }
 
     @Test

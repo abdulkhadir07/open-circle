@@ -25,6 +25,37 @@ public class UserService {
 
     @Transactional
     public AppUser createUser(
+            String username,
+            String firstName,
+            String lastName,
+            String email,
+            String passwordHash,
+            String phoneNumber,
+            java.time.LocalDate dateOfBirth,
+            String city,
+            String stateRegion,
+            String country
+    ) {
+        AppUser user = new AppUser(
+                username,
+                firstName,
+                lastName,
+                email,
+                passwordHash,
+                phoneNumber,
+                dateOfBirth,
+                city,
+                stateRegion,
+                country
+        );
+
+        AppUser savedUser = users.save(user);
+        profiles.save(new UserProfile(savedUser, savedUser.getCreatedAt()));
+        return savedUser;
+    }
+
+    @Transactional
+    public AppUser createUser(
             String firstName,
             String lastName,
             String email,
@@ -123,6 +154,11 @@ public class UserService {
     @Transactional(readOnly = true)
     public boolean phoneNumberExists(String phoneNumber) {
         return users.existsByPhoneNumber(phoneNumber);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean usernameExists(String username) {
+        return users.existsByUsernameIgnoreCase(username);
     }
 
     @Transactional(readOnly = true)

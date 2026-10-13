@@ -27,18 +27,32 @@ export function PostImagePicker({
   }, [previews]);
 
   function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const selectedFiles = Array.from(event.target.files ?? []);
     event.target.value = '';
-    if (!file || atLimit) return;
+    if (selectedFiles.length === 0 || atLimit) return;
 
-    const validationMessage = validateInvitePostImage(file);
-    if (validationMessage) {
-      setError(validationMessage);
-      return;
+    const availableSlots = MAX_IMAGES - value.length;
+    const filesWithinLimit = selectedFiles.slice(0, availableSlots);
+    const validFiles: File[] = [];
+    const validationErrors: string[] = [];
+
+    for (const file of filesWithinLimit) {
+      const validationMessage = validateInvitePostImage(file);
+      if (validationMessage) {
+        validationErrors.push(`${file.name}: ${validationMessage}`);
+      } else {
+        validFiles.push(file);
+      }
     }
 
-    setError(null);
-    onChange([...value, file]);
+    if (selectedFiles.length > availableSlots) {
+      validationErrors.push(
+        `Only ${availableSlots} more photo${availableSlots === 1 ? '' : 's'} can be added`,
+      );
+    }
+
+    setError(validationErrors[0] ?? null);
+    if (validFiles.length > 0) onChange([...value, ...validFiles]);
   }
 
   function removeImage(index: number) {
@@ -82,6 +96,7 @@ export function PostImagePicker({
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        multiple
         onChange={handleFileSelected}
         disabled={disabled}
         className="hidden"

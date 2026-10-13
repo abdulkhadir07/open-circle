@@ -41,6 +41,21 @@ public class GlobalExceptionHandler {
                 .body(ApiError.of(exception.status(), exception.getMessage(), request.getRequestURI()));
     }
 
+    @ExceptionHandler(FieldConflictException.class)
+    ResponseEntity<ApiError> handleFieldConflictException(
+            FieldConflictException exception,
+            HttpServletRequest request
+    ) {
+        return ResponseEntity
+                .status(exception.status())
+                .body(ApiError.validation(
+                        exception.status(),
+                        exception.getMessage(),
+                        request.getRequestURI(),
+                        Map.of(exception.field(), exception.getMessage())
+                ));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ApiError> handleValidationException(
             MethodArgumentNotValidException exception,

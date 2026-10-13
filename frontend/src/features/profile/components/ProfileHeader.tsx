@@ -2,6 +2,7 @@ import { Check, Link2, Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import type { UserProfile } from '../api/contracts';
 import { EditableProfileAvatar } from './EditableProfileAvatar';
 
@@ -24,6 +25,7 @@ export function ProfileHeader({
   onEdit,
 }: ProfileHeaderProps) {
   const [copied, setCopied] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   useEffect(() => {
     if (!copied) return;
@@ -56,7 +58,21 @@ export function ProfileHeader({
                 name={profile.displayName}
                 profileImage={profile.profileImage}
                 className={avatarClassName}
+                onView={profile.profileImage ? () => setPhotoOpen(true) : undefined}
               />
+            ) : profile.profileImage ? (
+              <button
+                type="button"
+                aria-label={`View ${profile.displayName}'s profile photo`}
+                onClick={() => setPhotoOpen(true)}
+                className="focus-visible:ring-ring rounded-full outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              >
+                <Avatar
+                  name={profile.displayName}
+                  profileImage={profile.profileImage}
+                  className={avatarClassName}
+                />
+              </button>
             ) : (
               <Avatar
                 name={profile.displayName}
@@ -92,6 +108,21 @@ export function ProfileHeader({
           ) : null}
         </div>
       </div>
+
+      {profile.profileImage ? (
+        <Dialog open={photoOpen} onOpenChange={setPhotoOpen}>
+          <DialogContent className="max-w-2xl overflow-hidden bg-black p-0" showCloseButton>
+            <DialogTitle className="sr-only">
+              {profile.displayName}&apos;s profile photo
+            </DialogTitle>
+            <img
+              src={profile.profileImage.url}
+              alt={profile.displayName}
+              className="max-h-[80svh] min-h-64 w-full object-contain"
+            />
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </div>
   );
 }

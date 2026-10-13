@@ -6,6 +6,7 @@ import {
   parseInvitePostList,
   type CreateInvitePostRequest,
   type LocalFeedScope,
+  type UpdateInvitePostRequest,
 } from './contracts';
 
 async function normalizeFailure<T>(request: Promise<T>): Promise<T> {
@@ -19,6 +20,21 @@ async function normalizeFailure<T>(request: Promise<T>): Promise<T> {
 export async function createInvitePost(request: CreateInvitePostRequest) {
   const response = await normalizeFailure(apiClient.post('/invite-posts', request));
   return parseInvitePost(response.data);
+}
+
+export async function updateInvitePost({
+  postId,
+  request,
+}: {
+  postId: string;
+  request: UpdateInvitePostRequest;
+}) {
+  const response = await normalizeFailure(apiClient.patch(`/invite-posts/${postId}`, request));
+  return parseInvitePost(response.data);
+}
+
+export async function deleteInvitePost(postId: string) {
+  await normalizeFailure(apiClient.delete(`/invite-posts/${postId}`));
 }
 
 export async function uploadInvitePostImage({ postId, file }: { postId: string; file: File }) {

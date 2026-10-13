@@ -1,6 +1,8 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 import { invitePost, invitePostImage, invitePostWithImages } from '@/test/mocks/fixtures';
+import { server } from '@/test/mocks/server';
 import { renderWithProviders } from '@/test/render';
 import { InvitePostCard } from './InvitePostCard';
 
@@ -114,5 +116,64 @@ describe('InvitePostCard', () => {
       <InvitePostCard post={invitePost} isOwnPost reason="Matches your interest in coffee" />,
     );
     expect(screen.queryByText('Matches your interest in coffee')).not.toBeInTheDocument();
+  });
+
+  it('only offers edit and delete actions on the owner card', async () => {
+    const { user, unmount } = renderWithProviders(<InvitePostCard post={invitePost} />);
+    expect(screen.queryByRole('button', { name: 'Invite actions' })).not.toBeInTheDocument();
+    unmount();
+
+    renderWithProviders(<InvitePostCard post={invitePost} isOwnPost />);
+    await user.click(screen.getByRole('button', { name: 'Invite actions' }));
+
+    expect(screen.getByRole('menuitem', { name: 'Edit invite' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Delete invite' })).toBeInTheDocument();
+  });
+
+  it('submits edited invite content', async () => {
+    let updateBody: unknown;
+    server.use(
+      http.patch('*/api/invite-posts/:postId', async ({ request }) => {
+        updateBody = await request.json();
+        return HttpResponse.json({ ...invitePost, ...(updateBody as object) });
+      }),
+    );
+    const { user } = renderWithProviders(<InvitePostCard post={invitePost} isOwnPost />);
+
+    await user.click(screen.getByRole('button', { name: 'Invite actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Edit invite' }));
+    const content = screen.getByLabelText("What's the invite?");
+    await user.clear(content);
+    await user.type(content, 'Coffee moved to six this evening');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(updateBody).toEqual({
+        content: 'Coffee moved to six this evening',
+        inviteType: 'SINGLE',
+        totalCapacity: 1,
+        locationScope: 'CITY',
+        tags: [],
+      }),
+    );
+  });
+
+  it('confirms before deleting an owned invite', async () => {
+    let deletedPostId: string | undefined;
+    server.use(
+      http.delete('*/api/invite-posts/:postId', ({ params }) => {
+        deletedPostId = String(params.postId);
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { user } = renderWithProviders(<InvitePostCard post={invitePost} isOwnPost />);
+
+    await user.click(screen.getByRole('button', { name: 'Invite actions' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete invite' }));
+    expect(screen.getByText('Delete this invite?')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Delete invite' }));
+
+    await waitFor(() => expect(deletedPostId).toBe(invitePost.id));
+    expect(screen.queryByText('Delete this invite?')).not.toBeInTheDocument();
   });
 });

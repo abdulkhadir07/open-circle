@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { usernameSchema } from '@/lib/validation/username';
 
 export const MAX_DISPLAY_NAME_LENGTH = 80;
 export const MAX_BIO_LENGTH = 300;
@@ -11,6 +12,7 @@ export const MAX_INTEREST_LENGTH = 30;
  * interests allow at most 8 entries, each 1-30 chars, unique ignoring case.
  */
 export const updateProfileSchema = z.object({
+  username: usernameSchema,
   displayName: z
     .string()
     .trim()
