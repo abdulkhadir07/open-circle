@@ -35,6 +35,10 @@ describe('SettingsPage', () => {
       'href',
       '/settings/sessions',
     );
+    expect(screen.getByRole('link', { name: /Delete account/ })).toHaveAttribute(
+      'href',
+      '/settings/delete-account',
+    );
   });
 
   it("shows the account's current email as the Email row subtitle", () => {
@@ -54,10 +58,10 @@ describe('SettingsPage', () => {
     );
   });
 
-  it('groups the rows under Account, Security, and Appearance', () => {
+  it('groups the rows under Account, Security, Appearance, and Danger zone', () => {
     renderSettingsPage();
 
-    for (const heading of ['Account', 'Security', 'Appearance']) {
+    for (const heading of ['Account', 'Security', 'Appearance', 'Danger zone']) {
       expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
     }
   });
