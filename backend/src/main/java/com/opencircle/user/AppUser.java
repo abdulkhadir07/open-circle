@@ -6,7 +6,9 @@ import jakarta.persistence.*;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Locale;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Entity
 @Table(
@@ -18,6 +20,12 @@ import java.util.UUID;
         }
 )
 public class AppUser {
+
+    public static final int MIN_USERNAME_LENGTH = 3;
+    public static final int MAX_USERNAME_LENGTH = 30;
+    public static final String USERNAME_REGEX = "^[A-Za-z0-9]+(?:[._][A-Za-z0-9]+)*$";
+
+    private static final Pattern USERNAME_PATTERN = Pattern.compile(USERNAME_REGEX);
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -109,7 +117,7 @@ public class AppUser {
             String phoneNumber,
             LocalDate dateOfBirth
     ) {
-        this.username = username.trim().toLowerCase();
+        changeUsername(username);
         this.firstName = firstName.trim();
         this.lastName = lastName.trim();
         this.email = email.trim().toLowerCase();
@@ -131,7 +139,7 @@ public class AppUser {
             String stateRegion,
             String country
     ) {
-        this.username = username.trim().toLowerCase();
+        changeUsername(username);
         this.firstName = firstName.trim();
         this.lastName = lastName.trim();
         this.email = email.trim().toLowerCase();
@@ -160,6 +168,24 @@ public class AppUser {
     public UUID getId() {return id;}
 
     public String getUsername() {return username;}
+
+    public void changeUsername(String username) {
+        if (username == null) {
+            throw new IllegalArgumentException("Username is required");
+        }
+
+        String normalized = username.trim().toLowerCase(Locale.ROOT);
+        if (normalized.length() < MIN_USERNAME_LENGTH || normalized.length() > MAX_USERNAME_LENGTH) {
+            throw new IllegalArgumentException("Username must be between 3 and 30 characters");
+        }
+        if (!USERNAME_PATTERN.matcher(normalized).matches()) {
+            throw new IllegalArgumentException(
+                    "Username can only contain letters, numbers, periods, and underscores"
+            );
+        }
+
+        this.username = normalized;
+    }
 
     public String getFirstName() {return firstName;}
 

@@ -218,6 +218,7 @@ class AuthSessionControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "username": "%s",
                                   "firstName": "Session",
                                   "lastName": "Tester",
                                   "email": "%s",
@@ -228,10 +229,14 @@ class AuthSessionControllerIntegrationTest extends AbstractIntegrationTest {
                                   "stateRegion": "California",
                                   "country": "USA"
                                 }
-                                """.formatted(email, phoneNumber)))
+                                """.formatted(usernameFor(email), email, phoneNumber)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+    }
+
+    private String usernameFor(String email) {
+        return email.substring(0, email.indexOf('@')).replace('.', '_');
     }
 
     private MvcResult verifyEmail(String email) throws Exception {

@@ -34,6 +34,15 @@ class AppUserTest {
     }
 
     @Test
+    void changeUsernameNormalizesAUserSelectedHandle() {
+        AppUser user = newUser();
+
+        user.changeUsername("  Maya.Chen_94  ");
+
+        assertThat(user.getUsername()).isEqualTo("maya.chen_94");
+    }
+
+    @Test
     void constructorTreatsBlankStateRegionAsMissing() {
         AppUser user = new AppUser(
                 "bright_river_1234",
