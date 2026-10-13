@@ -19,6 +19,11 @@ public interface InvitePostRepository extends JpaRepository<InvitePost, UUID> {
     @Query("select post from InvitePost post where post.id = :postId")
     Optional<InvitePost> findByIdForImageUpload(UUID postId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"poster", "tags"})
+    @Query("select post from InvitePost post where post.id = :postId")
+    Optional<InvitePost> findByIdForUpdate(UUID postId);
+
     @EntityGraph(attributePaths = {"poster", "tags"})
     @Query("""
             select post

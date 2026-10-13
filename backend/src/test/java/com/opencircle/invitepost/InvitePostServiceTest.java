@@ -9,6 +9,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -147,6 +149,67 @@ class InvitePostServiceTest {
                 .hasMessage("State/region scope is not available for your verified location");
 
         verify(posts, never()).save(any());
+    }
+
+    @Test
+    void ownerCanUpdateAnActivePost() {
+        UUID userId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        AppUser owner = mock(AppUser.class);
+        when(owner.getId()).thenReturn(userId);
+        when(owner.getCampus()).thenReturn("example.com");
+        when(owner.hasVerifiedLocation()).thenReturn(true);
+        when(owner.getVerifiedCity()).thenReturn("Oakland");
+        when(owner.getVerifiedStateRegion()).thenReturn("California");
+        when(owner.getVerifiedCountry()).thenReturn("USA");
+        InvitePost post = spy(new InvitePost(
+                owner,
+                "Original plan",
+                InviteType.GROUP,
+                3,
+                LocationScope.CITY,
+                "San Francisco",
+                "California",
+                "USA",
+                NOW.minusSeconds(60),
+                List.of("walk")
+        ));
+        when(post.getId()).thenReturn(postId);
+        when(posts.findByIdForUpdate(postId)).thenReturn(Optional.of(post));
+
+        InvitePost updated = service.updatePost(owner, postId, new UpdateInvitePostRequest(
+                "Updated plan",
+                InviteType.GROUP,
+                5,
+                LocationScope.COUNTRY,
+                List.of("coffee")
+        ));
+
+        assertThat(updated.getContent()).isEqualTo("Updated plan");
+        assertThat(updated.getTotalCapacity()).isEqualTo(5);
+        assertThat(updated.getLocationScope()).isEqualTo(LocationScope.COUNTRY);
+        assertThat(updated.getCity()).isEqualTo("Oakland");
+        assertThat(updated.getTags()).containsExactly("coffee");
+    }
+
+    @Test
+    void nonOwnerCannotDeleteAPost() {
+        UUID ownerId = UUID.randomUUID();
+        UUID otherId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        AppUser owner = mock(AppUser.class);
+        AppUser other = mock(AppUser.class);
+        when(owner.getId()).thenReturn(ownerId);
+        when(other.getId()).thenReturn(otherId);
+        InvitePost post = mock(InvitePost.class);
+        when(post.getPoster()).thenReturn(owner);
+        when(posts.findByIdForUpdate(postId)).thenReturn(Optional.of(post));
+
+        assertThatThrownBy(() -> service.deletePost(other, postId))
+                .isInstanceOf(InvitePostForbiddenException.class)
+                .hasMessage("Only the post owner can change this invite");
+
+        verify(post, never()).close();
     }
 
     @Test

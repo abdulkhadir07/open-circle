@@ -28,6 +28,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -175,6 +177,82 @@ class InvitePostControllerIntegrationTest extends AbstractIntegrationTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Tags can only contain letters, numbers, hyphens and underscores"));
+    }
+
+    @Test
+    void ownerCanEditAndDeleteAnInvitePost() throws Exception {
+        AppUser owner = verifiedUser("edit.owner@example.com", "San Francisco", "California", "USA");
+        InvitePost post = posts.save(invitePost(
+                owner,
+                "Original plan",
+                LocationScope.CITY,
+                "San Francisco",
+                "California",
+                "USA",
+                Instant.now()
+        ));
+        String authorization = "Bearer " + loginToken("edit.owner@example.com");
+
+        mockMvc.perform(patch("/api/invite-posts/{postId}", post.getId())
+                        .header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "Updated dinner plan",
+                                  "inviteType": "GROUP",
+                                  "totalCapacity": 5,
+                                  "locationScope": "COUNTRY",
+                                  "tags": ["Food", "friends"]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").value("Updated dinner plan"))
+                .andExpect(jsonPath("$.totalCapacity").value(5))
+                .andExpect(jsonPath("$.locationScope").value("COUNTRY"))
+                .andExpect(jsonPath("$.tags[0]").value("food"));
+
+        mockMvc.perform(delete("/api/invite-posts/{postId}", post.getId())
+                        .header("Authorization", authorization))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/invite-posts/local")
+                        .header("Authorization", authorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    void nonOwnerCannotEditOrDeleteAnInvitePost() throws Exception {
+        AppUser owner = verifiedUser("post.owner@example.com", "San Francisco", "California", "USA");
+        verifiedUser("post.outsider@example.com", "San Francisco", "California", "USA");
+        InvitePost post = posts.save(invitePost(
+                owner,
+                "Owner's plan",
+                LocationScope.CITY,
+                "San Francisco",
+                "California",
+                "USA",
+                Instant.now()
+        ));
+        String authorization = "Bearer " + loginToken("post.outsider@example.com");
+
+        mockMvc.perform(patch("/api/invite-posts/{postId}", post.getId())
+                        .header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "Changed by someone else",
+                                  "inviteType": "GROUP",
+                                  "totalCapacity": 3,
+                                  "locationScope": "CITY",
+                                  "tags": []
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(delete("/api/invite-posts/{postId}", post.getId())
+                        .header("Authorization", authorization))
+                .andExpect(status().isForbidden());
     }
 
     @Test
