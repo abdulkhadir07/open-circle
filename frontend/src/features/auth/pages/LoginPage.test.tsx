@@ -111,4 +111,17 @@ describe('LoginPage', () => {
 
     expect(screen.getByText('Password reset. Sign in with your new password.')).toBeInTheDocument();
   });
+
+  it('confirms that account information was permanently deleted', () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>,
+      { initialEntries: [{ pathname: '/login', state: { accountDeleted: true } }] },
+    );
+
+    expect(
+      screen.getByText('Your account and information have been permanently deleted.'),
+    ).toBeInTheDocument();
+  });
 });

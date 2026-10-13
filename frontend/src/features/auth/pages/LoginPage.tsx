@@ -14,6 +14,7 @@ import { loginSchema, type LoginFormValues } from '../schemas/loginSchema';
 type AuthRouteState = {
   from?: { pathname?: string; search?: string; hash?: string };
   justReset?: boolean;
+  accountDeleted?: boolean;
 };
 
 function intendedDestination(state: unknown) {
@@ -27,6 +28,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const justReset = Boolean((location.state as AuthRouteState | null)?.justReset);
+  const accountDeleted = Boolean((location.state as AuthRouteState | null)?.accountDeleted);
   const login = useLogin();
   const {
     register,
@@ -75,6 +77,12 @@ export function LoginPage() {
           <div className="border-primary/25 bg-primary/5 text-foreground flex gap-3 rounded-md border px-3 py-3 text-sm leading-5">
             <CircleCheck aria-hidden="true" className="text-primary mt-0.5 size-4 shrink-0" />
             <span>Password reset. Sign in with your new password.</span>
+          </div>
+        ) : null}
+        {accountDeleted ? (
+          <div className="border-primary/25 bg-primary/5 text-foreground flex gap-3 rounded-md border px-3 py-3 text-sm leading-5">
+            <CircleCheck aria-hidden="true" className="text-primary mt-0.5 size-4 shrink-0" />
+            <span>Your account and information have been permanently deleted.</span>
           </div>
         ) : null}
         <AuthFormError message={errors.root?.server?.message} />
