@@ -61,6 +61,28 @@ public class InvitePostController {
         );
     }
 
+    @PatchMapping("/{postId}")
+    public InvitePostResponse updatePost(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID postId,
+            @Valid @RequestBody UpdateInvitePostRequest request
+    ) {
+        AppUser currentUser = currentUserProvider.getCurrentUser(jwt);
+        safetyGuard.requireSafe(currentUser.getId(), screenedText(request), ContentKind.INVITE);
+        InvitePost post = invitePostService.updatePost(currentUser, postId, request);
+
+        return responseFor(post);
+    }
+
+    @DeleteMapping("/{postId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePost(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID postId
+    ) {
+        invitePostService.deletePost(currentUserProvider.getCurrentUser(jwt), postId);
+    }
+
     @GetMapping("/local")
     public List<InvitePostResponse> getLocalFeed(
             @AuthenticationPrincipal Jwt jwt,
@@ -95,8 +117,25 @@ public class InvitePostController {
                 .toList();
     }
 
+    private InvitePostResponse responseFor(InvitePost post) {
+        Map<UUID, List<InvitePostImageResponse>> imagesByPost = imageService.getImageResponses(List.of(post));
+        return InvitePostResponse.from(
+                post,
+                profileImageQueryService.getProfileImageByUserId(post.getPoster().getId()),
+                imagesByPost.getOrDefault(post.getId(), List.of())
+        );
+    }
+
     // The invite text and its topics are screened together.
     private String screenedText(CreateInvitePostRequest request) {
+        if (request.tags() == null || request.tags().isEmpty()) {
+            return request.content();
+        }
+
+        return request.content() + "\n" + String.join(" ", request.tags());
+    }
+
+    private String screenedText(UpdateInvitePostRequest request) {
         if (request.tags() == null || request.tags().isEmpty()) {
             return request.content();
         }

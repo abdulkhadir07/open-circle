@@ -64,6 +64,7 @@ public class UserController {
         UUID userId = currentUserProvider.getCurrentUser(jwt).getId();
         userProfileService.replaceProfile(
                 userId,
+                request.username(),
                 request.displayName(),
                 request.bio(),
                 request.interests()

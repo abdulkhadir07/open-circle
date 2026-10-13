@@ -287,6 +287,44 @@ public class InvitePost {
         status = InvitePostStatus.CLOSED;
     }
 
+    public void update(
+            String content,
+            InviteType inviteType,
+            int totalCapacity,
+            LocationScope locationScope,
+            String city,
+            String stateRegion,
+            String country,
+            List<String> tags
+    ) {
+        validateCore(poster, content, inviteType, totalCapacity, createdAt);
+        if (totalCapacity < acceptedCount) {
+            throw new IllegalArgumentException("Total capacity cannot be lower than the number already accepted");
+        }
+        if (locationScope == null) {
+            throw new IllegalArgumentException("Location scope is required");
+        }
+        if (city == null || city.isBlank()) {
+            throw new IllegalArgumentException("City is required");
+        }
+        if (country == null || country.isBlank()) {
+            throw new IllegalArgumentException("Country is required");
+        }
+        if (locationScope == LocationScope.STATE_REGION && (stateRegion == null || stateRegion.isBlank())) {
+            throw new IllegalArgumentException("State/region is required for state-region scoped posts");
+        }
+
+        this.content = content.trim();
+        this.inviteType = inviteType;
+        this.totalCapacity = totalCapacity;
+        this.locationScope = locationScope;
+        this.city = city.trim();
+        this.stateRegion = stateRegion == null || stateRegion.isBlank() ? null : stateRegion.trim();
+        this.country = country.trim();
+        this.tags.clear();
+        applyTags(tags);
+    }
+
     public void recordAcceptedEngagement() {
         if (acceptedCount >= totalCapacity) {
             throw new IllegalStateException("Invite post is already full");

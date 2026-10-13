@@ -96,6 +96,8 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/notifications/read-all").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/notifications/*/read").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/invite-posts").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/invite-posts/*").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/invite-posts/*").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invite-posts/local").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invite-posts/global").authenticated()
 

@@ -358,8 +358,10 @@ class EngagementRequestServiceTest {
     }
 
     private AppUser user(String email) {
+        String localPart = email.substring(0, email.indexOf("@")).replace(".", "_");
+        String username = localPart.substring(0, Math.min(localPart.length(), 24)) + "_1234";
         AppUser user = new AppUser(
-                email.substring(0, email.indexOf("@")).replace(".", "_") + "_1234",
+                username,
                 "Test",
                 "User",
                 email,

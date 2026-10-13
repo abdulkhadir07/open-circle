@@ -16,6 +16,7 @@ type EditableProfileAvatarProps = {
   name: string;
   profileImage?: { url: string } | null;
   className?: string;
+  onView?: () => void;
 };
 
 /** The clickable avatar on the viewer's own profile page — opens a menu to change or remove the photo. */
@@ -23,6 +24,7 @@ export function EditableProfileAvatar({
   name,
   profileImage,
   className,
+  onView,
 }: EditableProfileAvatarProps) {
   const uploadImage = useUploadProfileImage();
   const deleteImage = useDeleteProfileImage();
@@ -89,6 +91,9 @@ export function EditableProfileAvatar({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
+          {profileImage && onView ? (
+            <DropdownMenuItem onSelect={onView}>View photo</DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem onSelect={() => fileInputRef.current?.click()}>
             {profileImage ? 'Change photo' : 'Upload photo'}
           </DropdownMenuItem>

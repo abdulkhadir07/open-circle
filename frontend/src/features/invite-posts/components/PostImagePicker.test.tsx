@@ -31,6 +31,21 @@ describe('PostImagePicker', () => {
     expect(onChange).toHaveBeenCalledWith([file]);
   });
 
+  it('adds up to four selected photos in one batch', async () => {
+    const onChange = vi.fn<(files: File[]) => void>();
+    const user = userEvent.setup();
+    const { container } = render(<PostImagePicker value={[]} onChange={onChange} />);
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const files = Array.from({ length: 4 }, (_, index) =>
+      makeFile({ name: `photo-${index + 1}.jpg` }),
+    );
+
+    expect(fileInput).toHaveAttribute('multiple');
+    await user.upload(fileInput, files);
+
+    expect(onChange).toHaveBeenCalledWith(files);
+  });
+
   it('rejects an oversized image without calling onChange', async () => {
     const onChange = vi.fn<(files: File[]) => void>();
     const user = userEvent.setup();

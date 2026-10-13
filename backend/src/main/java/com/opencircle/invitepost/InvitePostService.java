@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 class InvitePostService {
@@ -51,6 +52,44 @@ class InvitePostService {
         return posts.save(post);
     }
 
+    @Transactional
+    InvitePost updatePost(AppUser currentUser, UUID postId, UpdateInvitePostRequest request) {
+        requireVerifiedLocation(currentUser);
+        InvitePost post = ownedPostForUpdate(currentUser, postId);
+        if (post.getStatus() != InvitePostStatus.ACTIVE || post.isExpired(Instant.now(clock))) {
+            throw new InvalidInvitePostRequestException("Only active invite posts can be edited");
+        }
+
+        int totalCapacity = totalCapacityFor(
+                request.inviteType(),
+                request.totalCapacity()
+        );
+        validateLocationScope(currentUser, request.locationScope());
+
+        try {
+            post.update(
+                    request.content(),
+                    request.inviteType(),
+                    totalCapacity,
+                    request.locationScope(),
+                    currentUser.getVerifiedCity(),
+                    currentUser.getVerifiedStateRegion(),
+                    currentUser.getVerifiedCountry(),
+                    request.tags()
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new InvalidInvitePostRequestException(exception.getMessage());
+        }
+
+        return post;
+    }
+
+    @Transactional
+    void deletePost(AppUser currentUser, UUID postId) {
+        InvitePost post = ownedPostForUpdate(currentUser, postId);
+        post.close();
+    }
+
     // Returns local posts that match the viewer's verified location.
     @Transactional(readOnly = true)
     List<InvitePost> getLocalFeed(AppUser viewer, LocationScope scope) {
@@ -90,19 +129,23 @@ class InvitePostService {
     }
 
     private int totalCapacityFor(CreateInvitePostRequest request) {
-        if (request.inviteType() == InviteType.SINGLE) {
-            if (request.totalCapacity() != null && request.totalCapacity() != 1) {
+        return totalCapacityFor(request.inviteType(), request.totalCapacity());
+    }
+
+    private int totalCapacityFor(InviteType inviteType, Integer requestedCapacity) {
+        if (inviteType == InviteType.SINGLE) {
+            if (requestedCapacity != null && requestedCapacity != 1) {
                 throw new InvalidInvitePostRequestException("Single invites must have a total capacity of 1");
             }
 
             return 1;
         }
 
-        if (request.totalCapacity() == null || request.totalCapacity() < 2) {
+        if (requestedCapacity == null || requestedCapacity < 2) {
             throw new InvalidInvitePostRequestException("Group invites must have a total capacity of at least 2");
         }
 
-        return request.totalCapacity();
+        return requestedCapacity;
     }
 
     private void validateLocationScope(AppUser user, LocationScope scope) {
@@ -168,5 +211,16 @@ class InvitePostService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private InvitePost ownedPostForUpdate(AppUser currentUser, UUID postId) {
+        InvitePost post = posts.findByIdForUpdate(postId)
+                .orElseThrow(InvitePostNotFoundException::new);
+
+        if (!post.getPoster().getId().equals(currentUser.getId())) {
+            throw new InvitePostForbiddenException();
+        }
+
+        return post;
     }
 }

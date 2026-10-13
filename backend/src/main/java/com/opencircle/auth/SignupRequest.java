@@ -10,6 +10,18 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 record SignupRequest(
+        @NotBlank(message = "Username is required")
+        @Size(
+                min = com.opencircle.user.AppUser.MIN_USERNAME_LENGTH,
+                max = com.opencircle.user.AppUser.MAX_USERNAME_LENGTH,
+                message = "Username must be between 3 and 30 characters"
+        )
+        @Pattern(
+                regexp = com.opencircle.user.AppUser.USERNAME_REGEX,
+                message = "Username can only contain letters, numbers, periods, and underscores"
+        )
+        String username,
+
         @NotBlank(message = "First name is required")
         @Size(max = 80)
         String firstName,

@@ -207,6 +207,48 @@ class InvitePostTest {
     }
 
     @Test
+    void updateReplacesEditableFieldsAndTags() {
+        InvitePost post = postWithTags(List.of("walk", "coffee"));
+
+        post.update(
+                "  Updated plan  ",
+                InviteType.GROUP,
+                5,
+                LocationScope.COUNTRY,
+                "Oakland",
+                "California",
+                "USA",
+                List.of("Food", "music")
+        );
+
+        assertThat(post.getContent()).isEqualTo("Updated plan");
+        assertThat(post.getTotalCapacity()).isEqualTo(5);
+        assertThat(post.getLocationScope()).isEqualTo(LocationScope.COUNTRY);
+        assertThat(post.getCity()).isEqualTo("Oakland");
+        assertThat(post.getTags()).containsExactly("food", "music");
+    }
+
+    @Test
+    void updateCannotReduceCapacityBelowAcceptedCount() {
+        InvitePost post = postWithTags(List.of());
+        post.recordAcceptedEngagement();
+        post.recordAcceptedEngagement();
+
+        assertThatThrownBy(() -> post.update(
+                "Updated plan",
+                InviteType.SINGLE,
+                1,
+                LocationScope.CITY,
+                "San Francisco",
+                "California",
+                "USA",
+                List.of()
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Total capacity cannot be lower than the number already accepted");
+    }
+
+    @Test
     void constructorDefaultsToNoTags() {
         InvitePost post = postWithTags(null);
 

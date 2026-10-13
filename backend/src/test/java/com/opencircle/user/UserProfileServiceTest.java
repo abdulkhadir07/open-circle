@@ -28,11 +28,13 @@ class UserProfileServiceTest {
     private static final Instant NOW = Instant.parse("2026-09-12T14:00:00Z");
 
     private final UserProfileRepository profiles = mock(UserProfileRepository.class);
+    private final UserRepository users = mock(UserRepository.class);
     private final ProfileImageQueryService profileImages = mock(ProfileImageQueryService.class);
     private final ReputationSummaryQueryService reputationSummaries = mock(ReputationSummaryQueryService.class);
     private final AnnualAwardHistoryQueryService awardHistory = mock(AnnualAwardHistoryQueryService.class);
     private final UserProfileService service = new UserProfileService(
             profiles,
+            users,
             profileImages,
             reputationSummaries,
             awardHistory,
@@ -101,11 +103,15 @@ class UserProfileServiceTest {
     void replacementUsesTheLockedProfileAndFixedClock() {
         UUID userId = UUID.randomUUID();
         UserProfile profile = mock(UserProfile.class);
+        AppUser user = mock(AppUser.class);
         List<String> interests = List.of("Hiking", "Coffee");
         when(profiles.findForUpdate(userId)).thenReturn(Optional.of(profile));
+        when(profile.getUser()).thenReturn(user);
+        when(user.getUsername()).thenReturn("original.name");
 
-        service.replaceProfile(userId, "Updated Name", "Updated bio", interests);
+        service.replaceProfile(userId, "updated.name", "Updated Name", "Updated bio", interests);
 
+        verify(user).changeUsername("updated.name");
         verify(profile).replace("Updated Name", "Updated bio", interests, NOW);
     }
 
@@ -113,13 +119,17 @@ class UserProfileServiceTest {
     void replacementTranslatesDomainValidationFailure() {
         UUID userId = UUID.randomUUID();
         UserProfile profile = mock(UserProfile.class);
+        AppUser user = mock(AppUser.class);
         when(profiles.findForUpdate(userId)).thenReturn(Optional.of(profile));
+        when(profile.getUser()).thenReturn(user);
+        when(user.getUsername()).thenReturn("profile.name");
         doThrow(new IllegalArgumentException("Interests must be unique ignoring case"))
                 .when(profile)
                 .replace("Profile", null, List.of("Hiking", "hiking"), NOW);
 
         assertThatThrownBy(() -> service.replaceProfile(
                 userId,
+                "profile.name",
                 "Profile",
                 null,
                 List.of("Hiking", "hiking")

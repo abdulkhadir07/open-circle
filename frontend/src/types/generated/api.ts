@@ -928,6 +928,7 @@ export interface components {
             mine?: boolean;
         };
         UpdateUserProfileRequest: {
+            username?: string;
             displayName: string;
             bio?: string;
             interests: string[];
@@ -1155,6 +1156,7 @@ export interface components {
             user?: components["schemas"]["UserResponse"];
         };
         SignupRequest: {
+            username: string;
             firstName: string;
             lastName: string;
             /** Format: email */

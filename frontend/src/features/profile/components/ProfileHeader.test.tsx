@@ -2,6 +2,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { userProfile } from '@/test/mocks/fixtures';
+import { profileImage } from '@/test/mocks/fixtures';
 import { renderWithProviders } from '@/test/render';
 import { ProfileHeader } from './ProfileHeader';
 
@@ -41,5 +42,27 @@ describe('ProfileHeader', () => {
     );
 
     expect(screen.queryByRole('button', { name: 'Edit profile' }) !== null).toBe(visible);
+  });
+
+  it("opens another user's profile photo at full size", async () => {
+    const user = userEvent.setup();
+    const profileWithPhoto = { ...userProfile, profileImage };
+    renderWithProviders(
+      <ProfileHeader
+        profile={profileWithPhoto}
+        isOwnProfile={false}
+        editing={false}
+        onEdit={() => {}}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: `View ${userProfile.displayName}'s profile photo` }),
+    );
+
+    expect(screen.getByRole('img', { name: userProfile.displayName })).toHaveAttribute(
+      'src',
+      profileImage.url,
+    );
   });
 });

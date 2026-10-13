@@ -17,6 +17,7 @@ import java.util.UUID;
 class UserProfileService {
 
     private final UserProfileRepository profiles;
+    private final UserRepository users;
     private final ProfileImageQueryService profileImages;
     private final ReputationSummaryQueryService reputationSummaries;
     private final AnnualAwardHistoryQueryService awardHistory;
@@ -24,12 +25,14 @@ class UserProfileService {
 
     UserProfileService(
             UserProfileRepository profiles,
+            UserRepository users,
             ProfileImageQueryService profileImages,
             ReputationSummaryQueryService reputationSummaries,
             AnnualAwardHistoryQueryService awardHistory,
             Clock clock
     ) {
         this.profiles = profiles;
+        this.users = users;
         this.profileImages = profileImages;
         this.reputationSummaries = reputationSummaries;
         this.awardHistory = awardHistory;
@@ -62,6 +65,7 @@ class UserProfileService {
     @Transactional
     void replaceProfile(
             UUID userId,
+            String username,
             String displayName,
             String bio,
             List<String> interests
@@ -69,7 +73,18 @@ class UserProfileService {
         UserProfile profile = profiles.findForUpdate(userId)
                 .orElseThrow(UserProfileNotFoundException::new);
 
+        AppUser user = profile.getUser();
+        String requestedUsername = username == null ? user.getUsername() : username;
+        if (!user.getUsername().equalsIgnoreCase(requestedUsername)
+                && users.existsByUsernameIgnoreCaseAndIdNot(requestedUsername, userId)) {
+            throw new com.opencircle.common.FieldConflictException(
+                    "username",
+                    "Username is already in use"
+            );
+        }
+
         try {
+            user.changeUsername(requestedUsername);
             profile.replace(displayName, bio, interests, Instant.now(clock));
         } catch (IllegalArgumentException exception) {
             throw new InvalidUserProfileException(exception.getMessage(), exception);

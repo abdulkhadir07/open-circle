@@ -28,6 +28,7 @@ describe('ProfileOpenInvites', () => {
     expect(screen.getByRole('heading', { name: 'Your open invites' })).toBeInTheDocument();
     expect(screen.getByText('Just one person · 1 spot left')).toBeInTheDocument();
     expect(screen.getByText(/h \d+m left$/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Invite actions' })).toBeInTheDocument();
   });
 
   it("shows only that person's invites on someone else's profile", async () => {
@@ -39,6 +40,7 @@ describe('ProfileOpenInvites', () => {
     expect(await screen.findByText("Sam's hike")).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: "Sam's open invites" })).toBeInTheDocument();
     expect(screen.queryByText(invitePost.content)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Invite actions' })).not.toBeInTheDocument();
   });
 
   it('includes global invites and does not repeat a post that is in both feeds', async () => {

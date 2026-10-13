@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { usernameSchema } from '@/lib/validation/username';
 
 const requiredText = (label: string, maximum: number) =>
   z.string().trim().min(1, `${label} is required`).max(maximum, `${label} is too long`);
@@ -43,6 +44,7 @@ function isValidCalendarDate(value: string) {
 
 export const signupSchema = z
   .object({
+    username: usernameSchema,
     firstName: personName('First name'),
     lastName: personName('Last name'),
     dateOfBirth: z
@@ -69,7 +71,7 @@ export const signupSchema = z
 export type SignupFormValues = z.infer<typeof signupSchema>;
 
 export const signupStepFields = [
-  ['firstName', 'lastName', 'dateOfBirth'],
+  ['username', 'firstName', 'lastName', 'dateOfBirth'],
   ['email', 'phoneNumber'],
   ['country', 'stateRegion', 'city'],
   ['password', 'confirmPassword'],

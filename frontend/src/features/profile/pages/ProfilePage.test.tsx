@@ -97,13 +97,22 @@ describe('ProfilePage', () => {
     expect(await screen.findByText("This profile doesn't exist.")).toBeInTheDocument();
   });
 
-  it('edits and saves the display name, bio, and interests', async () => {
-    server.use(http.get('*/api/users/:userId/profile', () => HttpResponse.json(userProfile)));
+  it('edits and saves the username, display name, bio, and interests', async () => {
+    server.use(
+      http.get('*/api/users/:userId/profile', () => HttpResponse.json(userProfile)),
+      http.put('*/api/users/me/profile', async ({ request }) => {
+        const update = (await request.json()) as { username: string; displayName: string };
+        return HttpResponse.json({ ...userProfile, ...update });
+      }),
+    );
 
     const { user } = renderProfilePage(authUser.id);
 
     await user.click(await screen.findByRole('button', { name: 'Edit profile' }));
 
+    const usernameInput = screen.getByLabelText('Username');
+    await user.clear(usernameInput);
+    await user.type(usernameInput, 'new.username');
     const displayNameInput = screen.getByLabelText('Display name');
     await user.clear(displayNameInput);
     await user.type(displayNameInput, 'New Name');
@@ -114,6 +123,35 @@ describe('ProfilePage', () => {
       expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument(),
     );
     expect(screen.getByText('New Name')).toBeInTheDocument();
+    expect(screen.getByText('@new.username')).toBeInTheDocument();
+  });
+
+  it('keeps the form open when the username is already in use', async () => {
+    server.use(
+      http.get('*/api/users/:userId/profile', () => HttpResponse.json(userProfile)),
+      http.put('*/api/users/me/profile', () =>
+        HttpResponse.json(
+          {
+            timestamp: new Date().toISOString(),
+            status: 409,
+            error: 'CONFLICT',
+            message: 'Username is already in use',
+            path: '/api/users/me/profile',
+            fieldErrors: { username: 'Username is already in use' },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    const { user } = renderProfilePage(authUser.id);
+
+    await user.click(await screen.findByRole('button', { name: 'Edit profile' }));
+    await user.clear(screen.getByLabelText('Username'));
+    await user.type(screen.getByLabelText('Username'), 'taken.name');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(await screen.findByText('Username is already in use')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
   });
 
   it('cancels editing without saving', async () => {
