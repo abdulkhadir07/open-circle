@@ -3,6 +3,7 @@ import { parseWithContract } from '@/lib/api/contracts';
 import type { ApiSchemas } from '@/types/api-types';
 
 export type CreateInvitePostRequest = ApiSchemas['CreateInvitePostRequest'];
+export type UpdateInvitePostRequest = CreateInvitePostRequest;
 export type InviteType = CreateInvitePostRequest['inviteType'];
 /** The backend still knows a legacy CAMPUS scope for old rows; it is never offered or returned. */
 export type LocationScope = Exclude<CreateInvitePostRequest['locationScope'], 'CAMPUS'>;

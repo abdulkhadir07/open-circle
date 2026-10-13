@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import type { InvitePost } from '@/features/invite-posts/api/contracts';
+import { InvitePostOwnerActions } from '@/features/invite-posts/components/InvitePostOwnerActions';
 import { useGlobalFeed } from '@/features/invite-posts/hooks/useGlobalFeed';
 import { useLocalFeed } from '@/features/invite-posts/hooks/useLocalFeed';
 import { formatTimeRemaining } from '@/features/invite-posts/lib/formatTimeRemaining';
@@ -73,9 +74,12 @@ export function ProfileOpenInvites({ userId, isOwnProfile, displayName }: Profil
                   ].join(' · ')}
                 </p>
               </div>
-              <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-1 text-xs tabular-nums">
-                {formatTimeRemaining(new Date(post.expiresAt).getTime() - now)}
-              </span>
+              <div className="flex shrink-0 items-center gap-1">
+                <span className="bg-muted text-muted-foreground rounded-full px-2 py-1 text-xs tabular-nums">
+                  {formatTimeRemaining(new Date(post.expiresAt).getTime() - now)}
+                </span>
+                {isOwnProfile ? <InvitePostOwnerActions post={post} /> : null}
+              </div>
             </Card>
           ))}
         </ul>

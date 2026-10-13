@@ -166,9 +166,8 @@ export function NewPostPage() {
         return;
       }
 
-      // The post already exists and there's no way to add photos to it later
-      // (no edit flow, no delete-and-retry) — so a partial failure can't just
-      // leave the page as if nothing happened.
+      // The post already exists, and the edit flow does not manage its photos,
+      // so a partial failure cannot leave the page as if nothing happened.
       setCreatedPostId(post.id);
       setFailedUploads(failures);
     } catch (error) {
