@@ -49,3 +49,12 @@ export async function revokeSession(sessionId: string) {
 export async function revokeAllSessions() {
   await normalizeFailure(apiClient.delete('/users/me/sessions'));
 }
+
+export type DeleteAccountPayload = {
+  currentPassword: string;
+  confirmation: string;
+};
+
+export async function deleteAccount(payload: DeleteAccountPayload) {
+  await normalizeFailure(apiClient.delete('/users/me', { data: payload }));
+}
