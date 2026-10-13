@@ -74,6 +74,7 @@ test('signup and email verification complete the browser auth journey', async ({
   await expect(page.getByRole('heading', { name: 'Create your circle' })).toBeVisible();
   await page.getByLabel('First name').fill('Maya');
   await page.getByLabel('Last name').fill('Chen');
+  await page.getByLabel('Username').fill('maya.chen');
   await page.getByRole('option', { name: '12', exact: true }).click();
   await page.getByRole('option', { name: 'May', exact: true }).click();
   await page.getByRole('option', { name: '1994', exact: true }).click();
