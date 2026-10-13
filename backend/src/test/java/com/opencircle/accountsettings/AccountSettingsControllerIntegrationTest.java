@@ -433,6 +433,53 @@ class AccountSettingsControllerIntegrationTest extends AbstractIntegrationTest {
                 "Email is already registered");
     }
 
+    @Test
+    void deletesTheAccountImmediatelyAndClearsTheRefreshCookie() throws Exception {
+        TestAccount account = createAccount("delete-account", "Current Browser");
+
+        mockMvc.perform(delete("/api/users/me")
+                        .header(HttpHeaders.AUTHORIZATION, account.authorization())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"Password123!","confirmation":"DELETE"}
+                                """))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Max-Age=0")));
+
+        assertThat(userService.findById(account.user().getId())).isEmpty();
+        assertRefreshRejected(account.session().refreshToken());
+
+        mockMvc.perform(get("/api/users/me")
+                        .header(HttpHeaders.AUTHORIZATION, account.authorization()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void accountDeletionRejectsTheWrongPasswordOrConfirmation() throws Exception {
+        TestAccount account = createAccount("delete-rejected", "Current Browser");
+
+        mockMvc.perform(delete("/api/users/me")
+                        .header(HttpHeaders.AUTHORIZATION, account.authorization())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"wrong","confirmation":"DELETE"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Current password is incorrect"));
+
+        mockMvc.perform(delete("/api/users/me")
+                        .header(HttpHeaders.AUTHORIZATION, account.authorization())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"Password123!","confirmation":"delete"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.confirmation")
+                        .value("Type DELETE to confirm account deletion"));
+
+        assertThat(userService.findById(account.user().getId())).isPresent();
+    }
+
     private TestAccount createAccount(String suffix, String userAgent) {
         AppUser user = userService.createUser(
                 "Settings",

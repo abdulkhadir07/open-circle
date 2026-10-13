@@ -83,6 +83,7 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/users/me/email-change").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/users/me/email-change/verify").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/me/sessions").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/me").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/users/me/sessions").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/users/me/sessions/*").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/me/ratings/due").authenticated()
