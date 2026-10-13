@@ -45,12 +45,13 @@ export function ProfilePage() {
     formState: { errors },
   } = useForm<UpdateProfileFormValues>({
     resolver: zodResolver(updateProfileSchema),
-    defaultValues: { displayName: '', bio: '', interests: [] },
+    defaultValues: { username: '', displayName: '', bio: '', interests: [] },
   });
 
   function startEditing() {
     if (!profile.data) return;
     reset({
+      username: profile.data.username,
       displayName: profile.data.displayName,
       bio: profile.data.bio ?? '',
       interests: profile.data.interests,
@@ -61,19 +62,27 @@ export function ProfilePage() {
   const onSubmit = handleSubmit(async (values) => {
     try {
       await updateProfile.mutateAsync({
+        username: values.username.trim().toLowerCase(),
         displayName: values.displayName,
         bio: values.bio.trim() === '' ? null : values.bio.trim(),
         interests: values.interests,
       });
       setEditing(false);
     } catch (error) {
-      if (error instanceof ApiError && error.fieldErrors.interests) {
-        setError('interests', { message: error.fieldErrors.interests });
-      } else {
-        setError('root', {
-          message: error instanceof Error ? error.message : 'Unable to save your profile.',
-        });
+      if (error instanceof ApiError) {
+        let hasFieldError = false;
+        for (const field of ['username', 'displayName', 'bio', 'interests'] as const) {
+          const message = error.fieldErrors[field];
+          if (!message) continue;
+          setError(field, { message });
+          hasFieldError = true;
+        }
+        if (hasFieldError) return;
       }
+
+      setError('root', {
+        message: error instanceof Error ? error.message : 'Unable to save your profile.',
+      });
     }
   });
 
@@ -131,6 +140,29 @@ export function ProfilePage() {
                   {errors.root.message}
                 </p>
               ) : null}
+
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="profile-username"
+                  className="text-muted-foreground mb-1 block text-xs font-medium"
+                >
+                  Username
+                </label>
+                <Input
+                  id="profile-username"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  maxLength={30}
+                  aria-invalid={Boolean(errors.username)}
+                  {...register('username')}
+                />
+                {errors.username ? (
+                  <p role="alert" className="text-destructive text-base">
+                    {errors.username.message}
+                  </p>
+                ) : null}
+              </div>
 
               <div className="space-y-1.5">
                 <label

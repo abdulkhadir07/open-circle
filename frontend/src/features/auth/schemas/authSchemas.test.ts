@@ -4,6 +4,7 @@ import { signupSchema } from './signupSchema';
 import { verificationSchema } from './verificationSchema';
 
 const validSignup = {
+  username: 'maya.chen',
   firstName: 'Maya',
   lastName: 'Chen',
   dateOfBirth: '1994-05-12',
@@ -46,6 +47,12 @@ describe('auth schemas', () => {
       false,
     );
     expect(signupSchema.safeParse({ ...validSignup, phoneNumber: '12345' }).success).toBe(false);
+  });
+
+  it('accepts readable usernames and rejects unsupported separators', () => {
+    expect(signupSchema.safeParse({ ...validSignup, username: 'maya_chen.94' }).success).toBe(true);
+    expect(signupSchema.safeParse({ ...validSignup, username: 'maya--chen' }).success).toBe(false);
+    expect(signupSchema.safeParse({ ...validSignup, username: '.maya' }).success).toBe(false);
   });
 
   it('accepts multi-part Unicode names with spaces, apostrophes, and hyphens', () => {

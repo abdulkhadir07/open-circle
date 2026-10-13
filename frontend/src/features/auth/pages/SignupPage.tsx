@@ -20,6 +20,7 @@ import { useSignup } from '../hooks/useSignup';
 import { signupSchema, signupStepFields, type SignupFormValues } from '../schemas/signupSchema';
 
 const fieldStep: Record<keyof SignupFormValues, number> = {
+  username: 0,
   firstName: 0,
   lastName: 0,
   dateOfBirth: 0,
@@ -38,6 +39,7 @@ function isSignupField(value: string): value is keyof SignupFormValues {
 
 function toSignupRequest(values: SignupFormValues): SignupRequest {
   return {
+    username: values.username.trim().toLowerCase(),
     firstName: values.firstName,
     lastName: values.lastName,
     dateOfBirth: values.dateOfBirth,
@@ -91,6 +93,7 @@ export function SignupPage() {
     resolver: zodResolver(signupSchema),
     mode: 'onTouched',
     defaultValues: {
+      username: '',
       firstName: '',
       lastName: '',
       dateOfBirth: '',
@@ -186,19 +189,23 @@ export function SignupPage() {
       await signup.mutateAsync(request);
       navigate('/verify-email', { replace: true, state: { email: request.email } });
     } catch (error) {
+      let hasFieldError = false;
       if (error instanceof ApiError) {
         let earliestStep = error.status === 409 ? 1 : currentStep;
         for (const [field, message] of Object.entries(error.fieldErrors)) {
           if (!isSignupField(field)) continue;
           setError(field, { message });
+          hasFieldError = true;
           earliestStep = Math.min(earliestStep, fieldStep[field]);
         }
         setCurrentStep(earliestStep);
       }
 
-      setError('root.server', {
-        message: error instanceof Error ? error.message : 'Unable to create your account.',
-      });
+      if (!hasFieldError) {
+        setError('root.server', {
+          message: error instanceof Error ? error.message : 'Unable to create your account.',
+        });
+      }
     }
   });
 
@@ -231,6 +238,17 @@ export function SignupPage() {
             >
               {currentStep === 0 ? (
                 <>
+                  <AuthFormField
+                    id="username"
+                    label="Username"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    maxLength={30}
+                    hint="3-30 characters. Letters, numbers, periods, and underscores."
+                    error={errors.username?.message}
+                    {...register('username')}
+                  />
                   <div className="grid gap-5 sm:grid-cols-2">
                     <AuthFormField
                       id="first-name"

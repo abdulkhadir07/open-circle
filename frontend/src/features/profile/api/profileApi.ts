@@ -16,6 +16,7 @@ export async function getProfile(userId: string) {
 }
 
 export type UpdateProfilePayload = {
+  username: string;
   displayName: string;
   bio: string | null;
   interests: string[];

@@ -30,6 +30,7 @@ async function selectFromCombobox(
 }
 
 async function fillThroughFinalStep(user: ReturnType<typeof renderWithProviders>['user']) {
+  await user.type(screen.getByLabelText('Username'), 'maya.chen');
   await user.type(screen.getByLabelText('First name'), 'Maya');
   await user.type(screen.getByLabelText('Last name'), 'Chen');
   await user.click(screen.getByRole('option', { name: '12' }));
@@ -111,6 +112,7 @@ describe('SignupPage', () => {
 
     await user.type(screen.getByLabelText('First name'), 'Maya');
     await user.type(screen.getByLabelText('Last name'), 'Chen');
+    await user.type(screen.getByLabelText('Username'), 'maya.chen');
     await user.click(screen.getByRole('option', { name: '12' }));
     await user.click(screen.getByRole('option', { name: 'May' }));
     await user.click(screen.getByRole('option', { name: '1994' }));
@@ -138,6 +140,7 @@ describe('SignupPage', () => {
     expect(await screen.findByText('Verification route')).toBeInTheDocument();
     expect(signupCalls).toBe(1);
     expect(signupBody).toEqual({
+      username: 'maya.chen',
       firstName: 'Maya',
       lastName: 'Chen',
       dateOfBirth: '1994-05-12',
@@ -174,9 +177,34 @@ describe('SignupPage', () => {
     expect(screen.getByText('Step 2 of 4')).toBeInTheDocument();
   });
 
+  it('returns a taken username to the first step', async () => {
+    server.use(
+      http.post('*/api/auth/signup', () =>
+        HttpResponse.json(
+          {
+            timestamp: new Date().toISOString(),
+            status: 409,
+            error: 'CONFLICT',
+            message: 'Username is already in use',
+            path: '/api/auth/signup',
+            fieldErrors: { username: 'Username is already in use' },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    const { user } = renderSignup();
+    await fillThroughFinalStep(user);
+    await user.click(screen.getByRole('button', { name: 'Create account' }));
+
+    expect(await screen.findByText('Username is already in use')).toBeInTheDocument();
+    expect(screen.getByText('Step 1 of 4')).toBeInTheDocument();
+  });
+
   it('rejects unsupported characters in first and last name', async () => {
     const { user } = renderSignup();
 
+    await user.type(screen.getByLabelText('Username'), 'maya.chen');
     await user.type(screen.getByLabelText('First name'), 'Maya1');
     await user.type(screen.getByLabelText('Last name'), 'Chen_Lee');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
@@ -195,6 +223,7 @@ describe('SignupPage', () => {
   it('requires a full date of birth before leaving the first step', async () => {
     const { user } = renderSignup();
 
+    await user.type(screen.getByLabelText('Username'), 'maya.chen');
     await user.type(screen.getByLabelText('First name'), 'Maya');
     await user.type(screen.getByLabelText('Last name'), 'Chen');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
@@ -209,6 +238,7 @@ describe('SignupPage', () => {
   });
 
   async function reachLocationStep(user: ReturnType<typeof renderWithProviders>['user']) {
+    await user.type(screen.getByLabelText('Username'), 'maya.chen');
     await user.type(screen.getByLabelText('First name'), 'Maya');
     await user.type(screen.getByLabelText('Last name'), 'Chen');
     await user.click(screen.getByRole('option', { name: '12' }));
@@ -287,6 +317,7 @@ describe('SignupPage', () => {
   it('blocks letters in a phone number before leaving the contact step', async () => {
     const { user } = renderSignup();
 
+    await user.type(screen.getByLabelText('Username'), 'maya.chen');
     await user.type(screen.getByLabelText('First name'), 'Maya');
     await user.type(screen.getByLabelText('Last name'), 'Chen');
     await user.click(screen.getByRole('option', { name: '12' }));
