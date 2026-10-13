@@ -116,6 +116,11 @@ const PersonalInfoSettingsPage = lazy(() =>
     default: module.PersonalInfoSettingsPage,
   })),
 );
+const DeleteAccountPage = lazy(() =>
+  import('@/features/accountsettings/pages/DeleteAccountPage').then((module) => ({
+    default: module.DeleteAccountPage,
+  })),
+);
 
 export function AppRoutes() {
   return (
@@ -264,6 +269,14 @@ export function AppRoutes() {
             element={
               <AppLayout>
                 <PersonalInfoSettingsPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/settings/delete-account"
+            element={
+              <AppLayout>
+                <DeleteAccountPage />
               </AppLayout>
             }
           />

@@ -7,6 +7,7 @@ import {
   Monitor,
   Palette,
   ShieldCheck,
+  Trash2,
   User,
   type LucideIcon,
 } from 'lucide-react';
@@ -21,7 +22,13 @@ import { useLogout } from '@/features/auth/hooks/useLogout';
 import { getStoredTheme } from '@/lib/theme';
 import { useSessions } from '../hooks/useSessions';
 
-type SettingsRow = { to: string; icon: LucideIcon; title: string; description: string };
+type SettingsRow = {
+  to: string;
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  destructive?: boolean;
+};
 
 const THEME_LABELS = { system: 'System', light: 'Light', dark: 'Dark' } as const;
 
@@ -32,13 +39,19 @@ function SettingsGroup({ label, rows }: { label: string; rows: SettingsRow[] }) 
         {label}
       </h2>
       <Card className="divide-y overflow-hidden p-0">
-        {rows.map(({ to, icon: Icon, title, description }) => (
+        {rows.map(({ to, icon: Icon, title, description, destructive }) => (
           <Link
             key={to}
             to={to}
             className="hover:bg-muted/50 focus-visible:ring-ring flex items-center gap-4 p-4 transition-colors outline-none focus-visible:ring-2 focus-visible:-outline-offset-2"
           >
-            <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full">
+            <span
+              className={
+                destructive
+                  ? 'bg-destructive/10 text-destructive flex size-10 shrink-0 items-center justify-center rounded-full'
+                  : 'bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full'
+              }
+            >
               <Icon aria-hidden="true" className="size-4.5" />
             </span>
             <span className="min-w-0 flex-1">
@@ -116,6 +129,16 @@ export function SettingsPage() {
     },
   ];
 
+  const danger: SettingsRow[] = [
+    {
+      to: '/settings/delete-account',
+      icon: Trash2,
+      title: 'Delete account',
+      description: 'Permanently delete your account and information',
+      destructive: true,
+    },
+  ];
+
   return (
     <div>
       <PageHeader title="Settings" sub="Manage your account and how you sign in." />
@@ -147,6 +170,7 @@ export function SettingsPage() {
         <SettingsGroup label="Account" rows={account} />
         <SettingsGroup label="Security" rows={security} />
         <SettingsGroup label="Appearance" rows={appearance} />
+        <SettingsGroup label="Danger zone" rows={danger} />
 
         <div className="mt-8">
           <Button

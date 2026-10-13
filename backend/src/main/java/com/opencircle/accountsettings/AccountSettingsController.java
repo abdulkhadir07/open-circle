@@ -34,6 +34,7 @@ class AccountSettingsController {
     private final CurrentSessionProvider currentSessionProvider;
     private final RefreshTokenCookieService refreshTokenCookies;
     private final HiddenChatsPinService hiddenChatsPinService;
+    private final AccountDeletionService accountDeletionService;
 
     AccountSettingsController(
             AccountSettingsService accountSettingsService,
@@ -41,7 +42,8 @@ class AccountSettingsController {
             CurrentUserProvider currentUserProvider,
             CurrentSessionProvider currentSessionProvider,
             RefreshTokenCookieService refreshTokenCookies,
-            HiddenChatsPinService hiddenChatsPinService
+            HiddenChatsPinService hiddenChatsPinService,
+            AccountDeletionService accountDeletionService
     ) {
         this.accountSettingsService = accountSettingsService;
         this.sessionService = sessionService;
@@ -49,6 +51,7 @@ class AccountSettingsController {
         this.currentSessionProvider = currentSessionProvider;
         this.refreshTokenCookies = refreshTokenCookies;
         this.hiddenChatsPinService = hiddenChatsPinService;
+        this.accountDeletionService = accountDeletionService;
     }
 
     @PutMapping("/password")
@@ -133,6 +136,21 @@ class AccountSettingsController {
         sessionService.revokeAll(
                 currentUserProvider.getCurrentUserId(jwt),
                 SessionRevocationReason.LOGOUT_ALL
+        );
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookies.clear().toString())
+                .build();
+    }
+
+    @DeleteMapping
+    ResponseEntity<Void> deleteAccount(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody DeleteAccountRequest request
+    ) {
+        accountDeletionService.deleteAccount(
+                currentUserProvider.getCurrentUserId(jwt),
+                request.currentPassword(),
+                request.confirmation()
         );
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookies.clear().toString())

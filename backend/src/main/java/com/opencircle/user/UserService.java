@@ -141,6 +141,12 @@ public class UserService {
         return users.saveAndFlush(user);
     }
 
+    @Transactional
+    public void deleteAndFlush(AppUser user) {
+        users.delete(user);
+        users.flush();
+    }
+
     @Transactional(readOnly = true)
     public Optional<AppUser> findByEmail(String email) {
         return users.findByEmailIgnoreCase(email);
