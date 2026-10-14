@@ -111,7 +111,7 @@ export function LoginPage() {
         </div>
         <AuthSubmitButton
           type="submit"
-          className="w-full"
+          className="h-11 w-full px-4"
           pending={login.isPending}
           pendingLabel="Signing in"
         >
