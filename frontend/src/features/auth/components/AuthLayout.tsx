@@ -38,7 +38,11 @@ export function AuthLayout({ title, description, children, footer }: AuthLayoutP
             transition={{ duration: reduceMotion ? 0 : 0.32, ease: 'easeOut' }}
             className="w-full max-w-md"
           >
-            <Link to="/" className="mb-9 flex w-fit items-center gap-2">
+            <Link
+              to="/"
+              aria-label="OpenCircle home"
+              className="mb-9 flex w-fit items-center gap-2"
+            >
               <Circle aria-hidden="true" className="text-primary size-5" strokeWidth={2.5} />
               <span className="text-primary text-lg font-semibold">OpenCircle</span>
             </Link>

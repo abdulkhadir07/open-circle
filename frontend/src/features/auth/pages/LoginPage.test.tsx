@@ -56,6 +56,7 @@ describe('LoginPage', () => {
     expect(
       screen.getByRole('img', { name: 'Friends making plans together in a city plaza' }),
     ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'OpenCircle home' })).toHaveAttribute('href', '/');
   });
 
   it('authenticates, seeds the user, and returns to the intended route', async () => {
