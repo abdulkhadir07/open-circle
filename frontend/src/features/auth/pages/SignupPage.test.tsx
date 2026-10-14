@@ -94,6 +94,14 @@ describe('SignupPage', () => {
       });
   });
 
+  it('shows the original community image layout', () => {
+    renderSignup();
+
+    expect(
+      screen.getByRole('img', { name: 'Friends making plans together in a city plaza' }),
+    ).toBeVisible();
+  });
+
   it('validates each step, preserves back-navigation values, and submits only on step four', async () => {
     let signupCalls = 0;
     let signupBody: unknown;
