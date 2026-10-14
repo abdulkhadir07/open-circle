@@ -515,7 +515,7 @@ export function SignupPage() {
             <Button
               type="button"
               variant="outline"
-              className="px-4"
+              className="h-11 px-4"
               onClick={() => {
                 clearErrors('root.server');
                 setCurrentStep((step) => step - 1);
@@ -527,7 +527,7 @@ export function SignupPage() {
           ) : null}
           <AuthSubmitButton
             type="submit"
-            className="flex-1"
+            className="h-11 flex-1 px-4"
             pending={signup.isPending}
             pendingLabel="Creating account"
             disabled={signup.isPending || (currentStep === 2 && locationDataBusy)}
