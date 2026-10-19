@@ -312,5 +312,3 @@ OpenCircle is actively developed and deployed. The production application, backe
 ## License
 
 No open source license has currently been published. All rights reserved.
-
-One important security note: the local `application-local.properties` file contains a real-looking AI credential. Git correctly ignores that file, but the credential should still be rotated if the file has ever been shared, backed up publicly, or pasted into another service.
