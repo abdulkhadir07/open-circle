@@ -1,207 +1,338 @@
-```md
-# Project Brief
+# OpenCircle Project Brief
 
-## Overview
+## Document Status
 
-OpenCircle is a location-based social app where users discover posts based on location instead of followers.
+- **Product:** OpenCircle
+- **Status:** Implemented and deployed
+- **Production frontend:** [open-circle-puce.vercel.app](https://open-circle-puce.vercel.app)
+- **Production API:** [backend-production-1f35.up.railway.app](https://backend-production-1f35.up.railway.app)
 
-The app has two main content types:
+## Product Overview
 
-1. Invite Posts
-2. Banter Posts
+OpenCircle is a location based social platform that helps people discover activities and make plans with others nearby.
 
-Invite posts are temporary and expire after 24 hours. Banter posts are discussion-based and do not expire.
+Users publish temporary invite posts, choose who can see them, review requests from interested people, and coordinate accepted activities through real time chat. OpenCircle also supports persistent community discussions, profiles, ratings, notifications, and annual community recognition.
 
-## Main User Flow
+The product does not require users to build a follower network before participating.
 
-1. A user signs up and sets their city, state/region, and country.
-2. The user creates an invite post.
-3. The user chooses visibility: city, state/region, country, or global.
-4. Other users who match the visibility rules can see the post.
-5. A viewer can click Engage.
-6. The poster can accept, decline, or hold the engagement request.
-7. If accepted, both users are moved into a chat room.
-8. After the interaction, users rate each other.
+## Product Goals
 
-## Feed Rules
+OpenCircle is designed to:
+
+- Make discovering nearby activities simple
+- Help users turn ideas into real plans
+- Give users control over who joins their activities
+- Support both individual and group invitations
+- Encourage trustworthy interactions through ratings and reputation
+- Protect personal information through limited location exposure
+- Provide clear account and privacy controls
+
+## Target Users
+
+OpenCircle is intended for people who want to:
+
+- Find others interested in nearby activities
+- Organize casual plans or group events
+- Meet people after moving to a new city
+- Find study, fitness, travel, food, or entertainment companions
+- Participate in local or global community discussions
+
+## Core User Journey
+
+1. A user creates an account and verifies their email.
+2. The user chooses a unique username and provides profile information.
+3. The user sets and verifies their location.
+4. The user browses local or global invite posts.
+5. The user publishes an invite for an activity.
+6. Other users request to join the invite.
+7. The invite owner accepts, declines, or holds each request.
+8. Accepted users coordinate through a chat room.
+9. Participants can rate each other after the interaction.
+10. Ratings and completed interactions contribute to community reputation and scoring.
+
+## Authentication and Accounts
+
+Users can:
+
+- Register with an email address, username, password, name, date of birth, and location
+- Verify their email using a six digit code
+- Sign in and maintain a secure authenticated session
+- Request a password reset code
+- Change their password
+- Change and verify their email address
+- Review and revoke active sessions
+- Sign out from all devices
+- Delete their account immediately
+
+Authentication responses must not reveal whether an email address belongs to an existing account.
+
+Deleting an account has no grace period. Account owned information and associated stored files are removed as part of the deletion process.
+
+## Profiles
+
+Each user has a profile containing:
+
+- Username
+- First and last name
+- Profile picture
+- Biography
+- Interests
+- Broad location
+- Open invite posts
+- Reputation information
+- Community awards
+
+Users can edit their own profile and username. Other authenticated users can view public profile information and profile pictures.
+
+## Location
+
+Location determines which local invite posts a user can discover.
+
+Supported visibility levels are:
+
+- City
+- State or region
+- Country
+- Global
+
+A user can see a location scoped invite only when their verified location matches the scope selected by the invite owner.
+
+The application stores broad location information for discovery. Device coordinates are used during location verification and are not presented publicly as a user’s exact location.
+
+## Invite Posts
+
+Invite posts represent temporary plans or activities.
+
+An invite post includes:
+
+- Activity description
+- Single person or group invite type
+- Group capacity when applicable
+- Visibility scope
+- Up to five topic tags
+- Up to four images
+- Creation and expiration timestamps
+
+Invite posts expire automatically after 24 hours.
+
+The invite owner can:
+
+- Edit the invite
+- Delete the invite
+- Review engagement requests
+- Accept, decline, or hold requests
+- Manage accepted participants
+
+Single person invites have a capacity of one. Group invites must have a capacity of at least two and close when no spaces remain.
+
+Invite images must be JPEG, PNG, or WebP files and cannot exceed 5 MB each.
+
+## Feeds
+
+OpenCircle provides two primary invite feeds.
 
 ### Local Feed
 
-The Local feed shows posts visible to the user's location.
-
-Example:
-
-A user in San Francisco, California, United States can see:
-
-- city posts for San Francisco
-- state/region posts for California
-- country posts for United States
+The local feed contains active invites that match the user’s verified city, state or region, or country.
 
 ### Global Feed
 
-The Global feed shows posts marked as global.
+The global feed contains active invites published for the global audience.
 
-## Invite Post Rules
+Expired invites are excluded from both feeds.
 
-Invite posts are for real-world or direct social engagement.
+Users can browse by audience and use topic tags to discover relevant plans.
 
-Examples:
+## Engagement Requests
 
-- "I just moved to San Francisco from The Gambia. Any Gambians here want to hang out?"
-- "Wanna hang out next Saturday at the beach?"
-- "Anyone studying Java at SFSU tonight?"
+An authenticated user can request to join an active invite they do not own.
 
-Rules:
+An engagement request can be:
 
-- Invite posts expire after 24 hours.
-- The poster can close a post early.
-- A user can request to engage.
-- The poster decides who gets accepted.
-- Accepted users enter a chat room.
-- Invite posts can be single invite or group invite.
+- Pending
+- Accepted
+- Declined
+- Held
+- Withdrawn
 
-## Group Invite Rules
+The requester can withdraw a pending request. The invite owner controls acceptance and cannot exceed the invite’s remaining capacity.
 
-A group invite has a maximum number of accepted users.
+Accepting a request grants the participant access to the related chat experience.
 
-Example:
+## Chat
 
-```text
-Group invite: 5
-Invites left: 4
-```
+Accepted engagement requests create or update a chat room for the invite.
 
-When the poster accepts a request, the number of invites left decreases.
+Chat supports:
 
-When no invites are left, the post closes automatically.
+- Real time messages
+- Participant presence
+- Image and PDF attachments
+- Saved chats
+- Hidden chats protected by a PIN
+- Leaving a chat
+- Participant removal by the invite owner
 
-## Banter Rules
+Chat attachments cannot exceed 10 MB. Supported attachment formats are JPEG, PNG, WebP, and PDF.
 
-Banter posts are for public discussion.
+Private attachments are stored in S3 and accessed through temporary signed URLs.
 
-Example:
+## Banter
 
-```text
-Who agrees Messi is better than Pele and why?
-```
+Banter provides persistent community discussions that do not expire with invite posts.
 
-Rules:
+Users can:
 
-- Banter posts do not expire.
-- Banter posts can be local or global.
-- Users can reply publicly.
-- Replies belong to the original banter post.
+- Publish local or global discussions
+- Reply to discussions
+- Like and unlike discussions
+- Delete discussions they own
+- Delete replies they own
 
-## Database Structure
+Banter is intended for ongoing public conversation rather than activity coordination.
 
-Main tables:
+## Notifications
 
-```text
-users
-invite_posts
-engagement_requests
-chat_rooms
-chat_participants
-chat_messages
-banter_posts
-banter_replies
-ratings
-reports
-```
+Users receive notifications for relevant account and community events, including:
 
-## API Structure
+- Engagement request activity
+- Invite expiration
+- Chat activity
+- Rating availability
+- Other supported account events
 
-### Users
+Notifications are delivered through the API and updated in real time through WebSocket connections.
 
-```text
-POST /api/auth/signup
-POST /api/auth/login
-GET  /api/users/me
-GET  /api/users/{id}
-```
+Users can mark individual notifications or all notifications as read.
 
-### Invite Posts
+## Ratings and Reputation
 
-```text
-POST /api/invites
-GET  /api/invites/{id}
-GET  /api/feed/local
-GET  /api/feed/global
-POST /api/invites/{id}/close
-DELETE /api/invites/{id}
-```
+Users can rate eligible participants after an interaction.
 
-### Engagement Requests
+The rating system:
 
-```text
-POST /api/invites/{id}/engagements
-GET  /api/invites/{id}/engagements
-POST /api/engagements/{id}/accept
-POST /api/engagements/{id}/decline
-POST /api/engagements/{id}/hold
-POST /api/invites/{id}/engagements/decline-all
-```
+- Restricts ratings to eligible completed interactions
+- Prevents duplicate ratings for the same interaction
+- Displays received ratings and reputation
+- Contributes to community scoring and recognition
 
-### Chat
+Ratings are intended to help users make informed decisions when reviewing future engagement requests.
 
-```text
-GET  /api/chats
-GET  /api/chats/{id}/messages
-POST /api/chats/{id}/messages
-```
+## Scores and Awards
 
-### Banter
+OpenCircle maintains annual community scores based on qualifying activity and reputation signals.
 
-```text
-POST /api/banter
-GET  /api/banter/local
-GET  /api/banter/global
-GET  /api/banter/{id}
-POST /api/banter/{id}/replies
-DELETE /api/banter/{id}
-```
+Users can view:
 
-### Ratings
+- Their current score
+- The community scoreboard
+- Annual Hall of Fame results
+- Awards displayed on user profiles
 
-```text
-POST /api/engagements/{id}/ratings
-GET  /api/users/{id}/reputation
-```
+Scoring and awards encourage positive participation without requiring a follower count.
 
-## Testing Plan
+## AI Assistance
 
-### Unit Tests
+OpenCircle can use Gemini to provide:
 
-Unit tests will cover business logic such as:
+- Structured invite drafts from casual descriptions
+- Feed insights based on available invites and profile interests
 
-- invite expiration logic
-- location visibility logic
-- group invite slot decrease logic
-- engagement accept/decline/hold logic
-- badge calculation logic
+AI requests are rate limited. When Gemini is unavailable or not configured, the application uses deterministic built in fallback rules so core workflows remain available.
 
-### Integration Tests
+## Account Settings
 
-Integration tests will cover API and database behavior such as:
+Account settings include:
 
-- creating a user
-- creating an invite post
-- fetching the local feed
-- hiding city-only posts from users outside the city
-- requesting engagement
-- accepting engagement and creating a chat room
+- Personal information
+- Password management
+- Email management
+- Hidden chat PIN
+- Active sessions
+- Appearance preferences
+- Immediate account deletion
 
-## CI/CD Plan
+Sensitive actions require appropriate authentication and confirmation.
 
-GitHub Actions will run on every push and pull request.
+## Security Requirements
 
-Pipeline steps:
+OpenCircle must:
 
-```text
-checkout code
-set up Java
-run backend tests
-set up Node
-run frontend tests
-build frontend
-```
+- Hash passwords and security PINs using BCrypt
+- Use short lived signed access tokens
+- Store refresh sessions in secure HTTP only cookies
+- Support session revocation
+- Restrict cross origin requests to approved frontend origins
+- Validate all request data on the backend
+- Enforce upload type and size limits
+- Use temporary signed URLs for private S3 files
+- Expire email verification and password reset codes
+- Limit verification and reset attempts
+- Avoid exposing account existence through recovery endpoints
+- Return controlled JSON errors without exposing credentials or internal details
+
+## Privacy Requirements
+
+OpenCircle must:
+
+- Display broad location information rather than exact coordinates
+- Restrict private chats to authorized participants
+- Restrict profile and invite modifications to their owners
+- Restrict stored file access through expiring URLs
+- Remove account owned data and files during immediate account deletion
+- Avoid logging passwords, authentication tokens, verification codes, or private message content
+
+## Operational Requirements
+
+The production system consists of:
+
+- React frontend deployed through Vercel
+- Spring Boot backend deployed through Railway
+- Railway PostgreSQL database
+- AWS S3 private file storage
+- Brevo transactional email
+- WebSocket communication using STOMP
+- Flyway managed database migrations
+- GitHub Actions continuous integration
+
+The backend exposes a health endpoint for deployment monitoring.
+
+## Quality Requirements
+
+Every change should maintain:
+
+- Responsive desktop and mobile behavior
+- Accessible labels and keyboard navigation
+- Consistent API error responses
+- Backend unit and integration coverage
+- Frontend unit and component coverage
+- Browser coverage for critical authentication flows
+- Successful formatting, linting, tests, and production builds
+- Compatibility with direct frontend route navigation
+
+## Current Status
+
+The following systems are implemented and operational:
+
+- Registration and email verification
+- Login, logout, sessions, and password recovery
+- User profiles and profile pictures
+- Location verification
+- Local and global invite feeds
+- Invite creation, editing, deletion, tags, and images
+- Engagement request management
+- Real time chat and attachments
+- Notifications
+- Banter discussions
+- Ratings and reputation
+- Annual scoring and awards
+- Account settings
+- Immediate account deletion
+- AI assisted invite drafting and feed insights
+- Production deployment and continuous integration
+
+## Supporting Documentation
+
+- [Repository README](../README.md)
+- Local Swagger UI: `http://localhost:8080/swagger-ui.html`
+- Local OpenAPI document: `http://localhost:8080/v3/api-docs`
